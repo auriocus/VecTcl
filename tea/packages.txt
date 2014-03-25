@@ -1,0 +1,281 @@
+[section {Chapter 4. TCL PACKAGES}]
+
+NOTE: needs an update!!
+[para]
+
+The [emph package] mechanism, by which an extension is made available
+to a Tcl application is both simple and daunting, simple if you can stick to
+the user side, daunting if you need to understand how it actually
+works. In this chapter we give an overview of what the average
+programmer needs to know about it and nothing more. (The man pages
+on the [emph package] command are quite extensive and they document some
+of the inner workings too.)
+
+
+[section {The user side}]
+
+For the programmer who merely uses a particular package, there are two
+things he/she needs to know:
+
+[list_begin bullet]
+
+[bullet]
+the [emph {package require}] command
+
+[bullet]
+the auto_path variable
+
+[list_end]
+
+The programmer who needs, say, the Tktable extension, uses the
+following command:
+[example {
+   package require Tktable
+}]
+
+(mostly without a version number, sometimes with a version number)
+
+[para]
+This instructs Tcl to go look for files "pkgIndex.tcl" in the
+directories listed in the [emph auto_path] variable and any of their
+subdirectories. Usually an installed package will be found in the
+standard place for extensions (packages): the lib directory under the
+Tcl installation directory. If not, the programmer can extend the
+auto_path variable with the directory that does contain the required
+package.
+
+
+[section {The package side}]
+
+If you are creating a package, then you need to know a bit more:
+- the [emph {package provide}] command for Tcl-based extensions/packages
+- the Tcl_PkgProvide() function for C-based extensions/packages
+
+[para]
+Here are small examples of both:
+
+[para]
+From the msgcat extension:
+[example {
+   # msgcat.tcl --
+   #
+   #       This file defines various procedures which implement a
+   #       message catalog facility for Tcl programs.  It should be
+   #       loaded with the command "package require msgcat".
+   #
+   # Copyright (c) 1998-2000 by Ajuba Solutions.
+   # Copyright (c) 1998 by Mark Harrison.
+   #
+   # See the file "license.terms" for information on usage and redistribution
+   # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+
+   package require Tcl 8.2
+   # When the version number changes, be sure to update the pkgIndex.tcl file,
+   # and the installation directory in the Makefiles.
+   package provide msgcat 1.3
+
+   namespace eval msgcat {
+      ...
+   }
+}]
+
+The corresponding pkgIndex.tcl file looks like this:
+[example {
+   if {![package vsatisfies [package provide Tcl] 8.2]} {return}
+   package ifneeded msgcat 1.3 [list source [file join $dir msgcat.tcl]]
+}]
+
+Note the variable "$dir" in the second statement: this variable is set
+by the package mechanism when it is looking for the required package.
+
+[para]
+From the example extension (Sample):
+[example {
+/*
+ *----------------------------------------------------------------------
+ *
+ * Sample_Init --
+ *
+ *      Initialize the new package.  The string "Sample" in the
+ *      function name must match the PACKAGE declaration at the top of
+ *      configure.in.
+ *
+ * Results:
+ *      A standard Tcl result
+ *
+ * Side effects:
+ *      The Sample package is created.
+ *      One new command "sha1" is added to the Tcl interpreter.
+ *
+ *----------------------------------------------------------------------
+ */
+
+int
+Sample_Init(Tcl_Interp *interp)
+{
+    if (Tcl_InitStubs(interp, "8.0", 0) == NULL) {
+        return TCL_ERROR;
+    }
+    if (Tcl_PkgRequire(interp, "Tcl", TCL_VERSION, 0) == NULL) {
+        if (TCL_VERSION[0] == '7') {
+            if (Tcl_PkgRequire(interp, "Tcl", "8.0", 0) == NULL) {
+                return TCL_ERROR;
+            }
+        }
+    }
+    if (Tcl_PkgProvide(interp, "sample", VERSION) != TCL_OK) {
+        return TCL_ERROR;
+    }
+    Tcl_CreateCommand(interp, "sha1", Sha1,
+            (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL);
+
+    ...
+}
+}]
+As this extension is built via the TEA facilities, a pkgIndex.tcl
+file is provided for automatically. Instead of simply sourcing a
+Tcl script, it will load the shared object or DLL that was built from
+the C sources, roughly like:
+[example {
+   package ifneeded sample 1.0 [list load [file join $dir libsample.so]]
+}]
+or:
+[example {
+   package ifneeded sample 1.0 [list load [file join $dir sample.dll]]
+}]
+The TEA will create the pkgIndex.tcl file automatically via the
+pkg_mkIndex command.
+
+
+[section {Details on version numbers}]
+
+The package command defines a number of administrative subcommands, like
+[emph {package vsatisfies}] that deal with version numbers and so on.
+In most cases, all you need to do as an extension writer is to use the
+well-known two-part version numbering.
+
+[para]
+It is, however, important to be consistent with the version numbers:
+
+[list_begin bullet]
+
+[bullet]
+Throughout the extension, the same version number must be used
+
+[bullet]
+New versions get a higher minor number and if there are major changes
+or incompatibilities with older versions, the major number should
+change.
+
+[bullet]
+This holds not only for the code itself, but also for the
+documentation and test cases.
+
+[list_end]
+
+For this reason, the TEA defines a C macro, VERSION, that holds the
+version string (you can see how it is used in the code for the sample
+extension). This string is built up of the major version and a
+combination of the minor version and the patchlevel. From the file
+"configure.in" (see Chapter 6) we have:
+[example {
+   #--------------------------------------------------------------------
+   # __CHANGE__
+   # Set your package name and version numbers here.  The NODOT_VERSION is
+   # required for constructing the library name on systems that don't like
+   # dots in library names (Windows).  The VERSION variable is used on the
+   # other systems.
+   #--------------------------------------------------------------------
+
+   PACKAGE=sample
+
+   MAJOR_VERSION=0
+   MINOR_VERSION=5
+   PATCHLEVEL=
+
+   VERSION=${MAJOR_VERSION}.${MINOR_VERSION}${PATCHLEVEL}
+   NODOT_VERSION=${MAJOR_VERSION}${MINOR_VERSION}
+}]
+
+So, the above would result in a macro VERSION with the value 0.5
+[para]
+The version number is also used to construct a distinguishing name for
+the library, like: libsample0.5.so or sample05.dll.
+This way there is much less chance of a conflict between versions.
+
+
+[section {Subtleties with package names}]
+
+There are a few things you must be aware of when choosing a name for
+the extension:
+[list_begin bullet]
+
+[bullet]
+package names should not end in a digit and should not contain
+special characters. Otherwise the script that generates the index file
+will be confused.
+
+[bullet]
+package names must be unique within an installation. Before you decide
+on some name, check that there is no other (popular) extension of that
+name (or something very similar).
+
+[list_end]
+
+
+[section {Subtleties at the C side}]
+
+Things are a bit more intertwined on the C side. As the command that
+will be used to load a binary extension is:
+[example {
+   load filename
+}]
+Tcl will have to deduce from the filename alone what the name is of the
+initialisation routine. The precise rules are explained in the manual
+page for the load command, but here are a few examples:
+[example {
+   Filename        Package name    Initial procedure
+   foo.dll         foo             Foo_Init
+   FOO.DLL         fOO             Foo_Init
+   libFOO.so       fOO             Foo_Init
+   libfoo1.2.so    fOo             Foo_Init
+}]
+So, in the index file you might see:
+[example {
+   package ifneeded fOo 1.2 [list load [file join $dir libfoo1.2.so]]
+}]
+A second issue is that for the extension to useful in a [emph safe]
+interpreter, you need to define an initialisation routine with a name
+like "Foo_SafeInit" (and possibly define the commands in another, safer,
+way).
+
+[para]
+The third issue that we would like to bring under your attention is the
+fact that under Windows you must explicitly indicate that a function in
+a DLL is to made visible (exported) to the outside world. Without this
+instruction the initialisation routine can not be loaded and therefore
+loading the extension fails.
+
+[para]
+The sample extension contains this fragment of code (sample.h) to take
+care of this (in general, the initialisation routine is the only one
+that needs to be exported - all others should be defined as [emph static] to
+reduce the chance of naming conflicts):
+[example {
+   /*
+    * Windows needs to know which symbols to export.
+    */
+
+   #ifdef BUILD_sample
+   #undef TCL_STORAGE_CLASS
+   #define TCL_STORAGE_CLASS DLLEXPORT
+   #endif /* BUILD_sample */
+
+   ...
+
+   /*
+    * Only the _Init function is exported.
+    */
+
+   EXTERN int      Sample_Init _ANSI_ARGS_((Tcl_Interp * interp));
+}]

@@ -1,0 +1,240 @@
+# Commands covered:  numarray
+#
+# This file contains a collection of tests for one or more of the Tcl
+# built-in commands.  Sourcing this file into Tcl runs the tests and
+# generates output for errors.  No output means no errors were found.
+#
+# Copyright (c) 2000 by Scriptics Corporation.
+#
+# See the file "license.terms" for information on usage and redistribution
+# of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+
+if {[lsearch [namespace children] ::tcltest] == -1} {
+    package require tcltest
+    namespace import ::tcltest::*
+}
+
+lappend auto_path [file dirname [file dirname [info script]]]
+package require vectcl
+
+proc matrix {args} {
+	# create matrix with dimensions as given in args
+	set d 1
+	foreach n $args { set d [expr {$d*$n}] }
+	set l {}
+	for {set i 1} {$i<=$d} {incr i} { lappend l [expr {double($i)}] }
+	numarray reshape $l {*}$args
+}
+
+test numarray creation -body {
+	numarray create {{1.0 2.0 3.0} {4.0 5.0 6.0} {7.0 8.0 9.0}}
+} -result {{1.0 2.0 3.0} {4.0 5.0 6.0} {7.0 8.0 9.0}}
+
+test numarray slice1 -body {
+	numarray slice {{1.0 2.0 3.0} {4.0 5.0 6.0} {7.0 8.0 9.0}} {{0 2 1} {1 2 1}}
+} -result {{2.0 3.0} {5.0 6.0} {8.0 9.0}}
+
+test numarray transpose -body {
+	set t {{1.0 2.0 3.0} {4.0 5.0 6.0} {7.0 8.0 9.0}}
+	numarray transpose $t
+} -result {{1.0 4.0 7.0} {2.0 5.0 8.0} {3.0 6.0 9.0}}
+
+test numarray transpose-set -body {
+	set t [numarray transpose {{1.0 2.0 3.0} {4.0 5.0 6.0} {7.0 8.0 9.0}}]
+	numarray set t 0 1 20
+} -result {{1.0 20.0 7.0} {2.0 5.0 8.0} {3.0 6.0 9.0}}
+
+
+test numarray refcount-1 -body {
+	set h [numarray create {1.0 2.0 3.0 4.0}]
+	set bla $h
+	set r1 [dict get [numarray info $h] refcount]
+	set h [numarray reshape $h 2 2]
+	
+	set r2 [dict get [numarray info $h] refcount]
+	numarray set h 0 1 50
+	
+	unset bla
+	set r3 [dict get [numarray info $h] refcount]
+
+	list $r1 $r2 $r3
+} -result {1 2 1}
+
+test numarray refcount-2 -body {
+	set h [matrix 3 3]
+	set bla [numarray slice $h {{0 -1 1} {1 1 1}}]
+	set r1 [dict get [numarray info $h] refcount]
+	numarray = h {{0 -1 1} {2 2 2}} {3.1 3.1 3.1}
+	
+	set r2 [dict get [numarray info $h] refcount]
+	
+	list $r1 $r2 $bla
+} -result {2 1 {2.0 5.0 8.0}}
+
+
+test numarray nesterror-1 -body {
+	numarray create {{1.0 2.0} 3.0}
+} -returnCodes error -result {Non-matching dimensions in nested list}
+
+test numarray parseerror -body {
+	numarray create {{1.0 2.0} {3.0 a}}
+} -returnCodes error -result {expected complex number but got "a"}
+
+test numarray dimensions-1 -body {
+	numarray dimensions {1.0 2.0 3.0}
+} -result 1
+
+test numarray dimensions-2 -body {
+	numarray dimensions {{1.0 2.0 3.0}}
+} -result 2
+
+test numarray dimensions-3 -body {
+	numarray dimensions [matrix 2 3 5]
+} -result 3
+
+
+test numarray scalar -body {
+	set a [numarray create 1.789]
+	numarray reshape $a 1
+} -result {1.789}
+
+
+test numarray empty -body {
+	set a [numarray create {}]
+} -result {}
+
+test numarray slice-2 -body {
+	numarray slice [matrix 3 3] {{0 -1 1} {1 1 1}}
+} -result {2.0 5.0 8.0}
+
+test numarray slice-3 -body {
+	numarray slice [matrix 3 3] {{0 -1 1} {2 2 1}}
+} -result {3.0 6.0 9.0}
+
+test numarray slice-4 -body {
+	numarray slice [matrix 3 3] {{0 0 1} {0 2 1}}
+} -result {1.0 2.0 3.0}
+
+test numarray slice-5 -body {
+	numarray slice [matrix 3 3] {{1 1 1} {0 -1 1}}
+} -result {4.0 5.0 6.0}
+
+test numarray slice-6 -body {
+	numarray slice [matrix 4 3] {{0 -1 2} {1 1 1}}
+} -result {2.0 8.0}
+
+test numarray slice-7 -body {
+	numarray slice [matrix 3 3] {{1 1 1} {1 1 1}}
+} -result {5.0}
+
+test numarray slice-8 -body {
+	numarray slice [matrix 3 3 3] {{1 1 1} {0 -1 1} {0 -1 1}}
+} -result {{10.0 11.0 12.0} {13.0 14.0 15.0} {16.0 17.0 18.0}}
+
+test numarray slice-9 -body {
+	numarray slice [matrix 3 3 3] {{0 -1 1} {1 1 1} {0 -1 1}}
+} -result {{4.0 5.0 6.0} {13.0 14.0 15.0} {22.0 23.0 24.0}}
+
+test numarray slice-10 -body {
+	numarray slice [matrix 3 3 3] {{0 -1 1} {0 -1 1} {1 1 1}}
+} -result {{2.0 5.0 8.0} {11.0 14.0 17.0} {20.0 23.0 26.0}}
+
+test numarray slice-11 -body {
+	numarray slice [matrix 3 3 3] {{0 -1 1} {1 1 1} {1 1 1}}
+} -result {5.0 14.0 23.0}
+
+test numarray slice-12 -body {
+	numarray slice [matrix 3 3 3] {{1 1 1} {1 1 1} {0 -1 1}}
+} -result {13.0 14.0 15.0}
+
+test numarray slice-13 -body {
+	numarray slice [matrix 3 3 3] {{1 1 1} {1 1 1} {1 1 1}}
+} -result {14.0}
+
+test numarray slicetranspose-1 -body {
+	set t [numarray slice [matrix 3 3 3] {{1 1 1} {1 1 1} {0 -1 1}}]
+	numarray transpose $t
+} -result {{13.0 14.0 15.0}}
+
+
+test numarray slicetranspose-2 -body {
+	set t [matrix 3 3 3]
+	set t [numarray slice [numarray transpose $t] {{1 1 1} {1 1 1} {0 -1 1}}]
+} -result {13.0 14.0 15.0}
+
+test numarray get-1 -body {
+	numarray get {1.0 2.0 3.0} 1
+} -result 2.0
+
+test numarray get-2 -body {
+	numarray get {{1.0 2.0} {3.0 4.0}} 1 0
+} -result 3.0
+
+test numarray get-3 -body {
+	numarray get [numarray slice [matrix 3 3] {{0 -1 1} {2 2 1}}] 1
+} -result 6.0
+
+test numarray get-4 -body {
+	numarray get {{1.0 2.0} {3.0 4.0}} 1
+} -returnCodes error -result {Dimension mismatch}
+
+test numarray get-5 -body {
+	numarray get {{1.0 2.0} {3.0 4.0}} 1 2
+} -returnCodes error -result {Index out of bounds}
+
+test numarray get-6 -body {
+	numarray get {{1.0 2.0} {3.0 4.0}} 1 -3
+} -returnCodes error -result {Index out of bounds}
+
+test numarray get-7 -body {
+	numarray get {{1.0 2.0} {3.0 4.0}} 1 -2
+} -result 3.0
+
+test numarray plusassignconst -body {
+	set A [matrix 2 2]
+	numarray += A 1.0
+} -result {{2.0 3.0} {4.0 5.0}}
+
+test numarray plusassign -body {
+	set A [matrix 2 2]
+	numarray += A {{1.0 0.0} {0.0 1.0}}
+} -result {{2.0 2.0} {3.0 5.0}}
+
+test numarray plusassignslice -body {
+	set A [matrix 3 3]
+	numarray += A {{0 -1 1} {1 1 1}} {1.0 2.0 3.0}
+} -result {{1.0 3.0 3.0} {4.0 7.0 6.0} {7.0 11.0 9.0}}
+
+test numarray kroneckerdot -body {
+	numarray * {1.0 2.0 3.0} {{1.0 2.0}}
+} -result {{1.0 2.0} {2.0 4.0} {3.0 6.0}}
+
+test numarray scalardot-1 -body {
+	numarray * {1.0 2.0 3.0} 2.0
+} -result {2.0 4.0 6.0}
+
+test numarray scalardot-2 -body {
+	numarray * 2.0 {1.0 2.0 3.0}
+} -result {2.0 4.0 6.0}
+
+test numarray dot-1 -body {
+	numarray * {{1.0 2.0} {3.0 4.0}} {{1.0 0.0} {1.0 0.0}}
+} -result {{3.0 0.0} {7.0 0.0}}
+
+test numarray dot-2 -body {
+	numarray * {{1.0 2.0} {3.0 4.0}} {1.0 1.0}
+} -result {3.0 7.0}
+
+test numarray dot-3 -body {
+	numarray * {{1.0 2.0 3.0 4.0}} {1.0 2.0 3.0 4.0}
+} -result {30.0}
+
+test numarray dot-4 -body {
+	numarray * {1.0 2.0} {1.0 1.0}
+} -returnCodes error -result {incompatible operands}
+
+# cleanup
+# cleanup
+::tcltest::cleanupTests
+return
+

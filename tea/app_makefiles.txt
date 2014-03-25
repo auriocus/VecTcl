@@ -1,0 +1,142 @@
+[section {Appendix A. Explanation of make files and the make utility}]
+
+If you are not familiar with the [emph make] program, here is a brief
+explanation of it. In some of its features it is very similar to
+MicroSoft's Visual Studio or other [emph {integrated development environments}]:
+it processes descriptions of how to create a program from its
+sources and does so in an efficient way. In fact, many IDE's use the
+[emph {make}] utility in some form or other underneath.
+
+[para]
+The main difference between the [emph make] utility and most, "modern"
+IDE's is that [emph make] does not itself manage the description, the
+so-called [emph {make file}]. This is left to the programmer. Another
+difference is that [emph make] can be used for almost any task where
+files need to be built
+from other files using some program, in other words it is very flexible.
+
+[para]
+[emph {A small example}]
+[para]
+
+So far the introduction to [emph make]. Let us now describe how
+[emph make] does the
+job it is supposed to do, using the following sample program:
+
+[para]
+The program "sample" is built from two C source files, sample.c and
+utils.c. The first source file includes a header file utils.h, which
+contains the interface to the functions in utils.c.
+
+[para]
+Now changes to any of these files mean that the whole program has to be
+rebuilt. For this small program, we could easily type the command:
+[example {
+   cc -o sample sample.c utils.c
+}]
+
+(or something similar, depending on the compiler you want to use). This
+would recompile the entire source and relink the program against all its
+parts.
+
+[para]
+Now:
+
+[list_begin bullet]
+
+[bullet]
+If only utils.c has changed, then it is a waste of time to recompile
+sample.c.
+
+[bullet]
+If the header file "utils.h" has changed, recompiling both is required,
+as the prototype of a function may have changed or something else that
+is vital to the functions in "utils.c". Only this is not clear at all
+from the command we just typed: the dependence of the two source files
+on this header file is hidden inside the sources!
+
+[list_end]
+
+This is what the [emph make] utility would do, when properly instructed:
+
+[list_begin bullet]
+
+[bullet]
+The file "sample" (our executable program) and others are defined
+as "targets": things for the [emph make] utility to examine.
+
+[bullet]
+The file "sample" depends on two "object files" (the results of
+a compilation):
+
+[list_begin bullet]
+[bullet]
+sample.o
+[bullet]
+utils.o
+[list_end]
+
+If any of these files is out of date, then the program is out of date.
+
+[bullet]
+So check if these two files are out of date, by checking their
+dependencies:
+
+[list_begin bullet]
+[bullet]
+sample.o depends on sample.c and utils.h (because sample.c uses
+that header file)
+[bullet]
+in a similar way, utils.o depends on utils.c and utils.h.
+By the same reasoning, check these three files.
+[list_end]
+
+[bullet]
+These files are source files and header files, we have edited these
+files manually, they can not be created from other files. So, this
+is the end of that step in the reasoning process.
+[bullet]
+The object files sample.o and utils.o are out of date if the three
+files are newer:
+
+[list_begin bullet]
+[bullet]
+sample.o is out of date if sample.c or utils.h is newer than this file.
+Then use the rule that belongs to sample.o to rebuild it
+[bullet]
+utils.o is out of date if utils.c or utils.h is newer than this file.
+Again: use the rule that belongs to utils.o to rebuild that.
+[list_end]
+
+[bullet]
+Now the two files that our program depends on are up to date.
+The program itself clearly is not. So, relink that program.
+
+[list_end]
+
+The makefile might look like this:
+[example {
+    sample->:->sample.o utils.o
+    ->cc -o sample sample.o utils.o
+
+    sample.o->:->sample.c utils.h
+    ->cc -c sample.c
+
+    utils.o->:->utils.c utils.h
+    ->cc -c utils.c
+}]
+(the symbol "->" indicates a tab character - this is essential in makefiles,
+as it is used to identify what lines belong together)
+
+[para]
+This is a very simple makefile, in practice programs that are maintained with
+makefiles are much larger, you need to take of building the documentation,
+libraries, of installing the files at the proper location and so on. To make
+things worse: many compilers use different options to specify similar
+tasks and operating systems require different libraries (or put the
+libraries in different places).
+
+[para]
+To help manage the makefiles, the [emph autoconf] utility was created. This
+utility prepares the correct makefile from a given template, using a
+complicated but relatively easy to use configuration script.

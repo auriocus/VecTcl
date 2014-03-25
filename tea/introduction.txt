@@ -1,0 +1,53 @@
+[comment {
+Remarks:
+- The sample extension uses the string interface
+- Is the sample extension in CVS up to date?
+- What makes tkimg special - its own stubs - why?
+}]
+
+[description]
+The Tcl Extension Architecture is meant to help developers set up a
+standardised environment so that any user can compile the extension
+without any knowledge of the extension. This way a lot of work can be
+saved.
+
+This document describes the various aspects of TEA in detail.
+
+[section {Chapter 1. OVERVIEW}]
+
+TEA relies heavily on the GNU tool [emph autoconf]. An intimate
+knowledge of this tool is, fortunately, not required, but for complicated
+extensions that rely on many things specific to a particular platform,
+it may be necessary to add your own checks and procedures to the
+existing TEA macro library.
+
+The structure of this document is as follows:
+[sectref {Chapter 2. DESIGN AND CODING}] describes the typical
+organisation in files and directories of an extension.
+
+[para]
+[sectref {Chapter 3. RECOMMENDED CODING STYLE}] holds information
+about what you should and should not do when coding an extension.
+
+[para]
+[sectref {Chapter 4. TCL PACKAGES}] highlights the package mechanism
+that is used by Tcl, whereas [sectref {Chapter 5. TCL STUBS}] explains
+the stubs mechanism, important for creating compiled extensions that are
+independent of the particular Tcl version.
+
+[para]
+[sectref {Chapter 6. CONFIGURE AND MAKE FILES}] is perhaps the most
+important chapter, as this describes how to create the input for the
+[emph autoconf] tool.
+
+[para]
+The subjects of [sectref {Chapter 7. WRITING AND RUNNING TESTS}] and
+[sectref {Chapter 8. DOCUMENTATION}] may not among most programmers'
+favourites, but they are very important to users. And everybody at some
+point is a user!
+
+[para]
+[sectref {Appendix A. Explanation of make files and the make utility}]
+is meant especially for those programmers not familiar to
+make files, because their development environment shields the
+complexities from them.

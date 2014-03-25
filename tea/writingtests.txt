@@ -1,0 +1,203 @@
+[section {Chapter 7. WRITING AND RUNNING TESTS}]
+
+As the developer of an extension you are probably in the best
+position to identify the kind of things that need to be tested:
+
+[list_begin bullet]
+
+[bullet]
+The reaction of a command to valid input
+
+[bullet]
+What constitutes invalid input and how your extension deals
+with that.
+
+[list_end]
+
+It is quite possible to give theoretically sound guidelines for
+a complete test suite (complete that is in the sense of some
+test criterium, for instance that all code is executed at
+least once when all the test cases are run). However, the
+same theory also teaches us that each criterium has its
+weaknesses and will let through certain types of bugs.
+Furthermore, the number of test cases and the management
+of the test code becomes unwieldy when your extension achieves
+a considerable size. (For more information, the classical
+book by Boris Beizer, Software Testing Techniques, can be consulted.
+There are many more similar publications.)
+
+[para]
+Let us deal instead with some more practical guidelines. Here are
+some minimal requirements:
+
+[list_begin bullet]
+
+[bullet]
+For all public commands in your extension, there should be at least
+one test case. If possible the test case should be small so that
+it concentrates on one and only one command, but that may not
+always be possible.
+
+[bullet]
+For all public commands at least one or two examples with [emph invalid]
+input (if there is any) should be defined. The purpose is to
+show that the extension can gracefully deal with such erroneous
+calls.
+[list_end]
+
+[para]
+If practical, then:
+
+[list_begin bullet]
+
+[bullet]
+You should define a fairly exhaustive set of
+test cases that together deal with all the defined functionality of the extension.
+
+[bullet]
+In a similar fashion all error cases should be included.
+
+[list_end]
+
+How we set up the tests? Simple, use the [emph tcltest] package. This package
+provides a complete and versatile infrastructure to deal with running
+tests and reporting the results (see the quite extensive manual page).
+
+[para]
+Here is a summary:
+
+[list_begin bullet]
+
+[bullet]
+Define small scripts that should return a known value.
+
+[bullet]
+The scripts are run and the actually returned value is compared
+to the expected value.
+
+[bullet]
+If there is a difference, then this is reported and the test fails.
+
+[bullet]
+For more flexibility:
+
+[list_begin bullet]
+[bullet]
+You can define the way the two values should be compared
+(via glob or regular expression matching or via a user-defined
+method, in case of floating-point values for instance)
+[bullet]
+You can define constraints for the tests - some tests only make
+sense on a specific platform for instance
+[bullet]
+You can prepare files via the special procedures that the tcltest
+package provides, so that they can be cleaned up properly.
+[list_end]
+
+[list_end]
+
+To illustrate this discussion with an example, consider an extension
+with a command "isValidXYZFile", this command checks the contents of the
+given file (the one argument to this command) and returns 1 if it is
+indeed a valid XYZ file (whatever XYZ files are) and 0 if it is not.
+
+[para]
+Test cases for this command could include:
+
+[list_begin bullet]
+
+[bullet]
+A valid XYZ file
+
+[bullet]
+An arbitrary file (that certainly is not an XYZ file)
+
+[bullet]
+No argument at all
+
+[bullet]
+A non-existent file
+
+[bullet]
+Two or more commands
+
+[list_end]
+
+The first two fall in the category "valid input", the others represent
+particular invalid input that the command is supposed to gracefully
+deal with (recognise that the input is not correct and report an
+error).
+
+[para]
+Traditionally, test scripts are contained in files with the extension
+".test". So let us put the following code in a file "xyzfiles.test" to
+test our "xyzfiles" extension:
+[example {
+   #
+   # Initialise the test package (we need only the "test" command)
+   #
+   package require tcltest
+   namespace import ::tcltest::test
+
+   #
+   # Get our xyzfiles extension
+   #
+   package require xyzfiles
+   namespace import xyzfiles::isValidXYZFile
+
+   #
+   # Our tests for valid input (sample.xyz is a valid XYZ file
+   # ships with the extension, sampe2.xyz is an invalid but
+   # existing file)
+   #
+
+   test "xyzfiles-1.1" "Valid XYZ file" -body {
+      isValidXYZFile "sample.xyz"
+   } -result 1 ;# It is a valid file, so the command returns 1
+
+   test "xyzfiles-1.2" "Not a valid XYZ file" -body {
+      isValidXYZFile "sample2.xyz"
+   } -result 0
+
+   #
+   # Invalid input (the major test number is changed for convenience
+   # only):
+   #
+
+   test "xyzfiles-2.1" "No argument" -body {
+      isValidXYZFile
+   } -returnCodes error -result "wrong # args: *" -match glob
+
+   # tcltest uses exact matching by default, so we change that for this case
+
+   test "xyzfiles-2.2" "Non-existent file" -body {
+      isValidXYZFile "non-existent-file.xyz"
+   } -returnCodes error -result "Non existent file *" -match glob
+
+   test "xyzfiles-2.3" "Too many arguments" -body {
+      isValidXYZFile 1 2 3 4
+   } -returnCodes error -result "wrong # args: *" -match glob
+}]
+
+Note that in the last three cases we use the [lb]catch[rb] command to catch
+the intended errors and we use the glob matching option to match against
+a rough string, rather than an exact string.
+
+[para]
+Testing the arguments is of course much more important in case
+of a compiled extension than in case of a Tcl-only procedure, but
+if there are subcommands that require different numbers of arguments
+it can be a good idea to add tests like the above.
+
+[para]
+These tests can be run by the command:
+[example {
+   > make test
+}]
+(See the code for "test" target in the make file)
+
+[para]
+It is good style to always run every test in a test suite.  If some
+tests fail on some platforms, use test constraints to prevent running
+of those particular tests. You can also use test constraints to
+protect non-test pieces of code in the test file.

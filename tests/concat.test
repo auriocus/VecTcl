@@ -1,0 +1,67 @@
+
+if {[lsearch [namespace children] ::tcltest] == -1} {
+    package require tcltest
+    namespace import ::tcltest::*
+}
+
+
+test numarray concat1 -body {
+	numarray concat {1.0 2.0} {1.0 1.0} 0
+} -result {1.0 2.0 1.0 1.0}
+
+test numarray concat2 -body {
+	numarray concat {1.0 2.0} {1.0 1.0} 1
+} -result {{1.0 1.0} {2.0 1.0}}
+
+test numarray concat3 -body {
+	numarray concat {1.0 2.0} {1.0 1.0} 2
+} -returnCodes error -result {Dimension out of bounds}
+
+test numarray concat4 -body {
+	numarray concat {1.0 2.0} 1.0 0
+} -result {1.0 2.0 1.0}
+
+test numarray concat5 -body {
+	numarray concat {1.0 2.0} 1.0 1
+} -result {{1.0 1.0} {2.0 1.0}}
+
+test numarray concat6 -body {
+	numarray concat {1.0 2.0} 1.0 2
+} -returnCodes error -result {Dimension out of bounds}
+
+test numarray concat7 -body {
+	numarray concat 5.0 {1.0 2.0} 0
+} -result {5.0 1.0 2.0}
+
+test numarray concat8 -body {
+	numarray concat {1.0 2.0} 5.0 1
+} -result {{1.0 5.0} {2.0 5.0}}
+
+test numarray concat9 -body {
+	numarray concat {1.0 2.0} {3.0 4.0} 1
+} -result {{1.0 3.0} {2.0 4.0}}
+
+test numarray concat10 -body {
+	numarray concat {{1.0 2.0} {3.0 4.0}} 5.0 0
+} -result {{1.0 2.0} {3.0 4.0} {5.0 5.0}}
+
+test numarray concat11 -body {
+	numarray concat {{1.0 2.0} {3.0 4.0}} 5.0 1
+} -result {{1.0 2.0 5.0} {3.0 4.0 5.0}}
+
+test numarray concat12 -body {
+	numarray concat {{1.0 2.0} {3.0 4.0}} {{5.0 6.0}} 0
+} -result {{1.0 2.0} {3.0 4.0} {5.0 6.0}}
+
+test numarray concat12 -body {
+	numarray concat {{1.0 2.0} {3.0 4.0}} {{5.0 6.0}} 1
+} -returnCodes error -result {Dimension mismatch}
+
+
+
+
+# cleanup
+# cleanup
+::tcltest::cleanupTests
+return
+

@@ -1,0 +1,57 @@
+[section {Chapter 3. RECOMMENDED CODING STYLE}]
+
+We do not want to say too much about coding style, and certainly we do
+not want to prescribe any particular style. Just make sure for yourself
+that:
+[list_begin bullet]
+
+[bullet]
+you have added appropriate and clear comments to the code
+
+[bullet]
+you have used well-defined and clear constructs, not too many C macros
+and such, which can make it difficult to understand the code
+
+[bullet]
+you do not rely on compiler-specific features (extensions to the
+standard language that are very uncommon for instance)
+
+[bullet]
+you dare show it to other people, as other people will definitely see
+it and read your code.
+
+[list_end]
+
+A very good example of coding style is Tcl itself: the code is
+well-documented, the layout is clean, with a bit of study you can really
+understand what is going on. More textual descriptions of a
+recommended coding style for C and for Tcl can be found in:
+....
+
+[para]
+We can add a few conventions here, almost trivial, perhaps, but since
+they are very often used, it will help people to understand your code
+better:
+
+[list_begin bullet]
+
+[bullet]
+For the use of namespaces (highly recommended to avoid name clashes),
+read the tutorial by Will Duquette.
+
+[bullet]
+Avoid the use of global variables, use namespace variables instead.
+
+[bullet]
+For "public" routines use names that start with a lowercase letter
+and add these to a [namespace export] command
+
+[bullet]
+For "private" routines use names that start with an uppercase letter
+
+[list_end]
+
+If you implement your extension in C, remember to use the Tcl_Obj
+interface: it is much faster than the old pre-8.0 interface that used
+strings. This means that you may need to pay quite some attention to
+issues like reference counts, but it is certainly worth the effort.

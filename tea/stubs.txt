@@ -1,0 +1,94 @@
+[section {Chapter 5. TCL STUBS}]
+
+The highly recommended way of using the Tcl and Tk libraries in a
+compiled extension is via [emph stubs]. Stubs allow you to compile and
+link an extension and use it with any (later) version of Tcl/Tk. If you
+do not, then the libraries can only be used with a very specific version
+of Tcl/Tk. This chapter provides some information about what the
+advantages and disadvantages are of using stubs.
+
+[para]
+It may seem intimidating at first, but the stubs mechanism in Tcl
+(available since version 8.1) is actually very simple - from the point
+of view of the programmer:
+[list_begin bullet]
+
+[bullet]
+You use the call to Tcl_InitStubs() in the initialisation routine
+(see the previous chapter)
+
+[bullet]
+You define a macro USE_TCL_STUBS when compiling the code
+
+[bullet]
+You link against the Tcl and Tk stubs library, instead of the actual
+libraries.
+
+[list_end]
+
+(Needless to say that most is automatically taken care of by the TEA.)
+
+[para]
+Here is what stubs are all about: rather than using the functions in the
+Tcl/Tk libraries directly, you access them via a pointer. The actual
+code that is involved is hidden from you via C macros, so you have
+nothing to worry about, except for the USE_TCL_STUBS macro and the
+proper initialisation. More information can be found in ...
+
+[para]
+The limitations of using stubs are that you can only use the Tcl
+functions that are publically available in the stub table (see for
+details the header files tcl.h and tk.h). You can not use the private
+functions (found in the other header files), but this is a bad idea in
+the first place, because the interface to these functions may change
+from one release to the next - they are simply not meant for use outside
+the Tcl library itself.
+
+[para]
+The advantages of stubs are plenty:
+
+[list_begin bullet]
+
+[bullet]
+You can compile and link the extension against, say, Tcl 8.3 and use
+it in Tcl 8.5. That is: the libraries remain useful.
+
+[bullet]
+It is thus also practical to provide binary versions only (if you want
+or need to keep the source code secret)
+
+[bullet]
+Stub-enabled extensions can be used in Tclkit, as this relies heavily
+on the stub mechanism.
+
+[list_end]
+
+To summarise:
+[para]
+When you use the TEA, then the only thing you need to take care of in
+your code, is that the initialisation routine calls Tcl_InitStubs().
+
+[para]
+Using stubs gives benefits both to you and the users of your extension
+that can not be had in another way.
+
+
+[section {Providing your own stubs}]
+
+A more complicated situation arises when your extension itself defines a
+stubs library. This was discussed in some length in Chapter 2. The
+advantage is that your functions can be used at the C level too and
+would form a veritable extension to the Tcl/Tk API.
+
+[para]
+In the build step this means that besides the ordinary shared object
+or DLL also a stubs library must be created. The process is almost
+automatic, except that you have to tell which functions are to be made
+available in the stubs library (via the .decls file) and you have to
+make some provisions in the TEA configuration and make files.
+
+[para]
+If the functions of your extension are to be registered in the Tcl or Tk
+library, as is the case with tkimg that provides new formats for the
+photo command, then it is necessary or at least highly recommended that
+you provide them via the stubs mechanism.

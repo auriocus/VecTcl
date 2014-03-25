@@ -1,0 +1,218 @@
+[section {Chapter 8. DOCUMENTATION}]
+
+It may seem a heavy burden for many a programmer, but documentation
+is necessary, even though one sometimes gets the impression (quite
+wrongly of course, but still) that no user ever bothers to read it.
+
+[para]
+Besides proper comments in the code, we need a guide for users to fall
+back on. Traditionally for Tcl/Tk this has been in the form of
+UNIX-style man pages:
+
+[list_begin bullet]
+
+[bullet]
+A short introduction to the command
+
+[bullet]
+A list of commands that one can use
+
+[bullet]
+One or more sections with explanations
+
+[list_end]
+
+This is a format that works well for more or less experienced users -
+they use the man page as a reference manual. On the other hand, new
+users may find them a bit awkward, as a lot of background is
+usually assumed.
+
+[para]
+For most extensions, it will suffice to use the classical man page
+format with perhaps some more explanation of what the extension is all
+about and some more examples and elaborated code fragments than usual.
+
+[para]
+To help with writing the documentation, we strongly suggest you use the
+so-called [emph doctools] that are now part of the standard Tcl applications.
+The basic idea of doctools is simple:
+
+[list_begin bullet]
+
+[bullet]
+You write the text for the man page using doctools' macros
+
+[bullet]
+These markup macros can be regarded as embedded Tcl commands and
+provide the markup system with clues as to how to format the text
+(many of the macros represent [emph semantic] clues, instead of mere style
+information)
+
+[bullet]
+The doctools application can then process this text and turn it into
+any of a number of formats, such as HTML but also nroff and TMML (Tcl
+Manual Markup Language).
+
+[bullet]
+This way, one single source suffices to generate all kinds of output
+files, suitable for most online documentation systems.
+
+[list_end]
+
+Here is a small example of such an input file:
+[example {
+......
+}]
+
+This file can be processed by the doctools application, to give an
+HTML-file that is rendered like this:
+
+[example {
+/picture/ ??
+}]
+
+[section {Short overview of the macros supported by doctools}]
+
+[para]
+[lb]arg $name[rb]
+- argument in a [lb]call[rb] statement
+[para]
+
+[lb]arg_def $type $name $intent[rb]
+- description of the argument, what type it is (widget, integer, list,
+...), its name and whether it simply passed to the command (in)
+or gets set as well (out or in/out)
+[para]
+
+[lb]bullet[rb]
+- start a new item in a bullet list
+[para]
+
+[lb]call $cmd $args[rb]
+- define a command (its argument list; the command gets added to the
+synopsis)
+[para]
+
+[lb]cmd $name[rb]
+- name of the command (first argument for [lb]call[rb])
+[para]
+
+[lb]comment $text[rb]
+- add comments to the original, does not show up in the output
+[para]
+
+[lb]copyright $name[rb]
+- insert a copyright string at the end of the rendered document
+[para]
+
+[lb]description[rb]
+- start the man page section DESCRIPTION (note: this section is required
+at the beginning of the document)
+[para]
+
+[lb]emph $text[rb]
+- show the given text as emphasized (typically italic)
+[para]
+
+[lb]example $example[rb]
+- insert preformatted text that serves as an example for the commands
+being discussed
+[para]
+
+[lb]keywords $args[rb]
+- add the keywords given in the variable argument list to the end of the
+document
+[para]
+
+[lb]list_begin arg[rb]
+- start a list of arguments (after a corresponding [lb]call[rb] command)
+[para]
+
+[lb]list_begin bullet[rb]
+- start a bullet list
+[para]
+
+[lb]list_begin definitions[rb]
+- start a definitions list
+[para]
+
+[lb]list_begin opt[rb]
+- start a list of options
+[para]
+
+[lb]list_end[rb]
+- end the current list, brackets [lb]list_begin[rb]
+[para]
+
+[lb]manpage_begin $name $section $version[rb]
+- indicate the start of the manual page with the name of the
+module/package/extension, the section of the manual pages it should go
+into (always "n") and the version number
+[para]
+
+[lb]manpage_end[rb]
+mandatory end of the man page, brackets the [lb]manpage_begin[rb] command
+[para]
+
+[lb]moddesc $name[rb]
+- identify the module
+[para]
+
+[lb]nl[rb]
+- put a break in the flowing text. Useable only within lists
+[para]
+
+[lb]opt_def $keyword $type[rb]
+- the keyword for an option (without the leading minus sign) and the
+expected value type (if any)
+[para]
+
+[lb]para[rb]
+- start a new paragraph
+[para]
+
+[lb]require $package $version[rb]
+- insert a "package require" command in the synopsis of the man page to
+indicate the dependencies
+[para]
+
+[lb]section $title[rb]
+- start a new section, the title is traditionally given in capitals
+[para]
+
+[lb]titledesc $title[rb]
+- give the man page a proper title
+
+
+[section REFERENCES]
+
+[list_begin bullet]
+
+[bullet]
+Will Duquette: Guidelines for using namespaces
+
+[bullet]
+Ray Johnson: Tcl/Tk style guide
+
+[bullet]
+Ray Johnson: Engineering manual
+
+[bullet]
+Andreas Kupries: Documentation doctools
+
+[bullet]
+Boris Beizer: Software Testing Techniques
+
+[bullet]
+??: Managing project with make
+
+[bullet]
+??: Information on stubs
+
+[bullet]
+Don Porter: Man page on tcltest
+
+[bullet]
+??: Autoconf documentation
+
+[list_end]

@@ -1,0 +1,28 @@
+namespace import vectcl::vexpr
+
+test aiterator stripdimensions-1 -body {
+	
+	set x {{1 2 3 4}}
+	set y {5 6 7 8}
+	vexpr {y=reshape(y,4,1)}
+	vexpr {x+=y}
+	
+} -result  {{6 8 10 12}}
+
+test aiterator stripdimensions-2 -body {
+	
+	set x {1 2 3 4}
+	vexpr {y=reshape({5 6 7 8}, 4, 1)
+	x+=y }
+	
+} -result {6 8 10 12}
+
+test aiterator stripdimensions-3 -body {
+	
+	set x {{1 2 3 4}}
+	vexpr {y=reshape({5 6 7 8}, 4, 1)
+	x+=y }
+	
+} -result {{6 8 10 12}}
+
+

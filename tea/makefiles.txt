@@ -1,0 +1,531 @@
+[section {Chapter 6. CONFIGURE AND MAKE FILES}]
+
+A large part of TEA is devoted to making the actual build process as
+smoothly as possible, that is, people who install your extension
+should not need to know anything of the build process, except for a few
+simple commands, found and explained in the INSTALL file.
+
+[para]
+For you as an extension writer, things are a bit more involved, but
+again TEA has the task to make the preparation of the build process for
+your specific extension as smooth and painless as possible.
+Nevertheless, you will have to do something:
+
+[list_begin bullet]
+
+[bullet]
+Prepare at least two template files, configure.in and Makefile.in,
+that contain information about what sources your extension is made of,
+under what name your extension will be known and so on.
+
+[bullet]
+Create a [emph {shell script}] (*), called [emph configure], via the Autoconf
+program.
+
+[bullet]
+Bundle your extension into a single file that can be delivered to
+others.
+
+[list_end]
+
+This chapter will guide you through this process. First it will gloss
+over the Autoconf program and its purpose. Then it will describe in
+detail what the average extension writer has to do.
+
+[para]
+[emph Note:]
+[para]
+If you are not familiar with [emph {make files}], read the expose in
+appendix A first. It will help appreciate the steps you will have to
+take.
+
+[para]
+[emph Note:]
+[para]
+TEA version 3 assumes that you have Autoconf version 2.50 or later.
+Autoconf is only necessary when you build the configure script, it is
+not required by the users of your extension (see the section
+"Required software")
+
+[para]
+(*) For Windows programmers: a shell script can be regarded as a
+sophisticated DOS batch file. It has the same purpose, but because UNIX
+shell languages (there are several) are more powerful than DOS batch
+commands, you can do a lot more with them.
+
+
+[section {The purpose of Autoconf}]
+
+The GNU program Autoconf, which is one of a suite of programs, is meant
+to create a configuration script, which then takes care of everything.
+To do this, it reads a file called configure.ac (or configure.in in
+older versions) and processes the macros it finds in there. These
+macros have been developed to take care of all the nasty little details
+that can bother a programmer. (If you familiarise yourself with the
+Autoconf tool, you will be able to create new macros. This is actually
+one of the great advantages of Autoconf.)
+
+[para]
+While Autoconf takes a template file "configure.ac" or "configure.in",
+TEA provides you with a template for this template. All you need to do is:
+
+[list_begin bullet]
+
+[bullet]
+replace the name of the sample extension (exampleA) by the name
+of your extension
+
+[bullet]
+replace the names of the source files in the sample extension by
+those of your source files
+
+[bullet]
+adjust version numbers and some other details
+
+[bullet]
+run the Autoconf program
+
+[list_end]
+
+The resulting script, called [emph configure], will check for a lot of
+things:
+
+[list_begin bullet]
+
+[bullet]
+where the Tcl libraries and header files are (it may need some help,
+though, to find the right directory)
+
+[bullet]
+what compiler and linker options to use
+
+[bullet]
+what file extensions are used on that particular platform
+
+[bullet]
+what external libraries are required
+
+[bullet]
+etc.
+
+[list_end]
+
+All of these things are substituted into the template for the make file
+(Makefile.in) so that the user can run the make utility to create the
+library or program. For instance, in the template you may see:
+[example {
+  CFLAGS_DEBUG = @CFLAGS_DEBUG@
+}]
+The first is a variable in the make file that is used to set the flags
+for a debug version of your extension. The configure script
+replaces the string "@CFLAGS_DEBUG@" by whatever is appropriate for that
+platform, often "-g -c". This is accomplished by a command
+AC_SUBST([lb]CFLAGS_DEBUG[rb]) somewhere in the configure.in file (or
+the macros it uses).
+
+
+[section {The macros used by TEA}]
+
+The template files that come with TEA are very well documented,
+but still some explanation is required, if you are not familiar with
+Autoconf (see the example below).
+
+[para]
+[emph Note:]
+[para]
+The order of the macros is important, as the wrong order can make the
+resulting configure script useless (in Autoconf all variables are
+global and sometimes the value of a variable causes erroneous
+macro processing).
+
+[example {
+   Example
+}]
+
+[list_begin bullet]
+
+[bullet]
+The very first macro is AC_INIT(), this has two arguments, the name of
+the extension and its version number:
+
+[list_begin bullet]
+[bullet]
+the major and minor version numbers of this release
+[bullet]
+the patchlevel (if any)
+[list_end]
+
+These numbers will be used to identify the resulting files uniquely.
+Because of pecularities between platforms, two "version" variables are
+created, one with dots and one without.
+
+[bullet]
+The next steps are to initialise the TEA macro library, via
+TEA_INIT and to set the directory with auxiliary scripts, tclconfig,
+via the macro AC_AUX_CONFIG_DIR.
+
+[bullet]
+Depending on whether your extension uses only Tcl or Tk as well, you
+will have to use:
+
+[list_begin bullet]
+[bullet]
+TEA_PATH_TCLCONFIG and TEA_LOAD_TCLCONFIG
+[bullet]
+TEA_PATH_TKCONFIG and TEA_LOAD_TKCONFIG
+[list_end]
+[nl]
+These macros locate the tclConfig.sh and tkConfig.sh files that hold
+information about how Tcl/Tk itself was built on this platform (or how
+the binary distribution was built).
+
+[bullet]
+TEA_PREFIX is used to set the directory that all files will be
+installed under, later, after building the extensions.
+
+[bullet]
+TEA_SETUP_COMPILER identifies the C compiler to be used and the flags
+or options needed in general.
+
+[bullet]
+After the call to this macro, we get a small section with information
+that is specific to your extension:
+
+[list_begin bullet]
+[bullet]
+TEA_ADD_SOURCES should be used to register the source files of your
+extension - the listed files will be compiled.
+
+[bullet]
+TEA_ADD_HEADERS is used to register the public header files (so
+these header files will be available for other extensions after
+installation).
+
+[bullet]
+TEA_ADD_INCLUDES lists possible additional directories to look for
+include files.
+
+[bullet]
+TEA_ADD_TCL_SOURCES registers the Tcl scripts that form part of your
+extension.
+[list_end]
+
+[nl]
+Two macros that are much more specific are:
+
+[list_begin bullet]
+[bullet]
+TEA_ADD_CFLAGS gives you the opportunity to add specfic compiler
+flags (but note that these can depend on the platform!)
+[bullet]
+TEA_ADD_STUB_SOURCES lists all the source files that together will
+make up the stubs library (if your extension makes one of its own).
+[list_end]
+[nl]
+[bullet]
+After this part we need to choose which header files we need:
+
+[list_begin bullet]
+[bullet]
+TEA_PUBLIC_TCL_HEADERS and TEA_PUBLIC_TK_HEADERS control the use of
+the [emph public] header files.
+[bullet]
+TEA_PRIVATE_TCL_HEADERS and TEA_PRIVATE_TK_HEADERS control the use
+of the [emph private] header files.
+[list_end]
+
+[nl]
+Caution: using the private header files is "dangerous" - they may
+change without regard for compatibility. In principle extensions
+should never rely on these, but in rare cases it might be unavoidable.
+
+[bullet]
+If your extension uses Tk, then the TEA_PATH_X macro is responsible
+for finding the system's graphical libraries (on UNIX-like systems)
+
+[bullet]
+Now comes the one place where some platform-dependent code is
+required:
+
+[list_begin bullet]
+[bullet]
+On Windows, an extension using Tk will need extra libraries and any
+extension will need to remove some intermediate files produced by
+the MS Visual C/C++ compiler.
+[nl]
+Also, the macro BUILD_package needs to be set for Windows (see the
+Chapter on Design)
+[bullet]
+There may be some intermediate files that are specific to the
+extension that need to be cleaned up.
+[list_end]
+
+[nl]
+This is best set via code like in the sample extension.
+
+[bullet]
+The remainder of the configuration file is straightforward:
+Several extra checks and finally the macro that tells the configure
+script what files to produce: AC_OUTPUT().
+
+[bullet]
+The rest of the file contains a number of macro calls, each of which
+is clearly documented. Use them or comment them as is necessary for
+your extension.
+
+[bullet]
+The last line, AC_OUTPUT(), lists all the files that need to be
+created by the configure script.
+
+[list_end]
+
+You can use a number of other macros in your configure.in file:
+
+[list_begin bullet]
+
+[bullet]
+AC_DEFINE(variable,value,?description?):
+[nl]
+Add a C compiler macro "variable" with the given value to the list of
+compiler options, something like:
+[example {
+     cc -Dvariable=value
+}]
+
+[bullet]
+AC_SUBST(variable,?value?):
+[nl]
+Substitute the given shell variable into the output files (when
+AC_OUTPUT is invoked)
+
+[bullet]
+AC_ARG_WITH(suffix,description,action):
+[nl]
+Check the command-line arguments of the configure script, such as:
+[example {
+  --with-tcl=<some directory>
+}]
+If the argument is present, the action will be carried out.
+
+[bullet]
+AC_ARG_ENABLE(suffix,description,action_on,action_off):
+[nl]
+Check the command-line arguments of the configure script, such as:
+[example {
+  --enable-threads
+}]
+If the argument is present as "enabled", the action "on" will be
+carried out, otherwise the action "off" will be carried out.
+
+[bullet]
+AC_CHECK_HEADER(headerfile,action_if_found,action_not_found,):
+[nl]
+Check for the presence of a particular header file and if found, run
+the first action, otherwise the second action.
+
+[bullet]
+AC_CHECK_LIB(libfile,function,action_if_found,action_not_found,other_libs):
+[nl]
+Similar for libraries that should contain a particular function.
+
+[bullet]
+TEA_ADD_LIBS(list-of-names):
+[nl]
+Add one or more libraries to the link command. Note: the
+platform-dependent names are expected. See the TEA_LIB_SPEC macro.
+
+[bullet]
+TEA_LIB_SPEC(basename,extra_dir):
+[nl]
+Find the exact name of the library given via its basename (e.g.
+libinet.a would have the base name "inet" and user32.lib would
+have the base name "user32"). The extra directory is used first,
+then a bunch of standard directories. The resulting variable
+basename_LIB_SPEC can be used with the TEA_ADD_LIBS macro.
+
+[bullet]
+TEA_PATH_CONFIG(pkg)
+[nl]
+Look for a particular pkgConfig.sh file, which is part of some
+extension "pkg".
+
+[bullet]
+TEA_LOAD_CONFIG
+[nl]
+Load that particular pkgConfig.sh file.
+
+[list_end]
+
+
+[section {The Makefile.in template}]
+
+If you study the (well-documented) make file template that comes with
+the sample extension, Makefile.in, you will notice that there is very
+little that you need to adapt. In fact, there are only two sections that
+require your attention:
+
+[list_begin bullet]
+
+[bullet]
+The section at the top for new variables that you may have defined via
+the [emph AC_SUBST] macro. This section - if needed - should contain one
+line for each new variable like:
+
+[example {
+    SAMPLE_NEW_VAR  = @SAMPLE_NEW_VAR@
+}]
+This defines a new variable "SAMPLE_NEW_VAR" in the make file which
+receives the value of the variable by the same name in the configure
+script.
+
+[nl]
+[emph Note:]
+For the sake of simplicity, always use the same names! There is no need
+to get creative at this point - it will only make things more difficult.
+
+[bullet]
+The section containing the user-definable targets. This section may look
+intimidating to someone not familiar with UNIX shells or make files,
+but in fact, most of the code found there is completely generic.
+[nl]
+The exceptions are the targets dealing with the documentation (doc and
+install-doc) and with the distribution of the code as a single archive
+(tar-file, zip-file or whatever).
+[nl]
+The reason these targets may need to be adjusted to your needs are:
+
+[list_begin bullet]
+
+[bullet]
+You use a different system of documentation
+
+[bullet]
+You require more files from different locations to be included
+(residing in other directories for instance).
+[list_end]
+
+As it is very difficult to make these tasks generic, this remains an
+issue for you as an extension programmer.
+
+[list_end]
+
+[section {Making the distribution}]
+
+Once you have created the configure script, you as the author of the
+extension can use to create a bundled file with all the source and
+other files for distribution:
+
+[list_begin bullet]
+
+[bullet]
+Run the configure script
+[bullet]
+Run the resulting make file:
+[example {
+     make dist
+}]
+[list_end]
+
+If you want other files to be generated as part of the distribution,
+for instance, the INSTALL file must be adjusted to include the name
+and purpose of your extension, then you can do so by defining a
+variable specific for that file and define it in the configure script:
+
+[list_begin bullet]
+
+[bullet]
+Define a file INSTALL.in which has a line "@MY_EXTENSION_TEXT@"
+in it.
+
+[bullet]
+Define a variable MY_EXTENSION_TEXT in the configure.in file:
+[example {
+     AC_DEFINE([MY_EXTENSION_TEXT])
+     MY_EXTENSION_TEXT="Whatever text you want inserted"
+     AC_SUBST([MY_EXTENSION_TEXT])
+}]
+
+[bullet]
+Add the name of the file, [emph {without the ".in" extension}], to the
+AC_OUTPUT macro:
+[example {
+     AC_OUTPUT([Makefile INSTALL])
+}]
+
+[list_end]
+
+
+[section {Required software}]
+
+To create a working configure script via Autoconf, you will need to have
+Autoconf 2.50 or better. Autoconf is only needed if you are developing
+an extension. The users of your extension only need the configure script
+and the make file template.
+[para]
+Once the configure script is created, you can run it without any
+additional software on a UNIX/Linux/*BSD/MacOSX system, as these systems
+almost always have the UNIX shells and the make utility.
+[para]
+For Windows systems, you will need to have such tools as Cygwin or
+MingW/MSYS - both ports of the UNIX tools to Windows.
+[para]
+See the [sectref References] section for the websites where you can get
+this software.
+
+
+[section {Making the extension}]
+The steps taken by any user who uses the distributed source files are:
+
+[list_begin bullet]
+
+[bullet]
+run the configure script to tell it where to find, for instance,
+the Tcl/Tk header files or what C compiler to use
+
+[bullet]
+this script uses the file Makefile.in as a template to create
+the file Makefile.
+
+[bullet]
+when the [emph configure] script is finished, the programmer can run [emph make]
+to create the libraries, the programs and the documentation, ready
+for installation.
+
+[bullet]
+so, when [emph make] is done and all has been successful, the next steps
+can be run: run the tests and install the program(s).
+
+[list_end]
+
+The various steps are handled via special keywords in the makefile,
+targets that are not connected to a specific file - they are always
+considered out of date.
+
+[para]
+So, the above procedure is carried out by running the following
+commands on UNIX/Linux (> is the command prompt):
+[example {
+  > ./configure
+  > make
+  > make test
+  > make install
+}]
+(assuming all steps are successful).
+
+[para]
+If you want to restart (some compilation error had to solved),
+you would run:
+[example {
+  > make clean
+}]
+to throw away most intermediate files, or:
+[example {
+  > make distclean
+}]
+to start from a really clean slate.
+
+[para]
+TODO: how to use mingw/msys to accomplish this on Windows
+[para]
+TODO: what about Windows project files?
+

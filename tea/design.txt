@@ -1,0 +1,584 @@
+[section {Chapter 2. DESIGN AND CODING}]
+
+[section {Tcl extensions}]
+[para]
+
+In this document a [emph {Tcl extension}] is simply a collection of Tcl
+commands that can be distributed separately: an extension can be used
+in any application that wants to use the functionality it offers.
+
+[para]
+
+Well-known examples of extensions are:
+[list_begin bullet]
+[bullet]
+[emph msgcat]: translate text in an application that is to be shown to
+the user into the language that the user prefers. It is a collection
+of Tcl scripts that is shipped with Tcl itself.
+
+[bullet]
+[emph tktable]: a sophisticated widget to display and manipulate tabular
+data. In contrast to [emph msgcat], it is a [emph compiled] extension,
+consisting of both Tcl scripts and a loadable library of C functions.
+
+[bullet]
+[emph snack]: play and record sound from within a Tcl application. This
+extension relies on the presence of specific hardware and software (the computer
+must have audio capabilities). Such an extension is more complicated
+to maintain than either of the two others - you need to be aware of the
+typical libraries that are available on the various platforms and of
+the typical hardware that people use.
+
+[bullet]
+[emph tkimg]: manipulate images and image files with the support of a
+number of external libraries.
+
+[list_end]
+
+[para]
+Each of the four extensions we described exemplifies a category of
+extensions:
+
+[list_begin bullet]
+
+[bullet]
+Tcl-only extensions
+
+[bullet]
+Extensions built from Tcl and C code, but which are more or less
+independent of the operating system
+
+[bullet]
+Extensions built from Tcl and C code that do need to take care of the
+particular operating system
+
+[bullet]
+Extensions built from Tcl and C code that export new compiled
+functions (not commands!) to the Tcl interpreter. This adds an extra
+complication to the build process (see also the chapter on the stubs
+mechanism).
+
+[list_end]
+
+[emph Note:]
+[para]
+We have talked about C code, not because it is the only possibility, but
+because it is the most commonly used compiled language to extend Tcl. It
+is very well possible to use C++ or Fortran to build libraries that can
+be used from Tcl scripts. However, we will not go into these matters,
+they are beyond the scope of this document.
+
+[para]
+[emph Note:]
+[para]
+It is somewhat confusing that we use the words packages, extensions and
+modules to mean the same thing: Tcl commands or procedures that can be
+added to an application from some generally useable collection. The words
+each indicate a slightly different viewpoint:
+
+[list_begin bullet]
+[bullet]
+[emph package] refers to the mechanism by which a programmer loads the
+commands into his or her application: the commands are treated as a
+single collection.
+
+[bullet]
+[emph module] is often used to refer to a smaller collection inside a
+collection that is otherwise known as a whole, such as the
+Tcllib collection. Such large collections can be very heterogeneous,
+mixing network facilities with text processing facilities for
+instance.
+
+[bullet]
+[emph extension] is mostly used when a collection of commands is built
+from C sources, rather than Tcl scripts only, and it refers to both
+the source code and the actual compiled library or libraries.
+
+[list_end]
+
+Actually, all these terms can be used interchangeably and rather than
+invent a new word to replace them all, we will simply use all three
+terms, depending on the context.
+
+[para]
+Let us examine each of the above types of extensions in more detail in
+the next few sections.
+
+[section {Tcl-only extensions}]
+
+If you have a collection of Tcl scripts that you would like to distribute
+as a whole to others, then the situation is easy:
+
+[list_begin bullet]
+[bullet]
+Provide proper documentation, so that people can understand the extension
+without having to understand the code.
+
+[bullet]
+Provide the code as a package (more on the [emph package] mechanism in Chapter ..)
+
+[bullet]
+Wrap it in a zip-file or a tar-ball and put it on the Internet.
+
+[list_end]
+
+Well, things are a bit more complex than that. Let us have a look again at
+the [emph msgcat] extension as it is present in any or all Tcl installations:
+
+[list_begin bullet]
+
+[bullet]
+It lives in a directory of its own under the lib/tcl8.x directory
+
+[bullet]
+The file "pkgIndex.tcl" is used by the [emph {package require}] command to
+identify the presence of the package or extension and how to get it
+into the application (*).
+
+[bullet]
+Because it is used in Tk, you will find a few message catalogue files
+in the lib/tk8.x/msgs directory to translate text that appears in
+the wish window to the user's language.
+
+[list_end]
+
+(*) Note the uppercase "i" in this name: under Windows file names may be
+case-insensitive, this is not so under UNIX/Linux and many other
+operating systems. So, please take note of the precise spelling of
+file names.
+
+[para]
+Here is an excerpt of the directory that holds the extension itself (we
+used Tcl8.4 for this):
+[example {
+   lib/
+      tcl8.4/
+         msgcat1.3/
+            msgcat.tcl
+            pkgIndex.tcl
+}]
+In the source distribution, we can also find the file "msgcat.test"
+(containing the test cases) in the directory "tests" and the
+documentation in the file "msgcat.man".
+
+[para]
+The number "1.3" at the end of the directory name is no coincidence: it
+is the version number of the [emph msgcat] package. This way you can keep
+various versions of a package around.
+
+[para]
+In Tcllib, such a collection of files is found more commonly
+together, like for the CRC module (an excerpt from the CVS repository):
+[example {
+   tcllib/
+      modules/
+         crc/
+            ChangeLog           file containing short descriptions of
+                                changes over time
+            cksum.man           the documentation file
+            cksum.tcl           the actual Tcl script that implements
+                                the cksum command
+            cksum.test          the test cases
+            ...                 (other related sources)
+}]
+
+There is no "pkgIndex.tcl" script, as this is created by the
+installation procedure for Tcllib as a whole.
+
+[para]
+[emph Note:]
+[para]
+If you are not familiar with CVS, it is a widely used source code
+control system. CVS is short for "concurrent version system". Such
+systems help automate the tedious task of keeping track of changes in
+the source code, documentation and other things over time. This is
+important, because this way you can see if a bug has actually been
+solved and when, for instance.
+
+
+[section {Extensions that are platform-independent}]
+
+A well-known extension like Tktable has to be built for all platforms
+that Tcl supports. Tktable itself does not have (much) code that differs
+from platform to platform. Yet, as the directory structure shows, it
+does have directories specific for the major platform categories,
+[emph {in the same way as do Tcl and Tk themselves}]:
+[example {
+   tktable/
+      demos/                 directory with demonstration scripts
+      doc/                   documentation
+      generic/               the platform-independent sources
+      library/               supporting scripts (in this case: key
+                             bindings and such)
+      mac/                   mac-specific sources (here: the
+                             project-file for building on Mac)
+      tclconfig/             scripts that are used while building
+                             the extension
+      tests/                 test scripts
+      unix/                  unix-specific sources (here: nothing???)
+      win/                   Windows-specific sources (here: the
+                             project-file for building on Windows)
+      ChangeLog              description of changes
+      Makefile.in            TEA-template for the makefile
+      aclocal.m4             "include" file required by Autoconf
+      configure              configure script generated by Autoconf
+      configure.in           TEA-template for the configure script
+      ...                    (others files, not related to the building
+                             process itself)
+}]
+
+In this overview you will see some files related to the TEA, most
+notably, [emph Makefile.in] and [emph configure.in]. These will be described in
+great detail in Chapter 7 (fortunately the details have become less and
+less painful with the further development of TEA).
+
+[para]
+The most important thing is that this extension uses the [emph same]
+directory structure as Tcl/Tk itself. This may not always seem necessary
+(for instance, a Windows-specific extension might do without the unix
+and mac directories), but by keeping this same structure, you make it
+easier for others to manoeuvre through the source directory: they know
+what to expect.
+
+[section {Platform-dependent extensions}]
+
+Extensions that depend on the particular platform may need to deal with
+various OS aspects:
+
+[list_begin bullet]
+
+[bullet]
+They may require specific OS libraries
+
+[bullet]
+They may have extensive source code that is platform-dependent
+
+[bullet]
+They may have to deal with deficiencies of the platform, such as
+broken implementations of some standard library function (functions
+like strtod() are notorious in this respect)
+
+[list_end]
+
+The directory structure described in the previous section is
+quite useable in this case too. The platform-dependencies are expressed
+in the mac, unix and win directories containing one or more source files
+(not just project or make files), but also in the configure.in and
+Makefile.in files containing extra code to find the relevant
+OS libraries or checks for deficiencies.
+
+[section {Extensions exporting their own functions}]
+
+Complications arise when extensions need to export their own
+(compiled) functions, to provide their functionality. Again, this is not
+so much a matter of the directory structure, as it is a problem for
+building the extension.
+
+[para]
+In [emph tkimg] this is necessary because the photo command must have
+access to the functions that [emph tkimg] supplies. To do this in a way
+that does not tie [emph tkimg] to a particular version of Tcl/Tk, the
+stubs mechanism (see Chapter 5) is needed.
+
+[para]
+A simpler extension that provides its own stubs library is the backport
+of the dictionary data structure that is new in Tcl 8.5 to Tcl 4.x
+(done by Pascal Scheffers, <http://www.scheffers.net/....>). The stubs
+library allows other extensions to use the functionality this [emph dict]
+extension provides, in much the same way as you can use the general Tcl
+API. We will discuss the implications in the next section and in the
+chapter on Tcl stubs.
+
+[section {Coding a C extension}]
+
+Now that we have covered the directory structure an extension should
+use, let us have a quick look at the C source code itself. (This is not
+a tutorial about how to use the Tcl/Tk API to build new
+compiled extensions. We simpy give some very basic information.)
+
+[para]
+A C extension, like the example that comes with TEA, contains an
+(exported) function with a specific name: Package_Init(), where
+"Package" is to be replaced by the name of the package (the first letter
+is capitalised, the rest is in lower-case). Here is the skeleton code
+for such a function:
+
+[example {
+   int
+   Package_Init(Tcl_Interp *interp)
+   {
+       /* Initialise the stubs library - see chapter 5
+       */
+       if (Tcl_InitStubs(interp, "8.0", 0) == NULL) {
+           return TCL_ERROR;
+       }
+
+       /* Require some version of Tcl, at least 8.0
+       */
+       if (Tcl_PkgRequire(interp, "Tcl", TCL_VERSION, 0) == NULL) {
+           if (TCL_VERSION[0] == '7') {
+               if (Tcl_PkgRequire(interp, "Tcl", "8.0", 0) == NULL) {
+                   return TCL_ERROR;
+               }
+           }
+       }
+
+       /* Make the package known
+       */
+       if (Tcl_PkgProvide(interp, "Package", VERSION) != TCL_OK) {
+           return TCL_ERROR;
+       }
+
+       /* Create all the commands:
+          Tcl command "cmd1" is implemented by the function Cmd1,
+          etc.
+       */
+       Tcl_CreateObjCommand(interp, "cmd1", Cmd1,
+               (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL);
+       ... other commands ...
+
+       return TCL_OK;
+   }
+}]
+
+The functions that actually implement the Tcl commands are usually
+static functions, so that there is no name clash with other libraries.
+
+[para]
+The structure of the functions can be anything you like, but it is usual
+to:
+
+[list_begin bullet]
+
+[bullet]
+first check if the correct number of arguments is used
+
+[bullet]
+then dispatch on the first argument, in case subcommands are used
+
+[list_end]
+
+[example {
+(Code example)
+}]
+
+[para]
+The functions that your extension implements for public use should be
+properly prototyped via a header file - this is a matter of C coding
+style, but it also gives other people the opportunity to use your
+extension in their C extension.
+
+[para]
+The header file for an extension also contains the magic for
+building it on various platforms. To explain this magic and what you
+should be aware of, have a look at the header file of the sample
+extension:
+
+[example {
+   /*
+    * exampleA.h --
+    *
+    *      This header file contains the function declarations needed for
+    *      all of the source files in this package.
+    *
+    * Copyright (c) 1998-1999 Scriptics Corporation.
+    *
+    * See the file "license.terms" for information on usage and redistribution
+    * of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+    *
+    */
+
+   #ifndef _EXAMPLEA
+   #define _EXAMPLEA
+
+   #include <tcl.h>
+
+   /*
+    * Windows needs to know which symbols to export.  Unix does not.
+    * BUILD_exampleA should be undefined for Unix.
+    */
+
+   #ifdef BUILD_exampleA
+   #undef TCL_STORAGE_CLASS
+   #define TCL_STORAGE_CLASS DLLEXPORT
+   #endif /* BUILD_exampleA */
+
+   typedef struct {
+       unsigned long state[5];
+       unsigned long count[2];
+       unsigned char buffer[64];
+   } SHA1_CTX;
+
+   void SHA1Init   _ANSI_ARGS_((SHA1_CTX* context));
+   void SHA1Update _ANSI_ARGS_((SHA1_CTX* context, unsigned char* data,
+                    unsigned int len));
+   void SHA1Final  _ANSI_ARGS_((SHA1_CTX* context, unsigned char digest[20]));
+
+   /*
+    * Only the _Init function is exported.
+    */
+
+   EXTERN int      Examplea_Init _ANSI_ARGS_((Tcl_Interp * interp));
+
+   #endif /* _EXAMPLEA */
+}]
+
+Explanation:
+
+[list_begin bullet]
+
+[bullet]
+The header file starts with a standard information block, describing
+the extension it belongs to.
+
+[bullet]
+The actual declarations are "bracketed" by an #ifndef/#endif pair to
+avoid multiple inclusions.
+
+[bullet]
+It includes the public Tcl header for access to the Tcl API,
+[emph {but not the private header file}] (see the recommendations section).
+
+[bullet]
+There is a piece of magic involving Windows builds: the macro
+BUILD_exampleA controls this. This is a macro that is defined via the
+[emph configure] file - more about this in Chapter 7. Note: this is
+boiler-plate stuff, only the name of the macro needs to be adjusted.
+
+[bullet]
+Most of what follows is specific to the extension:
+
+[list_begin bullet]
+[bullet]
+The definition of the structure that this extension uses
+[bullet]
+The prototypes for the public functions in the SHA1 library
+(the example extension is a wrapper for that library), but do
+note the use of the macro [emph ANSI_ARGS] - some systems still do
+not conform to the ANSI/ISO C standard
+[bullet]
+The last few lines concern the initialisation procedure, here
+again some magic, controlled by the EXTERN macro.
+[list_end]
+
+[list_end]
+
+If the extension provides its own [emph {stubs library}], then:
+[list_begin bullet]
+
+[bullet]
+add the following code fragments to the header file for your extension:
+
+[example {
+     EXTERN CONST char * Examplea_InitStubs
+                            _ANSI_ARGS_((Tcl_Interp *interp,
+                            CONST char *version, int exact));
+
+     #ifndef USE_TCL_STUBS
+
+     /*
+      * When not using stubs, make it a macro.
+      */
+
+     #define Examplea_InitStubs(interp, version, exact) \\
+        Tcl_PkgRequire(interp, "ExampleA", version, exact)
+
+     #endif /* USE_TCL_STUBS */
+
+     /*
+      * Include the public function declarations that are accessible via
+      * the stubs table.
+      */
+
+     #include "exampleaDecls.h"}]
+
+[bullet]
+prepare a declarations file (examplea.dict) that contains the
+definitions of all functions available via the stubs library.
+Here is a fragment of the dict extension:
+
+[example {
+   # dict.decls --
+   #
+   #       This file contains the declarations for all supported public
+   #       functions that are exported by the Dict Tcl library via the
+   #       stubs table.
+   #       This file is used to generate the dictDecls.h and dictStub.c files.
+   #
+   #
+   # Copyright (c) 1998-1999 by Scriptics Corporation.
+   # Copyright (c) 2001, 2002 by Kevin B. Kenny.  All rights reserved.
+   # See the file "license.terms" for information on usage and redistribution
+   # of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+   #
+   # Branched from:
+   # RCS: @(#) Id: tcl.decls,v 1.103 2004/03/17 18:14:12 das Exp
+   # for the dict backport.
+
+   library dict
+
+   # Define the dict interface, no sub interfaces.
+
+   interface dict
+   #hooks {}
+
+   # Declare each of the functions in the public dict interface.  Note that
+   # the an index should never be reused for a different function in order
+   # to preserve backwards compatibility.
+
+   # DICTIONARIES - TIP#111
+   declare 0 generic {
+       int Tcl_DictObjPut(Tcl_Interp *interp, Tcl_Obj *dictPtr,
+               Tcl_Obj *keyPtr, Tcl_Obj *valuePtr)
+   }
+   declare 1 generic {
+       int Tcl_DictObjGet(Tcl_Interp *interp, Tcl_Obj *dictPtr,
+               Tcl_Obj *keyPtr, Tcl_Obj **valuePtrPtr)
+   }
+}]
+
+This file (yes, simply Tcl code) is processed by the tools/genStubs.tcl
+script to produce the "exampleaDecls.h" header file and the code for
+the stubs library. (Most of this is taken care of automatically -
+just make sure that the above steps are properly taken).
+
+[list_end]
+
+[section {Some recommendations}]
+
+We conclude this chapter with the following general recommendations:
+
+[list_begin bullet]
+
+[bullet]
+Use the Tcl_Obj interface, instead of the older string
+interface, as it is easier to work with and especially because
+it results in faster command processing.
+
+[bullet]
+If your use options, use key-value pairs, like in the Tk
+widgets:
+[example {
+     $w configure -foreground black
+}]
+
+The reason is that this gives you much more freedom (options are known
+to expand over time, often you want to explicitly negate an option and
+inventing new keywords is more troublesome than just a new value.
+
+[bullet]
+Use only the public API of Tcl/Tk or any other extension.
+Otherwise your extension becomes tied to one particular version of
+Tcl/Tk, forbidding use in Tclkit for instance. What is more, if these
+internals change, you will have to change your extension as well.
+The public API is very unlikely to change, and if it changes, then
+backward compatibility is almost guaranteed (like with the string
+interface that still exists).
+
+[list_end]
+
+[para]
+[emph TODO:]
+Refer to TIP #55 and to Tcllib
+Describe a preferred directory structure (based on TIP #55)
+What about namespaces?

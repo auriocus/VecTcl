@@ -1,0 +1,300 @@
+test datatypes binop-1 -body {
+	
+	set x {1 2}
+	vexpr {x+1.0}
+	
+} -result {2.0 3.0}
+
+test datatypes binop-2 -body {
+	
+	set x {1 2}
+	vexpr {x+1}
+	
+} -result {2 3}
+
+test datatypes binop-3 -body {
+	
+	set x {1.0 2.0}
+	vexpr {x+1}
+	
+} -result {2.0 3.0}
+
+test datatypes binop-4 -body {
+	
+	set x {1.0 2.0}
+	vexpr {x+1.0}
+	
+} -result {2.0 3.0}
+
+test datatypes binop-5 -body {
+	
+	set x {1.0 2.0}
+	vexpr {x+{5 6}}
+	
+} -result {6.0 8.0}
+
+test datatypes binop-6 -body {
+	
+	set x {1 2}
+	vexpr {x+{5 6}}
+	
+} -result {6 8}
+
+test datatypes binop-7 -body {
+	
+	set x {1 2}
+	vexpr {x+{5.0 6.0}}
+	
+} -result {6.0 8.0}
+
+test datatypes assignop-1 -body {
+	
+	set x {1 2}
+	vexpr {x+=1.0}
+	
+} -result {2.0 3.0}
+
+test datatypes assignop-2 -body {
+	
+	set x {1 2}
+	vexpr {x+=1}
+	
+} -result {2 3}
+
+test datatypes assignop-3 -body {
+	
+	set x {1.0 2.0}
+	vexpr {x+=1}
+	
+} -result {2.0 3.0}
+
+test datatypes assignop-4 -body {
+	
+	set x {1.0 2.0}
+	vexpr {x+={5 6}}
+	
+} -result {6.0 8.0}
+
+test datatypes assignop-5 -body {
+	
+	set x {1.0 2.0}
+	vexpr {x+={5.0 6.0}}
+	
+} -result {6.0 8.0}
+
+test datatypes assignslice-1 -body {
+	
+	set x {1.0 2.0}
+	vexpr {x[1]+=5.0}
+	
+} -result {1.0 7.0}
+
+test datatypes assignslice-2 -body {
+	
+	set x {1.0 2.0}
+	vexpr {x[1]+=5}
+	
+} -result {1.0 7.0}
+
+test datatypes assignslice-3 -body {
+	
+	set x {1 2}
+	vexpr {x[1]+=5}
+	
+} -result {1 7}
+
+test datatypes assignslice-4 -body {
+	
+	set x {1 2}
+	vexpr {x[1]+=5.0}
+	
+} -result {1.0 7.0}
+
+test datatypes concat-13 -body {
+	
+	vexpr {hstack(1, {2 3})}
+	
+} -result {{1 2} {1 3}}
+
+test datatypes concat-14 -body {
+	
+	vexpr {hstack(1.0, {2 3})}
+	
+} -result {{1.0 2.0} {1.0 3.0}}
+
+test datatypes concat-15 -body {
+	
+	vexpr {hstack(1.0, {2.0 3.0})}
+	
+} -result {{1.0 2.0} {1.0 3.0}}
+
+test datatypes concat-16 -body {
+	
+	vexpr {hstack(1.0, {2 3})}
+	
+} -result {{1.0 2.0} {1.0 3.0}}
+
+test datatypes concat-17 -body {
+	
+	vexpr {hstack({2 3}, {5 6})}
+	
+} -result {{2 5} {3 6}}
+
+test datatypes concat-18 -body {
+	
+	vexpr {hstack({2 3}, {5.0 6.0})}
+	
+} -result {{2.0 5.0} {3.0 6.0}}
+
+test datatypes concat-19 -body {
+	
+	vexpr {hstack({2.0 3.0}, {5.0 6.0})}
+	
+} -result {{2.0 5.0} {3.0 6.0}}
+
+test datatypes concat-20 -body {
+	
+	vexpr {hstack({2.0 3.0}, {5 6})}
+	
+} -result {{2.0 5.0} {3.0 6.0}}
+
+test datatypes concat-21 -body {
+	
+	vexpr {hstack({2.0 3.0}, 5)}
+	
+} -result {{2.0 5.0} {3.0 5.0}}
+
+test datatypes concat-22 -body {
+	
+	vexpr {hstack({2 3}, 5.0)}
+	
+} -result {{2.0 5.0} {3.0 5.0}}
+
+test datatypes unaryminus-1 -body {
+	
+	set x 2
+	vexpr -x
+	
+} -result -2
+
+test datatypes unaryminus-2 -body {
+	
+	set x {2 5}
+	vexpr -x
+	
+} -result {-2 -5}
+
+test datatypes unaryminus-3 -body {
+	
+	set x {2.0 5.0}
+	vexpr -x
+	
+} -result {-2.0 -5.0}
+
+test datatypes unaryminus-4 -body {
+	
+	set x {0.5 0.0}
+	vexpr sin(x)
+	
+} -result {0.479425538604203 0.0}
+
+test datatypes unaryminus-5 -body {
+	
+	set x {0 1}
+	vexpr sin(x)
+	
+} -result {0.0 0.8414709848078965}
+
+test datatypes complex-1 -body {
+	
+	numarray * 1 i
+	
+} -result {expected complex number but got "i"} -returnCodes 1
+
+test datatypes complex-2 -body {
+	
+	numarray * 1 1i
+	
+} -result 0.0+1.0i
+
+test datatypes complex-3 -body {
+	
+	numarray * 1 1+2i
+	
+} -result 1.0+2.0i
+
+test datatypes complex-4 -body {
+	
+	numarray * 1.0 1+2i
+	
+} -result 1.0+2.0i
+
+test datatypes complex-5 -body {
+	
+	numarray * 1.0-2i 1+2i
+	
+} -result 5.0+0.0i
+
+test datatypes complex-6 -body {
+	
+	numarray * 1.0-2i "1 +2i"
+	
+} -result {1.0-2.0i 4.0+2.0i}
+
+test datatypes reduction-1 -body {
+	
+	vexpr {min({7 5 3 1 10})}
+	
+} -result 1
+
+test datatypes reduction-2 -body {
+	
+	vexpr {min({7.0 5.0 3.0 1.0 10.0})}
+	
+} -result 1.0
+
+test datatypes reduction-3 -body {
+	
+	vexpr {min({7.0 5.0 3.0 1.0 10.0+1i})}
+	
+} -result {Undefined function for datatype complex} -returnCodes 1
+
+test datatypes reduction-4 -body {
+	
+	vexpr {mean({7.0 5.0 3.0 1.0 10.0+1i})}
+	
+} -result 5.2+0.2i
+
+test datatypes reduction-5 -body {
+	
+	vexpr {mean({7.0 5.0 3.0 1.0 10.0})}
+	
+} -result 5.2
+
+test datatypes reduction-6 -body {
+	
+	vexpr {mean({7 5 3 1 10})}
+	
+} -result 5.2
+
+test datatypes assignop-6 -body {
+	
+	set A {{1 2} {3 4}}
+	vexpr {A+={{2.0 3.0} {7.0 8.0}}}
+	
+} -result {{3.0 5.0} {10.0 12.0}}
+
+test datatypes assignop-7 -body {
+	
+	set A {{1.0 2.0} {3.0 4.0}}
+	vexpr {A+={{2 3} {7 8}}}
+	
+} -result {{3.0 5.0} {10.0 12.0}}
+
+test datatypes assignop-10 -body {
+	
+	set A {{1.0+1i 2.0+2i} {3.0+4i 4.0+3i}}
+	vexpr {A+={{2 3} {7 8}}}
+	
+} -result {{3.0+1.0i 5.0+2.0i} {10.0+4.0i 12.0+3.0i}}
+
