@@ -57,6 +57,12 @@ proc run_bench {A B rep} {
 	puts "Addition via iterators"
 	compute_bandwidth {numarray += A $B} $rep
 
+	puts "Unary operator"
+	compute_bandwidth {numarray neg $B} $rep
+
+	puts "Binary operator"
+	compute_bandwidth {numarray + $A $B} $rep
+
 	# puts "Result should be 1001: [numarray get $A 23]"
 	puts ""
 }

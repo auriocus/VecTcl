@@ -38,15 +38,22 @@ int CMD(
 
 			/* allocate buffer for result */
 			resultbuf = NumArrayNewSharedBuffer(resultinfo -> bufsize);
-			DBLRES *bufptr = (DBLRES*) NumArrayGetPtrFromSharedBuffer(resultbuf);
-
-			for (; ! NumArrayIteratorFinished(&it); 
-				NumArrayIteratorAdvance(&it)) {
-
-				DBLRES *result = bufptr++;
-				double op = NumArrayIteratorDeRefDouble(&it);
-				DBLOP;
+			DBLRES *result = (DBLRES*) NumArrayGetPtrFromSharedBuffer(resultbuf);
+		
+			const int srcpitch=NumArrayIteratorRowPitchTyped(&it);
+			const int length = NumArrayIteratorRowLength(&it);
+			double* opptr = NumArrayIteratorDeRefPtr(&it);
+			while (opptr) {
+				int i;
+				for (i=0; i<length; i++) {
+					double op = *opptr;
+					DBLOP;
+					opptr+=srcpitch;
+					result++;
+				}
+				opptr = NumArrayIteratorAdvanceRow(&it);
 			}
+		
 			NumArrayIteratorFree(&it);
 			break;
 		}
@@ -58,15 +65,22 @@ int CMD(
 
 			/* allocate buffer for result */
 			resultbuf = NumArrayNewSharedBuffer(resultinfo -> bufsize);
-			INTRES *bufptr = (INTRES*) NumArrayGetPtrFromSharedBuffer(resultbuf);
+			INTRES *result = (INTRES*) NumArrayGetPtrFromSharedBuffer(resultbuf);
 
-			for (; ! NumArrayIteratorFinished(&it); 
-				NumArrayIteratorAdvance(&it)) {
-
-				INTRES *result = bufptr++;
-				int op = NumArrayIteratorDeRefInt(&it);
-				INTOP;
+			const int srcpitch=NumArrayIteratorRowPitchTyped(&it);
+			const int length = NumArrayIteratorRowLength(&it);
+			int* opptr = NumArrayIteratorDeRefPtr(&it);
+			while (opptr) {
+				int i;
+				for (i=0; i<length; i++) {
+					int op = *opptr;
+					INTOP;
+					opptr+=srcpitch;
+					result++;
+				}
+				opptr = NumArrayIteratorAdvanceRow(&it);
 			}
+
 			NumArrayIteratorFree(&it);
 			break;
 		}
@@ -78,15 +92,22 @@ int CMD(
 
 			/* allocate buffer for result */
 			resultbuf = NumArrayNewSharedBuffer(resultinfo -> bufsize);
-			CPLXRES *bufptr = (CPLXRES*) NumArrayGetPtrFromSharedBuffer(resultbuf);
-
-			for (; ! NumArrayIteratorFinished(&it); 
-				NumArrayIteratorAdvance(&it)) {
-
-				CPLXRES *result = bufptr++;
-				NumArray_Complex op = NumArrayIteratorDeRefComplex(&it);
-				CPLXOP;
+			CPLXRES *result = (CPLXRES*) NumArrayGetPtrFromSharedBuffer(resultbuf);
+		
+			const int srcpitch=NumArrayIteratorRowPitchTyped(&it);
+			const int length = NumArrayIteratorRowLength(&it);
+			NumArray_Complex* opptr = NumArrayIteratorDeRefPtr(&it);
+			while (opptr) {
+				int i;
+				for (i=0; i<length; i++) {
+					NumArray_Complex op = *opptr;
+					CPLXOP;
+					opptr+=srcpitch;
+					result++;
+				}
+				opptr = NumArrayIteratorAdvanceRow(&it);
 			}
+	
 			NumArrayIteratorFree(&it);
 			break;
 		}

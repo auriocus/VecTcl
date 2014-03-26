@@ -9,6 +9,7 @@
 #define NUMARRAYTPASTER4(X, Y, Z, W) X##Y##Z##W
 
 typedef enum {
+	NumArray_NoType=-1,
 	NumArray_Int64=0,
 	NumArray_Float64=1,
 	NumArray_Complex128=2,
