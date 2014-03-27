@@ -16,6 +16,7 @@ proc compute_bandwidth {code rep} {
 	set bw [expr {$memsize/1e9 / ($micros*1e-6)}]
 
 	puts "[format %.3g $bw] GBytes/s ($t in $rep repetitions)"
+	return $bw
 
 }
 

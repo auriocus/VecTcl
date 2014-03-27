@@ -57,6 +57,12 @@ const Tcl_ObjType NumArrayTclType = {
 };
 
 Tcl_ObjType * tclListType;
+const Tcl_ObjType * tclDoubleType;
+const Tcl_ObjType * tclIntType;
+#ifndef TCL_WIDE_INT_IS_LONG
+Tcl_ObjType * tclIntType;
+#endif
+
 Tcl_SetFromAnyProc *listSetFromAny;
 
 /*
@@ -673,6 +679,52 @@ myTcl_MakeEnsemble(
 	return ensemble;
 }
 
+/*
+ *----------------------------------------------------------------------
+ *
+ * myTcl_GetDoubleFromObj --
+ *
+ *  Copied from the Tcl source, but allow NaN values in the result
+ *	Attempt to return a double from the Tcl object "objPtr". If the object
+ *	is not already a double, an attempt will be made to convert it to one.
+ *
+ * Results:
+ *	The return value is a standard Tcl object result. If an error occurs
+ *	during conversion, an error message is left in the interpreter's
+ *	result unless "interp" is NULL.
+ *
+ * Side effects:
+ *	If the object is not already a double, the conversion will free any
+ *	old internal representation.
+ *
+ *----------------------------------------------------------------------
+ */
+
+static int
+myTcl_GetDoubleFromObj(
+    Tcl_Interp *interp,         /* Used for error reporting if not NULL. */
+    register Tcl_Obj *objPtr,	/* The object from which to get a double. */
+    register double *dblPtr)	/* Place to store resulting double. */
+{
+	do {
+		if (objPtr->typePtr == tclDoubleType) {
+			*dblPtr = (double) objPtr->internalRep.doubleValue;
+			return TCL_OK;
+		}
+		if (objPtr->typePtr == tclIntType) {
+			*dblPtr = objPtr->internalRep.longValue;
+			return TCL_OK;
+		}
+#ifndef TCL_WIDE_INT_IS_LONG
+		if (objPtr->typePtr == tclWideIntType) {
+			*dblPtr = (double) objPtr->internalRep.wideValue;
+			return TCL_OK;
+		}
+#endif
+	} while (Tcl_ConvertToType(interp, objPtr, tclDoubleType) == TCL_OK);
+	return TCL_ERROR;
+}
+
 int
 NumArrayCreateCmd(
 		ClientData dummy,
@@ -714,7 +766,7 @@ NumArrayConstFillCmd(
 		return TCL_ERROR;
 	}
 	
-	if (Tcl_GetDoubleFromObj(interp, objv[1], &value) != TCL_OK) {
+	if (myTcl_GetDoubleFromObj(interp, objv[1], &value) != TCL_OK) {
 		return TCL_ERROR;
 	}
 	
@@ -958,7 +1010,7 @@ NumArraySetCmd(
 	switch (info->type) {
 		case NumArray_Float64: {
 			double value;
-			if (Tcl_GetDoubleFromObj(interp, objv[objc-1], &value) != TCL_OK) {
+			if (myTcl_GetDoubleFromObj(interp, objv[objc-1], &value) != TCL_OK) {
 				goto cleanobj;
 			}
 
@@ -1340,9 +1392,6 @@ ScanNumArrayDimensionsFromValue(Tcl_Interp *interp, Tcl_Obj* valobj, Tcl_Obj **r
 	Tcl_Obj *itobj, *dimlist;
 	int nDim = 0; int allocobj = 0;
 
-	const Tcl_ObjType * tclDoubleType = Tcl_GetObjType("double");
-	const Tcl_ObjType * tclIntType = Tcl_GetObjType("int");
-	const Tcl_ObjType * tclListType = Tcl_GetObjType("list");
 
 	dimlist = Tcl_NewListObj(0, NULL);
 	int firstdim;
@@ -1442,7 +1491,7 @@ ScanNumArrayDimensionsFromValue(Tcl_Interp *interp, Tcl_Obj* valobj, Tcl_Obj **r
 				break;
 			}
 
-			if (Tcl_GetDoubleFromObj(interp, itobj, &dummy_float64) == TCL_OK) {
+			if (myTcl_GetDoubleFromObj(interp, itobj, &dummy_float64) == TCL_OK) {
 				/* 2nd: Try to convert to double. If succeeds, we are at the leaf
 				 * Handle case of a single number, 
 				 * else just break out of the loop */
@@ -1810,7 +1859,7 @@ static int createNumArraySharedBufferFromTypedList(Tcl_Interp *interp, Tcl_Obj *
 				bufptr += pitch;
 				break;
 			case NumArray_Float64:
-				if (Tcl_GetDoubleFromObj(interp, matroska[nDim], (double *)bufptr) != TCL_OK) {
+				if (myTcl_GetDoubleFromObj(interp, matroska[nDim], (double *)bufptr) != TCL_OK) {
 					goto cleanbuffer;
 				}
 				bufptr += pitch;
@@ -2983,7 +3032,12 @@ int Vectcl_Init(Tcl_Interp* interp) {
 	Complex_Init(interp);
 
 	/* casting away const is intended for the dirty hack */
-	tclListType =  (Tcl_ObjType *) Tcl_GetObjType("list");
+	tclListType =  (Tcl_ObjType *) Tcl_GetObjType("list");	
+	tclDoubleType = Tcl_GetObjType("double");
+	tclIntType = Tcl_GetObjType("int");
+#ifndef TCL_WIDE_INT_IS_LONG
+	tclWideIntType = Tcl_GetObjType("wide");
+#endif
 	
 	#ifdef LIST_INJECT
 	/* copy list object proc from list type */
