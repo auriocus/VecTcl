@@ -234,7 +234,7 @@ namespace eval vectcl {
 				axismax axismin binarymax binarymin complex 
 				concat constfill cos cosh dimensions double 
 				exp log mean qreco reshape sin sinh sqrt
-				std std1 sum tan tanh transpose
+				std std1 sum tan tanh transpose list
 			}
 		}
 
@@ -481,7 +481,6 @@ namespace eval vectcl {
 		}
 
 		method SliceExpr {from to args} {
-			# stop recursion here; just return lexem
 			if {[llength $args] == 0} {
 				# it is a single :, meaning all
 				return {0 -1 1}
@@ -506,29 +505,19 @@ namespace eval vectcl {
 			return $result
 		}
 
-		method ComplexNumber {from to args} {
+		method Literal {from to args} {
+			# A complex literal number is used in literal arrays
+			return "I [join [lrange $lexems $from $to] ""]"
+		}
+		
+		method Verbatim {from to args} {
 			# A complex literal number is used in literal arrays
 			return [list I [join [lrange $lexems $from $to] ""]]
 		}
 		
-		method Number {from to args} {
-			# A number is copied verbatim
-			return [list I [join [lrange $lexems $from $to] ""]]
-		}
-
-		method SignedNumber {from to args} {
-			# A number is copied verbatim
-			return [list I [join [lrange $lexems $from $to] ""]]
-		}
-
-
-		method Literal {from to args} {
-			set result {}
-			foreach arg $args {
-				lappend result [my bracket [my {*}$arg]]
-			}
-			return [list I $result]
-		}
+		forward Number    my Verbatim
+		forward SignedNumber my Verbatim
+		forward ComplexNumber my Verbatim
 
 		forward IndexExpr	my SignedNumber
 
