@@ -81,6 +81,7 @@ typedef struct {
 extern const Tcl_ObjType NumArrayTclType;
 
 NumArrayInfo* CreateNumArrayInfo(int nDim, const int *dims, NumArrayType dtype);
+NumArrayInfo* CreateNumArrayInfoColMaj(int nDim, const int *dims, NumArrayType dtype);
 void DeleteNumArrayInfo(NumArrayInfo* info);
 NumArrayInfo* DupNumArrayInfo(NumArrayInfo* src);
 
@@ -172,6 +173,7 @@ double NumArrayIndex2DGetDouble(NumArrayIndex *ind, int i, int j);
 
 SUBCOMMAND(NumArrayCreateCmd);
 SUBCOMMAND(NumArrayConstFillCmd);
+SUBCOMMAND(NumArrayEyeCmd);
 SUBCOMMAND(NumArrayInfoCmd);
 SUBCOMMAND(NumArrayDimensionsCmd);
 SUBCOMMAND(NumArrayReshapeCmd);

@@ -223,6 +223,54 @@ NumArrayInfo* CreateNumArrayInfo(int nDim, const int *dims, NumArrayType dtype) 
 	return result;
 }
 
+/* The same as CreateNumArrayInfo, but creates
+ * column major storage (=Fortran format)
+ * to optimize cache access pattern in QR, LU etc. */
+NumArrayInfo* CreateNumArrayInfoColMaj(int nDim, const int *dims, NumArrayType dtype) {
+	/* Create empty information with nDim number of dimensions
+	 * initialised to dimensions in dims.
+	 * initialized to zero size, if dims == NULL
+	 * TODO catch out of memory */
+	int d = 0;
+	int elemsize=NumArrayType_SizeOf(dtype);
+	
+	NumArrayInfo* result = ckalloc(sizeof(NumArrayInfo));
+	result -> nDim = nDim;
+	result -> canonical = 0; /* column major */
+	result -> bufsize = elemsize;
+	result -> type = dtype;
+	result -> dims = ckalloc(sizeof(int)*nDim);
+	result -> offsets = ckalloc(sizeof(int)*nDim);
+	result -> pitches = ckalloc(sizeof(int)*nDim);
+	
+	for (d=0; d<nDim; d++) {
+		int dim=0;
+		if (dims) {
+			dim=dims[d];
+			if (dim<0) dim=0;
+		}
+		result -> bufsize *= dim;
+		result -> dims[d] = dim;
+		result -> offsets[d] = 0;
+	}
+
+	if (result -> bufsize == 0) {
+		result -> bufsize = 1;
+		/* mallocing a zero size buffer can 
+		 * lead to errors. */
+	}
+
+	/* compute pitches */
+	result -> pitches[0]=elemsize;
+	for (d=1; d<nDim; d++) {
+		result -> pitches[d] = 
+			result -> pitches[d-1] * result ->dims[d-1];
+	}
+
+	return result;
+}
+
+
 int CreateNumArrayInfoFromList(Tcl_Interp *interp, Tcl_Obj* dimlist, NumArrayType dtype, NumArrayInfo **infoptr) {
 	/* Create information with dimensions as in dimlist
 	 * TODO catch out of memory */
@@ -529,6 +577,8 @@ static const EnsembleMap implementationMap[] = {
 	{"create",	NumArrayCreateCmd,	NULL },
 	/* create fresh array initialized to constant */
 	{"constfill", NumArrayConstFillCmd, NULL},
+	/* create identity matrix */
+	{"eye", NumArrayEyeCmd, NULL},
 	/* commands that return metadata */
 	{"info", NumArrayInfoCmd, "__builtin__info"},
 	{"dimensions", NumArrayDimensionsCmd, NULL},
@@ -816,6 +866,63 @@ cleandims:
 	return TCL_ERROR;
 }
 
+int
+NumArrayEyeCmd(
+		ClientData dummy,
+		Tcl_Interp *interp,
+		int objc,
+		Tcl_Obj *const *objv)
+{
+	Tcl_Obj *naObj;
+	int m, n;
+	NumArrayInfo *info; 
+	NumArraySharedBuffer *sharedbuf;
+
+	if (objc != 2 && objc != 3) {
+		Tcl_WrongNumArgs(interp, 1, objv, "dim1 ?dim2?");
+		return TCL_ERROR;
+	}
+	
+	if (Tcl_GetIntFromObj(interp, objv[1], &m) != TCL_OK) {
+		return TCL_ERROR;
+	}
+
+	if (objc == 2) {
+		n=m; 
+	} else {
+		if (Tcl_GetIntFromObj(interp, objv[2], &n) != TCL_OK) {
+			return TCL_ERROR;
+		}
+	}
+
+	if (m<0 || n<0) {
+		Tcl_SetResult(interp, "Dimensions must be positive", NULL);
+		return TCL_ERROR;
+	}
+
+	int *dims = ckalloc(sizeof(int)*2);
+	dims[0]=m; dims[1]=n;
+	info = CreateNumArrayInfo((n==1)? 1:2, dims, NumArray_Float64);
+	sharedbuf = NumArrayNewSharedBuffer(info->bufsize);
+
+	/* Fill the buffer */
+	double *bufptr = (double*) NumArrayGetPtrFromSharedBuffer(sharedbuf);
+	int i;
+	for (i=0; i<m; i++) {
+		int j; 
+		for (j=0; j<n; j++) {
+			*bufptr++ = ((i==j)?1.0:0.0);
+		}
+	}
+
+	/* put into result */
+	naObj = Tcl_NewObj();
+	NumArraySetInternalRep(naObj, sharedbuf, info);
+	Tcl_SetObjResult(interp, naObj);
+	
+	ckfree(dims);
+	return TCL_OK;
+}
 
 /* return the metadata from the info object as dictionary */
 int
