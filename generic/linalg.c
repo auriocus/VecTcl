@@ -174,8 +174,8 @@ int QRDecomposition(Tcl_Interp * interp, Tcl_Obj *matrix, Tcl_Obj **qr, Tcl_Obj 
 	}
 
 	/* get dimensions */
-	int m = info -> dims[0];
-	int n = info -> dims[1];
+	const int m = info -> dims[0];
+	const int n = info -> dims[1];
 
 	/* simple 2D accessor for canonical buffer */
 	#define QR(i, j) (QRbuf[i*n+j])
@@ -197,9 +197,11 @@ int QRDecomposition(Tcl_Interp * interp, Tcl_Obj *matrix, Tcl_Obj **qr, Tcl_Obj 
 		/* Compute 2-norm of k-th column without under/overflow. */
 		double nrm = 0;
 		int i;
+		/* Use direct formula ? */
 		for (i = k; i < m; i++) {
-			nrm = hypot(nrm,QR(i,k));
+			nrm +=QR(i,k)*QR(i,k);
 		}
+		nrm = sqrt(nrm);
 
 		if (nrm != 0.0) {
 			/* Form k-th Householder vector. */
@@ -241,8 +243,8 @@ cleanmatrix:
 int QRsolve(Tcl_Interp *interp, Tcl_Obj *qr, Tcl_Obj *rdiag, Tcl_Obj *B) {
 	
 	NumArrayInfo *QRinfo = qr -> internalRep.twoPtrValue.ptr2;
-	int m = QRinfo -> dims[0];
-	int n = QRinfo -> dims[1];
+	const int m = QRinfo -> dims[0];
+	const int n = QRinfo -> dims[1];
 
 	if (Tcl_ConvertToType(interp, B, &NumArrayTclType) != TCL_OK) {
 		return TCL_ERROR;
@@ -272,7 +274,7 @@ int QRsolve(Tcl_Interp *interp, Tcl_Obj *qr, Tcl_Obj *rdiag, Tcl_Obj *B) {
 
 	
 	/* Copy right hand side */
-	int nx = Binfo -> nDim == 1 ? 1 : Binfo -> dims[1];
+	const int nx = Binfo -> nDim == 1 ? 1 : Binfo -> dims[1];
 	Tcl_Obj *Xobj = Tcl_DuplicateObj(B);
 	NumArrayUnshareBuffer(Xobj);
 

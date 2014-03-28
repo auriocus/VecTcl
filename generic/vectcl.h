@@ -80,7 +80,7 @@ typedef struct {
 
 extern const Tcl_ObjType NumArrayTclType;
 
-NumArrayInfo* CreateNumArrayInfo(int nDim, int*dims, NumArrayType dtype);
+NumArrayInfo* CreateNumArrayInfo(int nDim, const int *dims, NumArrayType dtype);
 void DeleteNumArrayInfo(NumArrayInfo* info);
 NumArrayInfo* DupNumArrayInfo(NumArrayInfo* src);
 

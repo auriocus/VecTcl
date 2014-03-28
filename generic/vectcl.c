@@ -179,7 +179,7 @@ int NumArrayConvertToType(Tcl_Interp *interp, Tcl_Obj *naObj, NumArrayType type,
  * (metadata describing the memory buffer 
  */
 
-NumArrayInfo* CreateNumArrayInfo(int nDim, int *dims, NumArrayType dtype) {
+NumArrayInfo* CreateNumArrayInfo(int nDim, const int *dims, NumArrayType dtype) {
 	/* Create empty information with nDim number of dimensions
 	 * initialised to dimensions in dims.
 	 * initialized to zero size, if dims == NULL
@@ -2447,65 +2447,32 @@ int NumArrayCopy(NumArrayInfo *srcinfo, NumArraySharedBuffer *srcbuf,
 	NumArrayIterator srcit, destit;
 	NumArrayIteratorInit(srcinfo, srcbuf, &srcit);
 	NumArrayIteratorInit(destinfo, destbuf, &destit);
-	
-	if (destinfo -> type == NumArray_Int64) {
+	const int srcpitch=NumArrayIteratorRowPitchTyped(&srcit);
+	const int destpitch=NumArrayIteratorRowPitchTyped(&destit);
+	const int length = NumArrayIteratorRowLength(&srcit);
+
+	#define COPYLOOP(TRES, T) \
+		if (destinfo->type == NATYPE_FROM_C(TRES) && srcinfo->type == NATYPE_FROM_C(T)) { \
+			TRES *result = NumArrayIteratorDeRefPtr(&destit); \
+			T* opptr = NumArrayIteratorDeRefPtr(&srcit); \
+			while (result) { \
+				int i; \
+				for (i=0; i<length; i++) { \
+					*result = UPCAST(T, TRES, *opptr); \
+					opptr+=srcpitch; \
+					result+=destpitch; \
+				} \
+				result = NumArrayIteratorAdvanceRow(&destit); \
+				opptr = NumArrayIteratorAdvanceRow(&srcit); \
+			} \
+		} else 
 		
-		if (srcinfo -> type == NumArray_Int64) {
-			for (; ! NumArrayIteratorFinished(&srcit); 
-				NumArrayIteratorAdvance(&srcit), NumArrayIteratorAdvance(&destit)) {
-					int value = *(int *) NumArrayIteratorDeRefPtr(&srcit);
-					* (int *) NumArrayIteratorDeRefPtr(&destit) = value;
-			}
-
-		} else {
-			goto cleanit;
-		}
-
-	} else if (destinfo -> type == NumArray_Float64) {
-		if (srcinfo -> type == NumArray_Int64) {
-			for (; ! NumArrayIteratorFinished(&srcit); 
-				NumArrayIteratorAdvance(&srcit), NumArrayIteratorAdvance(&destit)) {
-					double value = *(int *) NumArrayIteratorDeRefPtr(&srcit);
-					* (double *) NumArrayIteratorDeRefPtr(&destit) = value;
-			}
-
-		} else if (srcinfo -> type == NumArray_Float64) {
-			for (; ! NumArrayIteratorFinished(&srcit); 
-				NumArrayIteratorAdvance(&srcit), NumArrayIteratorAdvance(&destit)) {
-					double value = *(double *) NumArrayIteratorDeRefPtr(&srcit);
-					* (double *) NumArrayIteratorDeRefPtr(&destit) = value;
-			}
-		} else {
-			goto cleanit;
-		}
-
-	} else if (destinfo -> type == NumArray_Complex128) {
-		if (srcinfo -> type == NumArray_Int64) {
-			for (; ! NumArrayIteratorFinished(&srcit);
-				NumArrayIteratorAdvance(&srcit), NumArrayIteratorAdvance(&destit)) {
-					NumArray_Complex cplxvalue;
-					cplxvalue.re = *(int *) NumArrayIteratorDeRefPtr(&srcit);
-					cplxvalue.im = 0.0;
-					* (NumArray_Complex *) NumArrayIteratorDeRefPtr(&destit) = cplxvalue;
-			}
-		} else if (srcinfo -> type == NumArray_Float64) {
-			for (; ! NumArrayIteratorFinished(&srcit);
-				NumArrayIteratorAdvance(&srcit), NumArrayIteratorAdvance(&destit)) {
-					NumArray_Complex cplxvalue;
-					cplxvalue.re = *(double *) NumArrayIteratorDeRefPtr(&srcit);
-					cplxvalue.im = 0.0;
-					* (NumArray_Complex *) NumArrayIteratorDeRefPtr(&destit) = cplxvalue;
-			}
-		} else if (srcinfo -> type == NumArray_Complex128) {
-			for (; ! NumArrayIteratorFinished(&srcit);
-				NumArrayIteratorAdvance(&srcit), NumArrayIteratorAdvance(&destit)) {
-					NumArray_Complex cplxvalue = *(NumArray_Complex *) NumArrayIteratorDeRefPtr(&srcit);
-					* (NumArray_Complex *) NumArrayIteratorDeRefPtr(&destit) = cplxvalue;
-			}
-		} else {
-			goto cleanit;
-		}
-	} else {
+	COPYLOOP(int, int)
+	COPYLOOP(double, int)
+	COPYLOOP(double, double)
+	COPYLOOP(NumArray_Complex, int)
+	COPYLOOP(NumArray_Complex, double)
+	COPYLOOP(NumArray_Complex, NumArray_Complex) {
 		goto cleanit;
 	}
 
