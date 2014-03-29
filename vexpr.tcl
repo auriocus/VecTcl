@@ -31,6 +31,7 @@ namespace eval vectcl {
 		{-a.^b}
 		{A={1 2 3}}
 		{{{1 2 3} {4 5 6}}}
+		{A = ws*3}
 	}
 
 	set vmtokens {
@@ -123,7 +124,7 @@ namespace eval vectcl {
 
 	proc untok {AST lexems} {
 		set args [lassign $AST type from to]
-		set result [list $type [lrange $lexems $from $to]]
+		set result [list $type [join [lrange $lexems $from $to]]]
 		foreach arg $args {
 			lappend result [untok $arg $lexems]
 		}
@@ -162,7 +163,7 @@ namespace eval vectcl {
 		AssignOp     <- '!';
 		RealNumber    <- 'n';
 		ImaginaryNumber <- 'I';
-		Number       <- ImaginaryNumber / RealNumber;
+leaf:		Number       <- ImaginaryNumber / RealNumber;
 		Sign         <- 'p' / 'm';
 		Var          <- 'i';
 		FunctionName <- 'i';
