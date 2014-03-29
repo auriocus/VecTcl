@@ -1,182 +1,70 @@
 lappend auto_path [file dirname [info script]]
 package require pt::pgen
 
-# This tokenization step is needed
-# because regexps contain character classes
-# don't know how to express
-# [[:alpha:]] in PEG without listing
-# character ranges
 namespace eval vectcl {
 	variable ns [namespace current]
 	
 	interp alias {} ::numarray::ones {} ::numarray::constfill 1.0
 	interp alias {} ::numarray::zeros {} ::numarray::constfill 0.0
 
-	set testscripts {
-		{a= b}
-		{a=b+c+d}
-		{A[:, 4] = b*3.0}
-		{Q, R = qr(A)}
-		{A \ x}
-		{b = -sin(A)}
-		{c = hstack(A,b)}
-		{A += b}
-		{b = c[0:1:-2]}
-		{2-3}
-		{5*(-c)}
-		{x, y = list(y,x)}
-		{a*b*c}
-		{a.^b.^c}
-		{-a+b}
-		{-a.^b}
-		{A={1 2 3}}
-		{{{1 2 3} {4 5 6}}}
-		{A = ws*3}
-	}
-
-	set vmtokens {
-		{\\\n} WHITESPACE
-		{[[:space:]]*\n} NEWLINE
-		{#([^\n]*)(\n|$)} DROP
-		{[[:space:]]+}  WHITESPACE
-		{[[:digit:]]+(\.[[:digit:]]+)?((e|E)[+-]?[[:digit:]]+)?[iI]} IMAGINARYNUMBER
-		{[[:digit:]]+(\.[[:digit:]]+)?((e|E)[+-]?[[:digit:]]+)?} REALNUMBER
-		{=} ASSIGN
-		{(\+=|\.+=|-=|\.-=)} ASSIGNOP
-		{(\.\*=|\./=)} ASSIGNOP
-		{(\^=|\*\*=)} ASSIGNOP
-		{\+} PLUS
-		{-} MINUS
-		{'} TRANSPOSE
-		{(\.\^|\.\*\*)} OPERATORPOW
-		{(\.\+|\.-)} OPERATORADD
-		{(\*|\.\*|\/|\./|\\|%)} OPERATORMUL
-		{[,:;(){}\[\]]} COPY
-		{for\M} FOR
-		{[[:alpha:]_][[:alnum:]_]*} IDENTIFIER
-	}  
-
-	set tokenmap {
-		WHITESPACE " "
-		REALNUMBER n
-		IMAGINARYNUMBER I
-		ASSIGN =
-		ASSIGNOP !
-		PLUS p
-		MINUS m
-		TRANSPOSE T
-		OPERATORADD +
-		OPERATORMUL *
-		OPERATORPOW ^
-		IDENTIFIER i
-		NEWLINE ;
-		FOR F
-	}
-
-	
-	
-	
 	proc compile {xprstring} {
 		variable compiler
 		$compiler compile $xprstring
 	}
 
-	proc tokenize {xprstring} {
-		# fully lex an expression string 
-		variable vmtokens
-		variable tokenmap
-		set restokens {}
-		set reslexems {}
-		while {$xprstring != "" } {
-			lassign [lex $vmtokens $xprstring] tok val xprstring
-			if {$tok eq "COPY"} {
-				append restokens $val
-				lappend reslexems $val
-			} elseif {$tok eq "DROP"} {
-				# token is comment and ignored
-			} else {
-				append restokens [dict get $tokenmap $tok]
-				lappend reslexems $val
-			}
-		}
-		return [list $restokens $reslexems]
-	}
-
-	proc lex {tokens input} {
-		# try to parse the next bit of input 
-		# with all regexps from tokens
-		# and return the first hit
-		foreach {rexp token} $tokens {
-			set fits [regexp -- ^$rexp $input match]
-			if {$fits} {
-				# got a match
-				break
-			}
-		}
-		if {![info exists match]} {
-			# no pattern match
-			error "Tokenizer: Cannot parse $input"
-		}
-		set matchlen [string length $match]
-		set newinput [string range $input $matchlen end]
-		return [list $token $match $newinput]
-	}
-
-	proc untok {AST lexems} {
-		set args [lassign $AST type from to]
-		set result [list $type [join [lrange $lexems $from $to]]]
-		foreach arg $args {
-			lappend result [untok $arg $lexems]
-		}
-		return $result
-	}
-
 	variable VMathGrammar {
 	PEG VMath (Sequence)
-		Program      <- ' '* (Sequence / ForLoop )*;
-		Sequence     <- ' '* Statement (' '* ';' ' '* Statement)* ' '*;
+		Program      <- WS (Sequence / ForLoop )*;
+		ForLoop      <- 'for' WS Var WS '=' WS Expression WS '{' Sequence '}';
+		
+		Sequence     <- WS Statement (WS Separator WS Statement)* WS;
 		Statement    <- Assignment / OpAssignment / Expression /Empty;
-		ForLoop      <- 'F' ' '* Var ' '* '=' ' '* Expression ' '* '{' Sequence '}';
-		Empty		 <- ' '*;
-		Expression   <- Term (' '* AddOp ' '* Term)*;
-		Assignment   <- VarSlice ( ' '* ',' ' '* VarSlice)* ' '* '=' ' '* Expression;
-		OpAssignment <- VarSlice ' '* AssignOp ' '* Expression;
+		Empty		 <- WS;
+		Expression   <- Term (WS AddOp WS Term)*;
+		Assignment   <- VarSlice ( WS ',' WS VarSlice)* WS '=' WS Expression;
+		OpAssignment <- VarSlice WS AssignOp WS Expression;
 
-		Term         <- ( Factor (' '* MulOp ' '* Factor)* ) / Sign Factor (' '* MulOp ' '* Factor)*;
-		Factor       <- Transpose ' '* PowOp ' '* Factor / Transpose;
+		Term         <- ( Factor (WS MulOp WS Factor)* ) / Sign Factor (WS MulOp WS Factor)*;
+		Factor       <- Transpose WS PowOp WS Factor / Transpose;
 
 		Transpose    <- Fragment TransposeOp / Fragment;
-		Fragment     <- Number / '(' ' '* Expression ' '*  ')' / Function / VarSlice/Literal;
+		Fragment     <- Number / '(' WS Expression WS  ')' / Function / VarSlice/Literal;
 
-		Function     <- FunctionName '(' ( Expression (',' ' '* Expression)* )? ')';
+		Function     <- FunctionName '(' ( Expression (',' WS Expression)* )? ')';
 		
-		VarSlice     <- Var ( ' '* '[' ' '* SliceExpr ( ',' ' '* SliceExpr )* ' '* ']' )?;
-		SliceExpr    <- IndexExpr  ' '* (':' ' '* IndexExpr ' '* ( ':' ' '* IndexExpr )? )? / ':';
+		VarSlice     <- Var ( WS '[' WS SliceExpr ( ',' WS SliceExpr )* WS ']' )?;
+		SliceExpr    <- IndexExpr  WS (':' WS IndexExpr WS ( ':' WS IndexExpr )? )? / ':';
 		
 		IndexExpr	 <- Sign? RealNumber;
 		SignedNumber <- Sign? RealNumber;
 
-		Literal      <- '{' ' '* ( ComplexNumber / Literal )  (' '+ (ComplexNumber / Literal))* ' '* '}';
+		Literal      <- '{' WS ( ComplexNumber / Literal )  (<space>+ (ComplexNumber / Literal))* WS '}';
 		ComplexNumber  <- Sign? RealNumber ( Sign ImaginaryNumber)?;
+leaf:	TransposeOp  <- "'";
+leaf:	AssignOp     <- '=' / '+=' / '-=' / '.+=' / '.-=' / '.*=' / './=' / '.^=' / '.**=';
+leaf:	RealNumber    <- <ddigit> + ('.' <ddigit> + )? ( ('e' / 'E' ) ('+' / '-') ? <ddigit> + )?;
+leaf:	ImaginaryNumber <- <ddigit> + ('.' <ddigit> + )? ( ('e' / 'E' ) ('+' / '-') ? <ddigit> + )? ('i' / 'I');
+leaf:	Number       <- ImaginaryNumber / RealNumber;
+leaf:	Sign         <- '+' / '-';
+leaf:	Var          <- Identifier;
+leaf:	FunctionName <- Identifier;
+leaf:	MulOp        <- '*' / '/' / '.*' / './' / '\\' / '%';
+leaf:	AddOp        <- '+' / '-' / '.+' / '.-';
+leaf:	PowOp        <- '^' / '**' / '.^' / '.**';
+leaf:   Identifier   <- ('_' / ':' / <alpha>) ('_' / ':' / <alnum>)* ;
 
-		TransposeOp  <- 'T';
-		AssignOp     <- '!';
-		RealNumber    <- 'n';
-		ImaginaryNumber <- 'I';
-leaf:		Number       <- ImaginaryNumber / RealNumber;
-		Sign         <- 'p' / 'm';
-		Var          <- 'i';
-		FunctionName <- 'i';
-		MulOp        <- '*';
-		AddOp        <- '+'/'p'/'m';
-		PowOp        <- '^';
+void:   WS			 <- (('\\' EOL) / (!EOL <space>))*;
+void:   Separator    <- Comment? EOL / ';';
+void:   Comment      <- '#' (!EOL .)* ;
+void:   EOL          <- '\n';
 	END;
 	}
 
 	proc Init {} {
 		variable VMathGrammar
 		variable ns
-		# create parser 
+		# create parser
+		# Snit is quite slow - later on create a parser in C
 		catch [pt::pgen peg $VMathGrammar snit -class ${ns}::VMathParser -name VMathGrammar]
 		variable parser [VMathParser]
 		# create compiler
@@ -209,7 +97,7 @@ leaf:		Number       <- ImaginaryNumber / RealNumber;
 	}
 
 	oo::class create ${ns}::CompileVMath {
-		variable tokens lexems varrefs tempcount parser
+		variable tokens script varrefs tempcount parser
 		variable purefunctions
 
 		constructor {p} {
@@ -239,13 +127,13 @@ leaf:		Number       <- ImaginaryNumber / RealNumber;
 			}
 		}
 
-		method compile {script} {
+		method compile {script_} {
 			# Instantiate the parser
-			lassign [vectcl::tokenize $script] tokens lexems
+			set script $script_
 			set varrefs {}
 			set tempcount 0
 
-			return [my {*}[$parser parset $tokens]]
+			return [my {*}[$parser parset $script]]
 		}
 
 		# get name for temp var
@@ -357,8 +245,8 @@ leaf:		Number       <- ImaginaryNumber / RealNumber;
 			# sequence of statements
 			# first check if we parsed the full program
 			# if not, there was an error...
-			if {$to + 1 < [llength $lexems]} {
-				return -code error "Parse error near [join [lrange $lexems $to [expr {$to+3}]]]"
+			if {$to+1 < [string length $script]} {
+				return -code error "Parse error near [string range $script $to [expr {$to+3}]]"
 			}
 			# every arg represents a Statement. Compile everything in sequence
 
@@ -508,12 +396,12 @@ leaf:		Number       <- ImaginaryNumber / RealNumber;
 
 		method Literal {from to args} {
 			# A complex literal number is used in literal arrays
-			return "I [join [lrange $lexems $from $to] ""]"
+			return "I [string range $script $from $to]"
 		}
 		
 		method Verbatim {from to args} {
 			# A complex literal number is used in literal arrays
-			return [list I [join [lrange $lexems $from $to] ""]]
+			return [list I [string range $script $from $to]]
 		}
 		
 		forward Number    my Verbatim
@@ -527,7 +415,7 @@ leaf:		Number       <- ImaginaryNumber / RealNumber;
 		forward Fragment     my Expression-Compound
 
 		method Expression-Operator {from to args} {
-			return [list numarray::[lindex $lexems $from]]
+			return [list numarray::[string range $script $from $to]]
 		}
 
 		forward AddOp        my Expression-Operator
@@ -536,7 +424,7 @@ leaf:		Number       <- ImaginaryNumber / RealNumber;
 		forward AssignOp     my Expression-Operator
 
 		method Var {from to args} {
-			list set [lindex $lexems $from]
+			list set [string range $script $from $to]
 		}
 
 		method VarSlice {from to args} {
@@ -555,17 +443,17 @@ leaf:		Number       <- ImaginaryNumber / RealNumber;
 		}
 
 		method VarRef {Var from to args} {
-			lindex $lexems $from
+			string range $script $from $to
 		}
 
 		method FunctionName {from to args} {
-			lindex $lexems $from
+			string range $script $from $to
 		}
 		
 		method Sign {from to args} {
 			# unary plus or minus
 			# no-op for +, neg for minus
-			lindex $lexems $from
+			string range $script $from $to
 		}
 		
 		method Function {from to args} {
@@ -598,16 +486,53 @@ leaf:		Number       <- ImaginaryNumber / RealNumber;
 		
 	}
 
-	proc testcompiler {} {
+	# some expressions to test
+	set testscripts {
+		{3+4i}
+		{a= b}
+		{a=b+c+d}
+		{A[:, 4] = b*3.0}
+		{Q, R = qr(A)}
+		{A \ x}
+		{b = -sin(A)}
+		{c = hstack(A,b)}
+		{A += b}
+		{b = c[0:1:-2]}
+		{2-3}
+		{5*(-c)}
+		{x, y = list(y,x)}
+		{a*b*c}
+		{a.^b.^c}
+		{-a+b}
+		{-a.^b}
+		{A={1 2 3}}
+		{{{1 2 3} {4 5 6}}}
+		{A = ws*3}
+	}
+	
+	proc untok {AST input} {
+		set args [lassign $AST type from to]
+		set result [list $type [string range $input $from $to]]
+		foreach arg $args {
+			lappend result [untok $arg $input]
+		}
+		return $result
+	}
+	
+	proc testcompiler {args} {
 		variable testscripts
 		variable compiler
 		variable parser
 
-		foreach script $testscripts {
+		if {[llength $args] != 0} { 
+			set scripts $args
+		} else {
+			set scripts $testscripts
+		}
+		foreach script $scripts {
 			puts " === $script"
-			lassign [tokenize $script] tokens lexems
-			set parsed [$parser parset $tokens]
-			puts [untok $parsed $lexems]
+			set parsed [$parser parset $script]
+			puts [untok $parsed $script]
 
 			if {[catch {$compiler compile $script} compiled]} {
 				puts stderr "Error: $compiled"
@@ -620,6 +545,7 @@ leaf:		Number       <- ImaginaryNumber / RealNumber;
 	Init
 }
 
+# Additional functions (not implemented in C)
 proc numarray::linspace {start stop n} {
 	for {set i 0} {$i<$n} {incr i} {
 		lappend result [expr {$start+($stop-$start)*double($i)/($n-1)}]
@@ -684,3 +610,4 @@ proc numarray::max {args} {
 		}
 	}
 }
+
