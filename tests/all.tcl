@@ -51,7 +51,9 @@ puts $chan "Tests began at [eval $timeCmd]"
 # load the package
 
 
-lappend auto_path [file dirname [file dirname [info script]]]
+set dir [file dirname [file dirname [file normalize [info script]]]] 
+set auto_path [linsert $auto_path 0 $dir [file join $dir lib]]
+puts [join $auto_path \n]
 package require vectcl
 namespace import vectcl::vexpr
 
