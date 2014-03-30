@@ -233,8 +233,39 @@ test numarray dot-4 -body {
 	numarray * {1.0 2.0} {1.0 1.0}
 } -returnCodes error -result {incompatible operands}
 
-# cleanup
-# cleanup
-::tcltest::cleanupTests
-return
+test vectcl shape-1 -body {
+	
+	vexpr {cols({1 2 3 4})}
+	
+} -result 1
+
+test vectcl shape-2 -body {
+	
+	vexpr {rows({1 2 3 4})}
+	
+} -result 4
+
+test vectcl shape-3 -body {
+	
+	vexpr {cols({{1 2 3 4}})}
+	
+} -result 4
+
+test vectcl shape-4 -body {
+	
+	vexpr {rows({{1 2 3 4}})}
+	
+} -result 1
+
+test vectcl shape-5 -body {
+	
+	vexpr {rows({{1 2 3 4} {5 6 7 8}})}
+	
+} -result 2
+
+test vectcl shape-6 -body {
+	
+	vexpr {cols({{1 2 3 4} {5 6 7 8}})}
+	
+} -result 4
 

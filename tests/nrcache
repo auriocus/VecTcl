@@ -1,1 +1,1 @@
-sum 8 concat 22 refcount 2 dimensions 3 slice 13 slicetranspose 2 get 7 scalardot 2 dot 4 min 10 max 6 std 3 mean 2 binop 7 assignop 10 assignslice 4 unaryminus 5 complex 6 reduction 6 2d 1 stripdimensions 3 literal 2
+sum 8 concat 22 refcount 2 dimensions 3 slice 13 slicetranspose 2 get 7 scalardot 2 dot 4 min 10 max 6 std 3 mean 2 binop 7 assignop 10 assignslice 4 unaryminus 5 complex 6 reduction 6 2d 1 stripdimensions 3 literal 2 shape 6

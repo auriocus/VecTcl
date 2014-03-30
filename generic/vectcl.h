@@ -176,6 +176,7 @@ SUBCOMMAND(NumArrayConstFillCmd);
 SUBCOMMAND(NumArrayEyeCmd);
 SUBCOMMAND(NumArrayInfoCmd);
 SUBCOMMAND(NumArrayDimensionsCmd);
+SUBCOMMAND(NumArrayShapeCmd);
 SUBCOMMAND(NumArrayReshapeCmd);
 SUBCOMMAND(NumArrayTransposeCmd);
 SUBCOMMAND(NumArrayAdjointCmd);

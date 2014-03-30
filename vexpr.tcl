@@ -611,3 +611,17 @@ proc numarray::max {args} {
 	}
 }
 
+proc numarray::cols {narray} {
+	set c [lindex [numarray::shape $narray] 1]
+	# case of a columnvector: return 1 row
+	if {$c eq {}} {
+		return 1
+	} else {
+		return $c
+	}
+}
+
+proc numarray::rows {narray} {
+	lindex [numarray::shape $narray] 0
+}
+

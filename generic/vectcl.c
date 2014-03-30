@@ -582,6 +582,7 @@ static const EnsembleMap implementationMap[] = {
 	/* commands that return metadata */
 	{"info", NumArrayInfoCmd, "__builtin__info"},
 	{"dimensions", NumArrayDimensionsCmd, NULL},
+	{"shape", NumArrayShapeCmd, NULL},
 	/* element accessors */
 	{"get", NumArrayGetCmd, NULL},
 	{"set", NumArraySetCmd, "__builtin__set"},
@@ -1664,6 +1665,34 @@ ScanNumArrayDimensionsFromValue(Tcl_Interp *interp, Tcl_Obj* valobj, Tcl_Obj **r
 cleanobj:
 	if (allocobj) Tcl_DecrRefCount(valobj);
 	return TCL_ERROR;
+}
+
+int
+NumArrayShapeCmd(
+		ClientData dummy,
+		Tcl_Interp *interp,
+		int objc,
+		Tcl_Obj *const *objv)
+{
+	NumArrayInfo *info;
+	if (objc != 2) {
+		Tcl_WrongNumArgs(interp, 1, objv, "numarray");
+		return TCL_ERROR;
+	}
+
+	if (Tcl_ConvertToType(interp, objv[1], &NumArrayTclType) != TCL_OK) {
+		return TCL_ERROR;
+	}
+	
+	info = objv[1] -> internalRep.twoPtrValue.ptr2;
+	
+	Tcl_Obj *result = Tcl_NewObj();
+	int d;
+	for (d=0; d<info->nDim; d++) {
+		Tcl_ListObjAppendElement(interp, result,  Tcl_NewIntObj(info->dims[d]));
+	}
+	Tcl_SetObjResult(interp, result);
+	return TCL_OK;
 }
 
 
