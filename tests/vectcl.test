@@ -205,34 +205,6 @@ test numarray plusassignslice -body {
 	numarray += A {{0 -1 1} {1 1 1}} {1.0 2.0 3.0}
 } -result {{1.0 3.0 3.0} {4.0 7.0 6.0} {7.0 11.0 9.0}}
 
-test numarray kroneckerdot -body {
-	numarray * {1.0 2.0 3.0} {{1.0 2.0}}
-} -result {{1.0 2.0} {2.0 4.0} {3.0 6.0}}
-
-test numarray scalardot-1 -body {
-	numarray * {1.0 2.0 3.0} 2.0
-} -result {2.0 4.0 6.0}
-
-test numarray scalardot-2 -body {
-	numarray * 2.0 {1.0 2.0 3.0}
-} -result {2.0 4.0 6.0}
-
-test numarray dot-1 -body {
-	numarray * {{1.0 2.0} {3.0 4.0}} {{1.0 0.0} {1.0 0.0}}
-} -result {{3.0 0.0} {7.0 0.0}}
-
-test numarray dot-2 -body {
-	numarray * {{1.0 2.0} {3.0 4.0}} {1.0 1.0}
-} -result {3.0 7.0}
-
-test numarray dot-3 -body {
-	numarray * {{1.0 2.0 3.0 4.0}} {1.0 2.0 3.0 4.0}
-} -result {30.0}
-
-test numarray dot-4 -body {
-	numarray * {1.0 2.0} {1.0 1.0}
-} -returnCodes error -result {incompatible operands}
-
 test vectcl shape-1 -body {
 	
 	vexpr {cols({1 2 3 4})}

@@ -39,18 +39,11 @@ int NumArrayDotCmd(ClientData dummy, Tcl_Interp *interp,
 		return TCL_ERROR;
 	}
 
-	/* Matrix product is implemented only for 2D 
-	 * While it exists in the general case, it is quite 
-	 * complicated there */
-	if (info1 -> nDim > 2 || info2 -> nDim > 2) {
-		Tcl_SetResult(interp, "Matrix product expects two dimensions at maximum", NULL);
-		return TCL_ERROR;
-	}
-
+	
     /* check if the operands have compatible dimensions */
-    if (info1->dims[info1->nDim-1] != info2->dims[0]) {
+    if (info1->dims[info1->nDim-1] != info2->dims[0] || (info1->nDim == 1 && info2->nDim == 1)) {
 		/* could be Kronecker product of two vectors */
-		if (info1->nDim == 1 && info2->dims[0] == 1) {
+		if (info1->nDim == 1 && info2->nDim ==2 && info2->dims[0] == 1) {
 			int resultdims[2];
 			resultdims[0] = info1->dims[0];
 			resultdims[1] = info2->dims[1];
@@ -84,6 +77,9 @@ int NumArrayDotCmd(ClientData dummy, Tcl_Interp *interp,
 			return TCL_ERROR;
 		}
     } else {
+
+#if 0 
+/* Old 2D-only code */
 		/* General 2D matrix product */
 		int dims[2]; int sumdim;
 
@@ -133,7 +129,66 @@ int NumArrayDotCmd(ClientData dummy, Tcl_Interp *interp,
 				*bufptr++ = result;
 			}
 		}
+#endif 
+		/* N-d code using iteration */
 
+		info2 = DupNumArrayInfo(info2);
+		const int op2pitch = info2->pitches[0] / NumArrayType_SizeOf(info2->type);
+
+		int resultndim = info1->nDim + info2->nDim - 2;
+		int *dims=ckalloc(sizeof(int)*resultndim);
+		int d;
+
+		for (d=0; d<info1->nDim-1; d++) {	
+			dims[d]=info1->dims[d];
+		}
+		for (d=1; d<info2->nDim; d++) {	
+			dims[d+info1->nDim-2]=info2->dims[d];
+		}
+
+		resultinfo = CreateNumArrayInfo(resultndim, dims, 
+			NumArray_UpcastCommonType(info1->type, info2->type));
+		ckfree(dims);
+
+		sharedbuf = NumArrayNewSharedBuffer(resultinfo -> bufsize);
+		
+
+		NumArraySharedBuffer *buf1 = naObj1 -> internalRep.twoPtrValue.ptr1;
+		NumArraySharedBuffer *buf2 = naObj2 -> internalRep.twoPtrValue.ptr1;
+
+		NumArrayInfoSlice1Axis(NULL, info2, 0, 0, 0, 1);
+
+		NumArrayIterator it1;
+		NumArrayIterator it2;
+		NumArrayIteratorInit(info1, buf1, &it1);
+		NumArrayIteratorInit(info2, buf2, &it2);
+
+		/* Now run nested loop, outer = op1, inner = op2 */
+		const int op1pitch = NumArrayIteratorRowPitchTyped(&it1);
+		double *result = NumArrayGetPtrFromSharedBuffer(sharedbuf);
+		double *op1ptr = NumArrayIteratorDeRefPtr(&it1);
+		
+		const int length = NumArrayIteratorRowLength(&it1);
+
+		while (op1ptr) {
+			double *op2ptr = NumArrayIteratorReset(&it2);
+			while (op2ptr) {
+				double sum=0.0;
+				int i;
+				for (i=0; i<length; i++) {
+					double v1 = op1ptr[i*op1pitch];
+					double v2 = op2ptr[i*op2pitch];
+					sum += v1*v2;
+				}
+				*result++ = sum;
+				op2ptr = NumArrayIteratorAdvance(&it2);
+			}	
+			op1ptr = NumArrayIteratorAdvanceRow(&it1);
+		}
+
+		NumArrayIteratorFree(&it1);
+		NumArrayIteratorFree(&it2);
+		DeleteNumArrayInfo(info2);
 	}
 
 	resultObj=Tcl_NewObj();

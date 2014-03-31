@@ -1,0 +1,12 @@
+test compiler literal-1 -body {
+	
+	vexpr {{1 2 3 4}}
+	
+} -result {1 2 3 4}
+
+test compiler literal-2 -body {
+	
+	vexpr {{{1 2} {3 4}}}
+	
+} -result {{1 2} {3 4}}
+

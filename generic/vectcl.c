@@ -2385,6 +2385,57 @@ void NumArraySetInternalRep(Tcl_Obj *naObj, NumArraySharedBuffer *sharedbuf, Num
 	naObj -> typePtr = &NumArrayTclType;
 }
 
+void NumArrayIteratorInitColMaj(NumArrayInfo *info, NumArraySharedBuffer *sharedbuf, NumArrayIterator *it) {
+	int d;
+	int nDim = info->nDim;
+
+	it -> finished = 0;
+	it -> nDim = nDim;
+	it -> type = info -> type;
+	it -> dinfo = ckalloc(sizeof(NumArrayIteratorDimension)*(info->nDim+1));
+
+
+	/* compute total offset */
+	int offset=0;
+	for (d=0; d<info->nDim; d++) {
+		offset += info->offsets[d];
+	}
+
+	it->baseptr = NumArrayGetPtrFromSharedBuffer(sharedbuf)+offset;
+
+	/* copy dimensional information into the 
+	 * iterators counter in reverse order, 
+	 * while stripping sngleton dimensions */
+	int dfull; 
+	for (d=0, dfull=0; dfull < nDim; dfull++) {
+		/* strip singleton dimensions */
+		if (info -> dims[dfull] == 1) {
+			continue;
+		}
+		it -> dinfo[d].counter = info -> dims[dfull];
+		it -> dinfo[d].dim = info -> dims[dfull];
+		it -> dinfo[d].pitch = info -> pitches[dfull];
+		d++;
+	}
+	/* check if it was a scalar */
+	if (d==0) {
+		it -> nDim=1;
+		it -> dinfo[0].counter = 1;
+		it -> dinfo[0].dim = 1;
+		it -> dinfo[0].pitch = 0;
+	} else {
+		it -> nDim = d;
+	}
+
+	/* append a singleton dimension for AdvanceRow 
+	 * in the vector case */
+	it -> dinfo[it->nDim].counter = 1;
+	it -> dinfo[it->nDim].dim = 1;
+	it -> dinfo[it->nDim].pitch = 0;
+	
+}
+
+
 void NumArrayIteratorInit(NumArrayInfo *info, NumArraySharedBuffer *sharedbuf, NumArrayIterator *it) {
 	int d;
 	int nDim = info->nDim;
@@ -2402,6 +2453,7 @@ void NumArrayIteratorInit(NumArrayInfo *info, NumArraySharedBuffer *sharedbuf, N
 	}
 
 	it->baseptr = NumArrayGetPtrFromSharedBuffer(sharedbuf)+offset;
+	it->ptr = it->baseptr;
 
 	/* copy dimensional information into the 
 	 * iterators counter in reverse order, 
@@ -2455,6 +2507,16 @@ void NumArrayIteratorFree(NumArrayIterator *it) {
 	ckfree(it->dinfo);
 }
 
+void* NumArrayIteratorReset(NumArrayIterator *it) {
+	int d;
+	for (d=0; d<it->nDim; d++) {
+		it->dinfo[d].counter = it->dinfo[d].dim;
+	}
+	it -> ptr = it->baseptr;
+	it -> finished = 0;
+	return it -> ptr;
+}
+
 int NumArrayIteratorRowLength(NumArrayIterator *it) {
 	return it->dinfo[0].dim;
 }
@@ -2467,7 +2529,7 @@ void* NumArrayIteratorAdvance(NumArrayIterator *it) {
 	/* count indices one down, handle carry */
 	NumArrayIteratorDimension *info=it->dinfo;
 	if (--(info[0].counter)) {
-		return it->baseptr += info[0].pitch;
+		return it->ptr += info[0].pitch;
 	} else {
 		/* the fastest counter has wrapped over to zero. 
 		 * Now carry over */
@@ -2475,12 +2537,12 @@ void* NumArrayIteratorAdvance(NumArrayIterator *it) {
 		for (d=1; d < it->nDim; d++) {
 			/* reset the d-1 dimension */
 			info[d-1].counter=info[d-1].dim;
-			it->baseptr-=info[d-1].pitch*(info[d-1].dim-1);
+			it->ptr -= info[d-1].pitch*(info[d-1].dim-1);
 			
 			/* advance the d dimension, check for carry */
 			
 			if (--(info[d].counter)) {
-				return it->baseptr += info[d].pitch;
+				return it->ptr += info[d].pitch;
 			}
 		}
 	}
@@ -2493,7 +2555,7 @@ void* NumArrayIteratorAdvanceRow(NumArrayIterator *it) {
 	/* count indices one down, handle carry */
 	NumArrayIteratorDimension *info=it->dinfo;
 	if (--(info[1].counter)) {
-		return it->baseptr += info[1].pitch;
+		return it->ptr += info[1].pitch;
 	} else {
 		/* the fastest counter has wrapped over to zero. 
 		 * Now carry over */
@@ -2501,12 +2563,12 @@ void* NumArrayIteratorAdvanceRow(NumArrayIterator *it) {
 		for (d=2; d < it->nDim; d++) {
 			/* reset the d-1 dimension */
 			info[d-1].counter=info[d-1].dim;
-			it->baseptr-=info[d-1].pitch*(info[d-1].dim-1);
+			it->ptr-=info[d-1].pitch*(info[d-1].dim-1);
 			
 			/* advance the d dimension, check for carry */
 			
 			if (--(info[d].counter)) {
-				return it->baseptr += info[d].pitch;
+				return it->ptr += info[d].pitch;
 			}
 		}
 	}
@@ -2527,13 +2589,13 @@ NumArray_ValueType NumArrayIteratorDeRefValue(NumArrayIterator *it) {
 	value.type = it->type;
 	switch (value.type) {
 		case NumArray_Int64:
-			value.value.Int = *((int*) (it->baseptr));
+			value.value.Int = *((int*) (it->ptr));
 			return value;
 		case NumArray_Float64:
-			value.value.Float64 = *((double*) (it->baseptr));
+			value.value.Float64 = *((double*) (it->ptr));
 			return value;
 		case NumArray_Complex128:
-			value.value.Complex = *((NumArray_Complex*) (it->baseptr));
+			value.value.Complex = *((NumArray_Complex*) (it->ptr));
 			return value;
 		default:
 			printf("Unknown data type in array %d", value.type);
@@ -2543,27 +2605,27 @@ NumArray_ValueType NumArrayIteratorDeRefValue(NumArrayIterator *it) {
 }
 
 double NumArrayIteratorDeRefDouble(NumArrayIterator *it) {
-	return *((double*) (it->baseptr));
+	return *((double*) (it->ptr));
 }
 
 double *NumArrayIteratorDeRefDoublePtr(NumArrayIterator *it) {
-	return (double*) (it->baseptr);
+	return (double*) (it->ptr);
 }
 
 char *NumArrayIteratorDeRefCharPtr(NumArrayIterator *it) {
-	return it->baseptr;
+	return it->ptr;
 }
 
 void *NumArrayIteratorDeRefPtr(NumArrayIterator *it) {
-	return it->baseptr;
+	return it->ptr;
 }
 
 int NumArrayIteratorDeRefInt(NumArrayIterator *it) {
-	return *((int*) (it->baseptr));
+	return *((int*) (it->ptr));
 }
 
 NumArray_Complex NumArrayIteratorDeRefComplex(NumArrayIterator *it) {
-	return *((NumArray_Complex*) (it->baseptr));
+	return *((NumArray_Complex*) (it->ptr));
 }
 
 /*

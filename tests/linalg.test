@@ -1,0 +1,74 @@
+# Commands covered:  numarray
+#
+# This file contains a collection of tests for one or more of the Tcl
+# built-in commands.  Sourcing this file into Tcl runs the tests and
+# generates output for errors.  No output means no errors were found.
+#
+# Copyright (c) 2000 by Scriptics Corporation.
+#
+# See the file "license.terms" for information on usage and redistribution
+# of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+
+if {[lsearch [namespace children] ::tcltest] == -1} {
+    package require tcltest
+    namespace import ::tcltest::*
+}
+
+lappend auto_path [file dirname [file dirname [info script]]]
+package require vectcl
+
+proc matrix {args} {
+	# create matrix with dimensions as given in args
+	set d 1
+	foreach n $args { set d [expr {$d*$n}] }
+	set l {}
+	for {set i 1} {$i<=$d} {incr i} { lappend l [expr {double($i)}] }
+	numarray reshape $l {*}$args
+}
+
+test linalg kroneckerdot -body {
+	numarray * {1.0 2.0 3.0} {{1.0 2.0}}
+} -result {{1.0 2.0} {2.0 4.0} {3.0 6.0}}
+
+test linalg scalardot-1 -body {
+	numarray * {1.0 2.0 3.0} 2.0
+} -result {2.0 4.0 6.0}
+
+test linalg scalardot-2 -body {
+	numarray * 2.0 {1.0 2.0 3.0}
+} -result {2.0 4.0 6.0}
+
+test linalg dot-1 -body {
+	numarray * {{1.0 2.0} {3.0 4.0}} {{1.0 0.0} {1.0 0.0}}
+} -result {{3.0 0.0} {7.0 0.0}}
+
+test linalg dot-2 -body {
+	numarray * {{1.0 2.0} {3.0 4.0}} {1.0 1.0}
+} -result {3.0 7.0}
+
+test linalg dot-3 -body {
+	numarray * {{1.0 2.0 3.0 4.0}} {1.0 2.0 3.0 4.0}
+} -result {30.0}
+
+test linalg dot-4 -body {
+	numarray * {1.0 2.0} {1.0 1.0}
+} -returnCodes error -result {incompatible operands}
+
+test linalg dot-5 -body {
+	
+	vexpr {matrix(2,2,3)*matrix(3,2)}
+	
+} -result {{{22.0 28.0} {49.0 64.0}} {{76.0 100.0} {103.0 136.0}}}
+
+test linalg dot-6 -body {
+	
+	vexpr {matrix(2,5)*matrix(5,3)}
+	
+} -result {{135.0 150.0 165.0} {310.0 350.0 390.0}}
+
+test linalg dot-7 -body {
+	
+	vexpr {matrix(2,3)*matrix(3,3)}
+	
+} -result {{30.0 36.0 42.0} {66.0 81.0 96.0}}
+

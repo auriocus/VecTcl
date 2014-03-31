@@ -62,6 +62,7 @@ NumArrayType NumArray_UpcastType(NumArrayType base);
 NumArrayType NumArray_UpcastCommonType(NumArrayType type1, NumArrayType type2);
 
 int NumArrayConvertToType(Tcl_Interp *interp, Tcl_Obj *naObj, NumArrayType type, Tcl_Obj **dest);
+int NumArrayType_SizeOf(NumArrayType type);
 
 typedef struct  {
 	NumArrayType type;
@@ -112,25 +113,31 @@ typedef struct {
 } NumArrayIteratorDimension;
 
 typedef struct {
-	void *baseptr;
+	void *ptr;
 	int finished;
 	int nDim;
 	NumArrayIteratorDimension *dinfo;
 	NumArrayType type;
+	void *baseptr;
 } NumArrayIterator;
 
 
 /* Init & Free iterator from NumArray */
 int NumArrayIteratorInitObj(Tcl_Interp* interp, Tcl_Obj* naObj, NumArrayIterator *it);
 void NumArrayIteratorInit(NumArrayInfo *info, NumArraySharedBuffer *buffer, NumArrayIterator *it);
+void NumArrayIteratorInitColMaj(NumArrayInfo *info, NumArraySharedBuffer *buffer, NumArrayIterator *it);
 void NumArrayIteratorFree(NumArrayIterator *it);
+void* NumArrayIteratorReset(NumArrayIterator *it);
 
 /* Iterator advance and test for end condition */
 /*int * NumArrayIteratorGetIndices(NumArrayIterator *it);
 int NumArrayIteratorGetIndex(NumArrayIterator* it, int dim);*/
 void* NumArrayIteratorAdvance(NumArrayIterator *it);
+void* NumArrayIteratorAdvanceRow(NumArrayIterator *it);
 
-/* void *NumArrayIteratorAdvanceRow(NumArrayIterator *it); */
+int NumArrayIteratorRowPitchTyped(NumArrayIterator *it);
+int NumArrayIteratorRowLength(NumArrayIterator *it);
+
 
 int NumArrayIteratorFinished(NumArrayIterator *it);
 
