@@ -298,3 +298,15 @@ test datatypes assignop-10 -body {
 	
 } -result {{3.0+1.0i 5.0+2.0i} {10.0+4.0i 12.0+3.0i}}
 
+test datatypes complex-7 -body {
+	
+	numarray neg {1+0.0i}
+	
+} -result -1.0-0.0i
+
+test datatypes complex-8 -body {
+	
+	vexpr {1./(0+0i)}
+	
+} -result -NaN-NaNi
+

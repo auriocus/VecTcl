@@ -78,58 +78,6 @@ int NumArrayDotCmd(ClientData dummy, Tcl_Interp *interp,
 		}
     } else {
 
-#if 0 
-/* Old 2D-only code */
-		/* General 2D matrix product */
-		int dims[2]; int sumdim;
-
-		if (info1->nDim == 1 && info2 ->nDim == 1) {
-			/* can't multiply two columnvectors */
-			Tcl_SetResult(interp, "incompatible operands", NULL);
-			return TCL_ERROR;
-		}
-
-		dims[0] = info1->dims[0];
-		if (info2->nDim == 1) {
-			/* for a column vector, the second dimension is 1 */
-			dims[1] = 1;
-		} else {
-			dims[1] = info2->dims[1];
-		}
-		
-		sumdim = info2->dims[0];
-		
-		resultinfo = CreateNumArrayInfo(dims[1]>1?2:1, dims, info1 -> type);
-
-		/* allocate buffer of this size */
-		sharedbuf = NumArrayNewSharedBuffer(resultinfo -> bufsize);
-		double *bufptr = (double*) NumArrayGetPtrFromSharedBuffer(sharedbuf);
-
-		/* the new shared buffer is in canonical form, 
-		 * thus we can simply iterate over it by pointer
-		 * arithmetics.  */
-		int i, j;
-		
-		NumArrayIndex ind1;
-		NumArrayIndex ind2;
-		NumArrayIndexInitObj(NULL, naObj1, &ind1);
-		NumArrayIndexInitObj(NULL, naObj2, &ind2);
-
-		for (i=0; i<dims[0]; i++) {
-			for (j=0; j<dims[1]; j++) {
-				double result = 0;
-				int k;
-				for (k=0; k<sumdim; k++) {
-					/* 2D indexing into vectors is OK, 
-					 * as long as the corresponding index == 0 */
-					double v1 = NumArrayIndex2DGetDouble(&ind1, i, k);
-					double v2 = NumArrayIndex2DGetDouble(&ind2, k, j);
-					result += v1*v2;
-				}
-				*bufptr++ = result;
-			}
-		}
-#endif 
 		/* N-d code using iteration */
 
 		info2 = DupNumArrayInfo(info2);

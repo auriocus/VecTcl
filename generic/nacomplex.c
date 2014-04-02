@@ -135,17 +135,19 @@ int NumArray_GetComplexFromObj(Tcl_Interp *interp, Tcl_Obj *cplxObj, NumArray_Co
 
 
 void NumArray_PrintComplex(NumArray_Complex c, char *buf) {
+	char imbuf[TCL_DOUBLE_SPACE];
 	Tcl_PrintDouble(NULL, c.re, buf);
-	/* Skip to end of the first number. Too bad that Tcl_PrintDouble
-	 * does not report the number of bytes written */
-	buf += strlen(buf);
-	if (! (c.im < 0) ) {
-		/* for positive and NaN imaginary part, 
-		 * add a + sign */
-		*buf++ = '+';
-	}
+	Tcl_PrintDouble(NULL, c.im, imbuf);
 
-	Tcl_PrintDouble(NULL, c.im, buf);
+	/* Skip to end of real part */
+	buf += strlen(buf);
+
+	/* Append +, if imaginary part has no sign
+	 * can't test with im<0, because of -NaN and -0.0 */
+	if (imbuf[0]!='-' && imbuf[0]!='+') {
+		*buf++='+';
+	}
+	strcpy(buf, imbuf);
 	buf += strlen(buf);
 	*buf++ = 'i';
 	*buf++ = '\0';

@@ -72,3 +72,13 @@ test linalg dot-7 -body {
 	
 } -result {{30.0 36.0 42.0} {66.0 81.0 96.0}}
 
+test linalg dot-8 -body {
+	
+	vexpr {
+	A=matrix(2,5)
+	B=matrix(5,3)
+	A[:,2:4]*B[1:3,:]
+	}
+	
+} -result {{90.0 102.0 114.0} {195.0 222.0 249.0}}
+
