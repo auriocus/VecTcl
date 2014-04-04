@@ -60,7 +60,7 @@ Tcl_ObjType * tclListType;
 const Tcl_ObjType * tclDoubleType;
 const Tcl_ObjType * tclIntType;
 #ifndef TCL_WIDE_INT_IS_LONG
-Tcl_ObjType * tclIntType;
+Tcl_ObjType * tclWideIntType;
 #endif
 
 Tcl_SetFromAnyProc *listSetFromAny;
