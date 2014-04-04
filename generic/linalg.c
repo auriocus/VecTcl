@@ -33,110 +33,62 @@ int NumArrayDotCmd(ClientData dummy, Tcl_Interp *interp,
 		/* same as elementwise multiplication */
 		return NumArrayTimesCmd(dummy, interp, objc, objv);
 	}
-
+/*
     if (info1 -> type != NumArray_Float64 || info2 -> type != NumArray_Float64) {
 		Tcl_SetResult(interp, "Dot product implemented only for doubles", NULL);
 		return TCL_ERROR;
 	}
-
+*/
 	
-    /* check if the operands have compatible dimensions */
-    if (info1->dims[info1->nDim-1] != info2->dims[0] || (info1->nDim == 1 && info2->nDim == 1)) {
-		/* could be Kronecker product of two vectors */
-		if (info1->nDim == 1 && info2->nDim ==2 && info2->dims[0] == 1) {
-			int resultdims[2];
-			resultdims[0] = info1->dims[0];
-			resultdims[1] = info2->dims[1];
-			resultinfo = CreateNumArrayInfo(2, resultdims, info1->type);
-			sharedbuf  = NumArrayNewSharedBuffer(resultinfo->bufsize);
+	#define T1 int
+	#define T2 int
+	#define TRES int
+	#include "dotproductloop.h"	
+	
+	#define T1 int
+	#define T2 double
+	#define TRES double
+	#include "dotproductloop.h"	
+	
+	#define T1 double
+	#define T2 int
+	#define TRES double
+	#include "dotproductloop.h"	
+	
+	#define T1 double
+	#define T2 double
+	#define TRES double
+	#include "dotproductloop.h"	
 
-			double *bufptr = (double *)NumArrayGetPtrFromSharedBuffer(sharedbuf);
-
-			NumArrayIterator it1;
-			/* outer loop */
-			for (NumArrayIteratorInitObj(NULL, naObj1, &it1); 
-				!NumArrayIteratorFinished(&it1);
-				NumArrayIteratorAdvance(&it1)) {
-				
-				double v1 = NumArrayIteratorDeRefDouble(&it1);
-				NumArrayIterator it2;
-				/* inner loop */
-				for (NumArrayIteratorInitObj(NULL, naObj2, &it2); 
-					!NumArrayIteratorFinished(&it2);
-					NumArrayIteratorAdvance(&it2)) {
-					
-					double v2 = NumArrayIteratorDeRefDouble(&it2);
-					
-					*bufptr++ = v1*v2;
-				}
-				NumArrayIteratorFree(&it2);
-			}
-			NumArrayIteratorFree(&it1);
-		} else {
-			Tcl_SetResult(interp, "incompatible operands", NULL);
-			return TCL_ERROR;
-		}
-    } else {
-
-		/* N-d code using iteration */
-
-		info2 = DupNumArrayInfo(info2);
-		const int op2pitch = info2->pitches[0] / NumArrayType_SizeOf(info2->type);
-
-		int resultndim = info1->nDim + info2->nDim - 2;
-		int *dims=ckalloc(sizeof(int)*resultndim);
-		int d;
-
-		for (d=0; d<info1->nDim-1; d++) {	
-			dims[d]=info1->dims[d];
-		}
-		for (d=1; d<info2->nDim; d++) {	
-			dims[d+info1->nDim-2]=info2->dims[d];
-		}
-
-		resultinfo = CreateNumArrayInfo(resultndim, dims, 
-			NumArray_UpcastCommonType(info1->type, info2->type));
-		ckfree(dims);
-
-		sharedbuf = NumArrayNewSharedBuffer(resultinfo -> bufsize);
-		
-
-		NumArraySharedBuffer *buf1 = naObj1 -> internalRep.twoPtrValue.ptr1;
-		NumArraySharedBuffer *buf2 = naObj2 -> internalRep.twoPtrValue.ptr1;
-
-		NumArrayInfoSlice1Axis(NULL, info2, 0, 0, 0, 1);
-
-		NumArrayIterator it1;
-		NumArrayIterator it2;
-		NumArrayIteratorInit(info1, buf1, &it1);
-		NumArrayIteratorInit(info2, buf2, &it2);
-
-		/* Now run nested loop, outer = op1, inner = op2 */
-		const int op1pitch = NumArrayIteratorRowPitchTyped(&it1);
-		double *result = NumArrayGetPtrFromSharedBuffer(sharedbuf);
-		double *op1ptr = NumArrayIteratorDeRefPtr(&it1);
-		
-		const int length = NumArrayIteratorRowLength(&it1);
-
-		while (op1ptr) {
-			double *op2ptr = NumArrayIteratorReset(&it2);
-			while (op2ptr) {
-				double sum=0.0;
-				int i;
-				for (i=0; i<length; i++) {
-					double v1 = op1ptr[i*op1pitch];
-					double v2 = op2ptr[i*op2pitch];
-					sum += v1*v2;
-				}
-				*result++ = sum;
-				op2ptr = NumArrayIteratorAdvance(&it2);
-			}	
-			op1ptr = NumArrayIteratorAdvanceRow(&it1);
-		}
-
-		NumArrayIteratorFree(&it1);
-		NumArrayIteratorFree(&it2);
-		DeleteNumArrayInfo(info2);
+	#define T1 int
+	#define T2 NumArray_Complex
+	#define TRES NumArray_Complex
+	#include "dotproductloop.h"	
+	
+	#define T1 NumArray_Complex
+	#define T2 int
+	#define TRES NumArray_Complex
+	#include "dotproductloop.h"	
+	
+	#define T1 double
+	#define T2 NumArray_Complex
+	#define TRES NumArray_Complex
+	#include "dotproductloop.h"	
+	
+	#define T1 NumArray_Complex
+	#define T2 double
+	#define TRES NumArray_Complex
+	#include "dotproductloop.h"	
+	
+	#define T1 NumArray_Complex
+	#define T2 NumArray_Complex
+	#define TRES NumArray_Complex
+	#include "dotproductloop.h"	
+	
+	
+	{
+		Tcl_SetResult(interp, "Unknown datatypes", NULL);
+		return TCL_ERROR;
 	}
 
 	resultObj=Tcl_NewObj();

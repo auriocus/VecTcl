@@ -2521,6 +2521,10 @@ int NumArrayIteratorRowLength(NumArrayIterator *it) {
 	return it->dinfo[0].dim;
 }
 
+int NumArrayIteratorRowPitch(NumArrayIterator *it) {
+	return it->dinfo[0].pitch;
+}
+
 int NumArrayIteratorRowPitchTyped(NumArrayIterator *it) {
 	return it->dinfo[0].pitch / NumArrayType_SizeOf(it->type);
 }

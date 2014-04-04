@@ -136,6 +136,7 @@ void* NumArrayIteratorAdvance(NumArrayIterator *it);
 void* NumArrayIteratorAdvanceRow(NumArrayIterator *it);
 
 int NumArrayIteratorRowPitchTyped(NumArrayIterator *it);
+int NumArrayIteratorRowPitch(NumArrayIterator *it);
 int NumArrayIteratorRowLength(NumArrayIterator *it);
 
 
