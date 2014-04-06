@@ -757,23 +757,33 @@ myTcl_GetDoubleFromObj(
     register Tcl_Obj *objPtr,	/* The object from which to get a double. */
     register double *dblPtr)	/* Place to store resulting double. */
 {
-	do {
-		if (objPtr->typePtr == tclDoubleType) {
-			*dblPtr = (double) objPtr->internalRep.doubleValue;
-			return TCL_OK;
-		}
-		if (objPtr->typePtr == tclIntType) {
-			*dblPtr = objPtr->internalRep.longValue;
-			return TCL_OK;
-		}
+	if (objPtr->typePtr == tclDoubleType) {
+		*dblPtr = (double) objPtr->internalRep.doubleValue;
+		return TCL_OK;
+	}
+	
+	if (Tcl_ConvertToType(interp, objPtr, tclDoubleType) != TCL_OK) {
+		return TCL_ERROR;
+	}
+
+	/* This is really buggy & braindead. SetDoubleFromAny fails to convert
+	 * a string into the double type, if it fits into an integer. */
+	
+	if (objPtr->typePtr == tclDoubleType) {
+		*dblPtr = (double) objPtr->internalRep.doubleValue;
+		return TCL_OK;
+	} else if (objPtr->typePtr == tclIntType) {
+		*dblPtr = objPtr->internalRep.longValue;
+		return TCL_OK;
+	}
 #ifndef TCL_WIDE_INT_IS_LONG
-		if (objPtr->typePtr == tclWideIntType) {
-			*dblPtr = (double) objPtr->internalRep.wideValue;
-			return TCL_OK;
-		}
+	if (objPtr->typePtr == tclWideIntType) {
+		*dblPtr = (double) objPtr->internalRep.wideValue;
+		return TCL_OK;
+	}
 #endif
-	} while (Tcl_ConvertToType(interp, objPtr, tclDoubleType) == TCL_OK);
-	return TCL_ERROR;
+	/* Any other case is handled by the standard code */
+	return Tcl_GetDoubleFromObj(interp, objPtr, dblPtr);
 }
 
 int
@@ -3205,7 +3215,7 @@ int Vectcl_Init(Tcl_Interp* interp) {
 	tclDoubleType = Tcl_GetObjType("double");
 	tclIntType = Tcl_GetObjType("int");
 #ifndef TCL_WIDE_INT_IS_LONG
-	tclWideIntType = Tcl_GetObjType("wide");
+	tclWideIntType = Tcl_GetObjType("wideInt");
 #endif
 	
 	#ifdef LIST_INJECT

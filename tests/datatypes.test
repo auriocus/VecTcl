@@ -310,3 +310,15 @@ test datatypes complex-8 -body {
 	
 } -result -NaN-NaNi
 
+test datatypes dblconv-1 -body {
+	
+	numarray get {1.0 2.0} 1
+	
+} -result 2.0
+
+test datatypes dblconv-2 -body {
+	
+	numarray get [expr {5**200}] 0
+	
+} -result 6.223015277861142e+139
+
