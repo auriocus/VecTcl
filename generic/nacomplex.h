@@ -74,6 +74,15 @@ static inline NumArray_Complex NumArray_ComplexDivide(NumArray_Complex c1, NumAr
 	return result;
 }
 
+/* Multiply by real number */
+static inline NumArray_Complex NumArray_ComplexScale(NumArray_Complex c, double s) {
+	NumArray_Complex result;
+	result.re= c.re*s;
+	result.im= c.im*s;
+	return result;
+}
+
+
 static inline double NumArray_ComplexAbs(NumArray_Complex c) {
 	return hypot(c.re, c.im);
 }
