@@ -599,6 +599,12 @@ static const EnsembleMap implementationMap[] = {
 	/* data type conversion operators */
 	{"double", NumArrayConvDoubleCmd, NULL},
 	{"complex", NumArrayConvComplexCmd, NULL},
+	/* elementary manipulations of complex values*/
+	{"abs", NumArrayAbsCmd, NULL},
+	{"real", NumArrayRealCmd, NULL},
+	{"imag", NumArrayImagCmd, NULL},
+	{"arg", NumArrayArgCmd, NULL},
+	{"conj", NumArrayConjCmd, NULL},
 	/* elementwise binary operators */
 	{"+", NumArrayPlusCmd, NULL},
 	{".+", NumArrayPlusCmd, NULL},
@@ -2990,6 +2996,51 @@ double NumArrayIndex3DGetDouble(NumArrayIndex *ind, int i, int j, int k) {
 #define DBLOP *result = NumArray_mkComplex(op, 0.0);
 #define CPLXRES NumArray_Complex
 #define CPLXOP *result = op;
+#include "uniop.h"
+
+#define CMD NumArrayAbsCmd
+#define INTRES int
+#define INTOP *result = abs(op);
+#define DBLRES double
+#define DBLOP *result = fabs(op);
+#define CPLXRES double
+#define CPLXOP *result = NumArray_ComplexAbs(op);
+#include "uniop.h"
+
+#define CMD NumArrayArgCmd
+#define INTRES int
+#define INTOP *result = 0;
+#define DBLRES double
+#define DBLOP *result = 0.0;
+#define CPLXRES double
+#define CPLXOP *result = NumArray_ComplexArg(op);
+#include "uniop.h"
+
+#define CMD NumArrayConjCmd
+#define INTRES int
+#define INTOP *result = op;
+#define DBLRES double
+#define DBLOP *result = op;
+#define CPLXRES NumArray_Complex
+#define CPLXOP *result = NumArray_ComplexConj(op);
+#include "uniop.h"
+
+#define CMD NumArrayRealCmd
+#define INTRES int
+#define INTOP *result = op;
+#define DBLRES double
+#define DBLOP *result = op;
+#define CPLXRES double
+#define CPLXOP *result = op.re;
+#include "uniop.h"
+
+#define CMD NumArrayImagCmd
+#define INTRES int
+#define INTOP *result = 0;
+#define DBLRES double
+#define DBLOP *result = 0.0;
+#define CPLXRES double
+#define CPLXOP *result = op.im;
 #include "uniop.h"
 
 

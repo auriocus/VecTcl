@@ -322,3 +322,75 @@ test datatypes dblconv-2 -body {
 	
 } -result 6.223015277861142e+139
 
+test datatypes complex-9 -body {
+	
+	vexpr {real(1.0+1i)}
+	
+} -result 1.0
+
+test datatypes complex-10 -body {
+	
+	vexpr {imag(1.0+2i)}
+	
+} -result 2.0
+
+test datatypes complex-11 -body {
+	
+	vexpr {abs(3.0+4i)}
+	
+} -result 5.0
+
+test datatypes complex-12 -body {
+	
+	vexpr {conj(3.0+4i)}
+	
+} -result 3.0-4.0i
+
+test datatypes complex-13 -body {
+	
+	vexpr {conj(3.0)}
+	
+} -result 3.0
+
+test datatypes complex-14 -body {
+	
+	vexpr {conj(3)}
+	
+} -result 3
+
+test datatypes complex-15 -body {
+	
+	vexpr {real(3)}
+	
+} -result 3
+
+test datatypes complex-16 -body {
+	
+	vexpr {real(3.0)}
+	
+} -result 3.0
+
+test datatypes complex-17 -body {
+	
+	vexpr {imag(3.0)}
+	
+} -result 0.0
+
+test datatypes complex-18 -body {
+	
+	vexpr {imag(3)}
+	
+} -result 0
+
+test datatypes complex-19 -body {
+	
+	vexpr {abs(-3)}
+	
+} -result 3
+
+test datatypes complex-20 -body {
+	
+	vexpr {abs(-3.7)}
+	
+} -result 3.7
+

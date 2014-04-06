@@ -625,3 +625,15 @@ proc numarray::rows {narray} {
 	lindex [numarray::shape $narray] 0
 }
 
+proc numarray::inv {matrix} {
+    # compute the inverse for a square matrix
+    set dim [numarray::dimensions $matrix]
+    if {[numarray dimensions $matrix]!=2} {
+	return -code error "inverse defined for rank-2 only"
+    }
+    lassign [numarray::shape $matrix] m n
+    if {$m!=$n} {
+	return -code error "inverse: matrix must be square"
+    }
+    vexpr {matrix \ eye(n)}
+}
