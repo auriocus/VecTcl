@@ -82,13 +82,21 @@ static inline NumArray_Complex NumArray_ComplexScale(NumArray_Complex c, double 
 	return result;
 }
 
-
 static inline double NumArray_ComplexAbs(NumArray_Complex c) {
 	return hypot(c.re, c.im);
 }
 
 static inline double NumArray_ComplexArg(NumArray_Complex c) {
 	return atan2(c.im, c.re);
+}
+
+static inline NumArray_Complex NumArray_ComplexSign(NumArray_Complex c) {
+	NumArray_Complex result;
+	double v=hypot(c.re, c.im);
+	if (v==0.0) { return NumArray_mkComplex(0.0, 0.0); }
+	result.re=c.re/v;
+	result.im=c.im/v;
+	return result;
 }
 
 static inline NumArray_Complex NumArray_ComplexSqrt(NumArray_Complex c) {
@@ -100,6 +108,7 @@ static inline NumArray_Complex NumArray_ComplexSqrt(NumArray_Complex c) {
 }
 
 
+NumArray_Complex NumArray_ComplexPow(NumArray_Complex c1, NumArray_Complex c2);
 NumArray_Complex NumArray_ComplexSin(NumArray_Complex c);
 NumArray_Complex NumArray_ComplexCos(NumArray_Complex c);
 NumArray_Complex NumArray_ComplexTan(NumArray_Complex c);

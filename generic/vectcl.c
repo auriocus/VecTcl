@@ -620,6 +620,9 @@ static const EnsembleMap implementationMap[] = {
 	/* binary matrix product */
 	{"*", NumArrayDotCmd, NULL},
 	{"\\", NumArrayBackslashCmd, NULL},
+	{"/", NumArraySlashCmd, NULL},
+	{"^", NumArrayMatrixPowCmd, NULL},
+	{"**", NumArrayMatrixPowCmd, NULL},
 
 	/* elementwise binary assignment operators */
 	{"=", NumArraySetAssignCmd, NULL},
@@ -2915,6 +2918,7 @@ double NumArrayIndex3DGetDouble(NumArrayIndex *ind, int i, int j, int k) {
 #define CMD NumArrayPowCmd
 /*#define OPINT *result = pow(op1,op2); */
 #define OPDBL *result = pow(op1,op2);
+#define OPCPLX *result = NumArray_ComplexPow(op1,op2);
 #include "binop.h"
 
 #define CMD NumArrayMinCmd

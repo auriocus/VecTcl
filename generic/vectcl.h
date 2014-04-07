@@ -206,6 +206,8 @@ SUBCOMMAND(NumArrayTimesCmd);
 SUBCOMMAND(NumArrayLdivideCmd);
 SUBCOMMAND(NumArrayRdivideCmd);
 SUBCOMMAND(NumArrayBackslashCmd);
+SUBCOMMAND(NumArraySlashCmd);
+SUBCOMMAND(NumArrayMatrixPowCmd);
 SUBCOMMAND(NumArrayReminderCmd);
 SUBCOMMAND(NumArrayPowCmd);
 SUBCOMMAND(NumArrayMinCmd);

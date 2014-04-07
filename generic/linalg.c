@@ -367,12 +367,12 @@ int QRDecompositionColMajC(Tcl_Interp * interp, Tcl_Obj *matrix, Tcl_Obj **qr, T
 
 		if (nrm != 0.0) {
 			/* Form k-th Householder vector. 
-			 * alpha = ||x|| * exp( -i*arg(x_k)) 
-			 * The phase factor is equivalent to conj(x_k / |x_k|) */
+			 * alpha = ||x|| * exp(i*arg(x_k)) 
+			 * The phase factor is equivalent to x_k / |x_k| */
 			NumArray_Complex alpha;
 			double QRkkv=NumArray_ComplexAbs(QR(k,k));
 			if (QRkkv != 0.0) {
-				alpha=NumArray_ComplexConj(NumArray_ComplexScale(QR(k,k), nrm/QRkkv));
+				alpha=NumArray_ComplexScale(QR(k,k), nrm/QRkkv);
 			} else {
 				alpha=NumArray_mkComplex(nrm, 0);
 			}
@@ -588,6 +588,70 @@ int NumArrayBackslashCmd(ClientData dummy, Tcl_Interp *interp,
 		}
 	}
 	return TCL_OK;
+}
+
+int NumArraySlashCmd(ClientData dummy, Tcl_Interp *interp,
+    int objc, Tcl_Obj *const *objv) 
+{
+	Tcl_Obj *op1, *op2;
+	NumArrayInfo *info1, *info2;
+	if (objc != 3) {
+		Tcl_WrongNumArgs(interp, 1, objv, "array1 array2");
+		return TCL_ERROR;
+	}
+	
+	op1=objv[1]; op2=objv[2];
+
+	if (Tcl_ConvertToType(interp, op1, &NumArrayTclType) != TCL_OK) {
+		return TCL_ERROR;
+	}
+
+	if (Tcl_ConvertToType(interp, op2, &NumArrayTclType) != TCL_OK) {
+		return TCL_ERROR;
+	}
+
+	info1 = op1->internalRep.twoPtrValue.ptr2;
+	info2 = op2->internalRep.twoPtrValue.ptr2;
+
+	if (ISSCALARINFO(info1) || ISSCALARINFO(info2)) {
+		return NumArrayRdivideCmd(dummy, interp, objc, objv);
+	}
+
+	/* Matrix right inversion not implemented */
+	Tcl_SetResult(interp, "Matrix rdivide not implemented", NULL);
+	return TCL_ERROR;
+}
+
+int NumArrayMatrixPowCmd(ClientData dummy, Tcl_Interp *interp,
+    int objc, Tcl_Obj *const *objv) 
+{
+	Tcl_Obj *op1, *op2;
+	NumArrayInfo *info1, *info2;
+	if (objc != 3) {
+		Tcl_WrongNumArgs(interp, 1, objv, "array1 array2");
+		return TCL_ERROR;
+	}
+	
+	op1=objv[1]; op2=objv[2];
+
+	if (Tcl_ConvertToType(interp, op1, &NumArrayTclType) != TCL_OK) {
+		return TCL_ERROR;
+	}
+
+	if (Tcl_ConvertToType(interp, op2, &NumArrayTclType) != TCL_OK) {
+		return TCL_ERROR;
+	}
+
+	info1 = op1->internalRep.twoPtrValue.ptr2;
+	info2 = op2->internalRep.twoPtrValue.ptr2;
+
+	if (ISSCALARINFO(info1) || ISSCALARINFO(info2)) {
+		return NumArrayPowCmd(dummy, interp, objc, objv);
+	}
+
+	/* Matrix right inversion not implemented */
+	Tcl_SetResult(interp, "Matrix power operator not implemented", NULL);
+	return TCL_ERROR;
 }
 
 

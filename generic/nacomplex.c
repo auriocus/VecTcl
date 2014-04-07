@@ -211,7 +211,13 @@ error:
 
 #define SQR(x) ((x)*(x))
 #define PI 3.14159265358979323846264
+
 /* Implementation of various transcendental functions */
+
+NumArray_Complex NumArray_ComplexPow(NumArray_Complex c1, NumArray_Complex c2) {
+    return NumArray_ComplexExp(NumArray_ComplexMultiply(NumArray_ComplexLog(c1), c2));
+}
+
 NumArray_Complex NumArray_ComplexSin(NumArray_Complex c) {
 	NumArray_Complex result;
 	result.re=sin(c.re)*cosh(c.im);
