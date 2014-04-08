@@ -33,7 +33,7 @@ namespace eval vectcl {
 		Function     <- FunctionName '(' ( Expression (',' WS Expression)* )? ')';
 		
 		VarSlice     <- Var ( WS '[' WS SliceExpr ( ',' WS SliceExpr )* WS ']' )?;
-		SliceExpr    <- IndexExpr  WS (':' WS IndexExpr WS ( ':' WS IndexExpr )? )? / ':';
+		SliceExpr    <- Expression  WS (':' WS Expression WS ( ':' WS Expression )? )? / ':';
 		
 		IndexExpr	 <- Sign? RealNumber;
 		SignedNumber <- Sign? RealNumber;
@@ -51,8 +51,10 @@ leaf:	FunctionName <- Identifier;
 leaf:	MulOp        <- '*' / '/' / '.*' / './' / '\\' / '%';
 leaf:	AddOp        <- '+' / '-' / '.+' / '.-';
 leaf:	PowOp        <- '^' / '**' / '.^' / '.**';
-leaf:   Identifier   <- ('_' / ':' / <alpha>) ('_' / ':' / <alnum>)* ;
-
+leaf:   Identifier   <- ('_' / '::' / <alpha>) ('_' / '::' / <alnum>)* ;
+# requiring :: to be in pairs is crucial; otherwise
+# we can't parse SliceExpr correctly. ':' and '1::' would be ambiguous
+        
 void:   WS			 <- (('\\' EOL) / (!EOL <space>))*;
 void:   Separator    <- Comment? EOL / ';';
 void:   Comment      <- '#' (!EOL .)* ;
@@ -304,7 +306,7 @@ void:   EOL          <- '\n';
 			} else {
 				# assignment to slice
 				set resultvar {}
-				return "[list {*}$op $var $slice] $value"
+				return "$op $var [my bracket $slice] $value"
 			}
 			
 		}
@@ -328,7 +330,7 @@ void:   EOL          <- '\n';
 				} else {
 					# assignment to slice
 					set resultvar {}
-					return "[list numarray::= $var $slice] $value"
+					return "[list numarray::= $var] [my bracket $slice] $value"
 				}
 			} else {
 				# list assignment
@@ -344,7 +346,7 @@ void:   EOL          <- '\n';
 						# assignment to slice
 						set temp [my alloctemp]
 						lappend assignvars $temp
-						lappend slicevars "[list numarray::= $var $slice] \$$temp"
+						lappend slicevars "[list numarray::= $var] [my bracket $slice] \$$temp"
 					}
 				}
 				
@@ -363,24 +365,28 @@ void:   EOL          <- '\n';
 			# return referenced variable and slice expr
 			set slices [lassign $VarSlice -> from to Var]
 			set var [my VarRef {*}$Var]
-			# puts "Slices: $slices ([llength $slices])"
-			set slices [lmap slice $slices "my {*}\$slice"]
-			
-			return [list $var $slices]
+			# 
+			if {[llength $slices]==0} { return [list $var {}] }
+			set lslices list
+			foreach slice $slices {
+			    append lslices " [my bracket [my {*}$slice]]"
+			}
+			#puts "Slices evaled $lslices"
+			return [list $var $lslices]
 		}
 
 		method SliceExpr {from to args} {
 			if {[llength $args] == 0} {
 				# it is a single :, meaning all
-				return {0 -1 1}
+				return "I {0 -1 1}"
 			}
 			
-			# otherwise at max 3 IndexExpr
+			# otherwise at max 3 Expressions
 			set result {}
 			foreach indexpr $args {
 				lappend result [my bracket [my {*}$indexpr]]
 			}
-
+			    
 			# if single number, select a single row/column 
 			if {[llength $result]==1} {
 				lappend result {*}$result 1
@@ -391,7 +397,7 @@ void:   EOL          <- '\n';
 				lappend result 1
 			}
 
-			return $result
+			return "list [join $result]"
 		}
 
 		method Literal {from to args} {
@@ -438,7 +444,7 @@ void:   EOL          <- '\n';
 				# alternative:
 				# return [list I "\$[list $var]"]
 			} else {
-				return "numarray::slice \[set [list $var]\] [list $slices]"
+				return "numarray::slice \[set [list $var]\] [my bracket $slices]"
 			}
 		}
 
