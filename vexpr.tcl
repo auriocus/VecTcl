@@ -16,12 +16,15 @@ namespace eval vectcl {
 	PEG VMath (Program)
 		Program      <- Sequence;
 		Sequence     <- WS Statement (WS Separator WS Statement)* WS;
-		Statement    <- ForLoop / WhileLoop / IfClause / Assignment / OpAssignment / Expression / Empty;
+		Statement    <- ForLoop / ForEachLoop / WhileLoop / IfClause /
+		                Assignment / OpAssignment / Expression / Empty;
 		Empty        <- WS;
 		Expression   <- Term (WS AddOp WS Term)*;
 		Assignment   <- VarSlice ( WS ',' WS VarSlice)* WS '=' WS Expression;
 		OpAssignment <- VarSlice WS AssignOp WS Expression;
-		ForLoop      <- 'for' WSob Var WS '=' WS (RangeExpr / Expression)
+		ForEachLoop  <- 'for' WSob Var WS '=' WS Expression
+		                      WSob '{' Sequence '}';
+		ForLoop      <- 'for' WSob Var WS '=' WS RangeExpr
 		                      WSob '{' Sequence '}';
 		WhileLoop    <- 'while'  WSob Expression WSob '{' Sequence '}';
 
@@ -133,7 +136,7 @@ void:   EOL          <- '\n';
 				axismax axismin binarymax binarymin complex 
 				concat constfill cos cosh dimensions double 
 				exp log mean qreco reshape sin sinh sqrt
-				std std1 sum tan tanh transpose list
+				std std1 sum tan tanh transpose list shape rows cols
 			}
 		}
 
@@ -420,6 +423,92 @@ void:   EOL          <- '\n';
 
 			return "list [join $result]"
 		}
+		
+		method RangeExpr {from to args} {
+			# 2 or 3 Expressions
+			set result {}
+			foreach indexpr $args {
+				lappend result [my bracket [my {*}$indexpr]]
+			}
+			    
+			# if stepsize is omitted, append 1
+			if {[llength $result]==2} {
+				lappend result 1
+			}
+
+			return $result
+		}
+
+	
+		method ForLoop {from to Var rangeexpr Sequence} {
+		    # parse components
+		    set iter [my {*}$rangeexpr]
+		    lassign $iter start stop incr
+		    set var [my VarRef {*}$Var]
+		    set sequence [my {*}$Sequence]
+		    # evaluate stop condition only once
+		    set stopv [my alloctemp]
+		    set body ""
+		    append body "set $stopv $stop\n"
+		    append body "for {set $var $start} {\$$var <= \$$stopv}  {incr $var $incr} {\n"
+		    append body $sequence
+		    append body "\n}"
+		    return $body
+		}
+		
+		method ForEachLoop {from to Var Expr Sequence} {
+		    # parse components
+		    set itexpr [my bracket [my {*}$Expr]]
+		    set var [my VarRef {*}$Var]
+		    set sequence [my {*}$Sequence]
+		    
+		    # could run a foreach loop
+		    # but this is wasteful, it decomposes the expression
+		    # into a list
+		    set cv [my alloctemp]
+		    set length [my alloctemp]
+		    set itvar [my alloctemp]
+		    set body ""
+		    append body "set $itvar $itexpr\n"
+		    append body "set $length \[numarray::rows \$$itvar\]\n"
+		    append body "for {set $cv 0} {\$$cv < \$$length}  {incr $cv} {\n"
+		    append body "set $var \[numarray::getrow \$$itvar \$$cv\]\n"
+		    append body $sequence
+		    append body "\n}"
+		    return $body
+		}
+
+		method IfClause {from to Condition Then {Else {Empty}}} {
+		    # parse components
+		    set cond [my bracket [my {*}$Condition]]
+		    set sthen [my {*}$Then]
+		    set selse [my {*}$Else]
+		    
+		    set body ""
+		    append body "if $cond {\n"
+		    append body $sthen
+		    append body "\n}"
+		    if {$selse ne ""} {
+			append body " else {\n"
+			append body $selse
+			append body "\n}"
+		    }
+
+		    return $body
+		}
+		
+		method WhileLoop {from to Condition Body} {
+		    # parse components
+		    set cond [my bracket [my {*}$Condition]]
+		    set sbody [my {*}$Body]
+		    
+		    set body ""
+		    append body "while $cond {\n"
+		    append body $sbody
+		    append body "\n}"
+
+		    return $body
+		}
 
 		method Literal {from to args} {
 			# A complex literal number is used in literal arrays
@@ -664,3 +753,5 @@ proc numarray::inv {matrix} {
     }
     vexpr {matrix \ eye(n)}
 }
+
+interp alias {} numarray::getrow {} lindex

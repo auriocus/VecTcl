@@ -1012,6 +1012,7 @@ NumArrayGetCmd(
 
 	if (objc < 3) {
 		Tcl_WrongNumArgs(interp, 1, objv, "numarray ind ?ind ...?");
+		return TCL_ERROR;
 	}
 	
 	Tcl_Obj *naObj=objv[1];
