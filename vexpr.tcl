@@ -13,16 +13,20 @@ namespace eval vectcl {
 	}
 
 	variable VMathGrammar {
-	PEG VMath (Sequence)
-		Program      <- WS (Sequence / ForLoop )*;
-		ForLoop      <- 'for' WS Var WS '=' WS Expression WS '{' Sequence '}';
-		
+	PEG VMath (Program)
+		Program      <- Sequence;
 		Sequence     <- WS Statement (WS Separator WS Statement)* WS;
-		Statement    <- Assignment / OpAssignment / Expression /Empty;
-		Empty		 <- WS;
+		Statement    <- ForLoop / WhileLoop / IfClause / Assignment / OpAssignment / Expression / Empty;
+		Empty        <- WS;
 		Expression   <- Term (WS AddOp WS Term)*;
 		Assignment   <- VarSlice ( WS ',' WS VarSlice)* WS '=' WS Expression;
 		OpAssignment <- VarSlice WS AssignOp WS Expression;
+		ForLoop      <- 'for' WSob Var WS '=' WS (RangeExpr / Expression)
+		                      WSob '{' Sequence '}';
+		WhileLoop    <- 'while'  WSob Expression WSob '{' Sequence '}';
+
+		IfClause     <- 'if' WSob Expression WSob '{' Sequence '}' 
+				(WSob 'else' WSob '{' Sequence '}')?;
 
 		Term         <- ( Factor (WS MulOp WS Factor)* ) / Sign Factor (WS MulOp WS Factor)*;
 		Factor       <- Transpose WS PowOp WS Factor / Transpose;
@@ -34,6 +38,7 @@ namespace eval vectcl {
 		
 		VarSlice     <- Var ( WS '[' WS SliceExpr ( ',' WS SliceExpr )* WS ']' )?;
 		SliceExpr    <- Expression  WS (':' WS Expression WS ( ':' WS Expression )? )? / ':';
+		RangeExpr    <- Expression  WS ':' WS Expression (WS ':' WS Expression )?;
 		
 		IndexExpr	 <- Sign? RealNumber;
 		SignedNumber <- Sign? RealNumber;
@@ -54,8 +59,11 @@ leaf:	PowOp        <- '^' / '**' / '.^' / '.**';
 leaf:   Identifier   <- ('_' / '::' / <alpha>) ('_' / '::' / <alnum>)* ;
 # requiring :: to be in pairs is crucial; otherwise
 # we can't parse SliceExpr correctly. ':' and '1::' would be ambiguous
-        
+#
+# facultative whitespace
 void:   WS			 <- (('\\' EOL) / (!EOL <space>))*;
+# obligatory whitespace
+void:   WSob			 <- (('\\' EOL) / (!EOL <space>))+;
 void:   Separator    <- Comment? EOL / ';';
 void:   Comment      <- '#' (!EOL .)* ;
 void:   EOL          <- '\n';
@@ -243,26 +251,23 @@ void:   EOL          <- '\n';
 		}
 		
 		variable resultvar
-		method Sequence {from to args} {
-			# sequence of statements
+
+		method Program {from to sequence} {
 			# first check if we parsed the full program
 			# if not, there was an error...
 			if {$to+1 < [string length $script]} {
 				return -code error "Parse error near [string range $script $to [expr {$to+3}]]"
 			}
-			# every arg represents a Statement. Compile everything in sequence
-
-			set resultvar {}
-			set body {}
-			foreach stmt $args {
-				set stmtcompile [my {*}$stmt]
-				if {$stmtcompile ne ""} {
-					append body "[my constantfold $stmtcompile]\n"
-				}
-			}
-
-			# resultvar is set, if a statement
-			# stores an intermediate computation as the result (ListAssignment)
+			
+			# the single arg represents a sequence. 
+			# Compile, don't bracketize anymore	
+			set body [my {*}$sequence]
+			
+			# now determine the return value for this  sequence
+			# resultvar is set, if a statement stores 
+			# an intermediate computation as the result (ListAssignment)
+			# if it's not set, the last expression evaluates 
+			# to the result
 			if {$resultvar ne ""} {
 				append body "return \$[list $resultvar]"
 			}
@@ -274,6 +279,22 @@ void:   EOL          <- '\n';
 			}
 
 			return $upvars$body
+
+		}
+
+		method Sequence {from to args} {
+			# every arg represents a Statement. Compile everything in sequence
+
+			set resultvar {}
+			set body {}
+			foreach stmt $args {
+				set stmtcompile [my {*}$stmt]
+				if {$stmtcompile ne ""} {
+					append body "[my constantfold $stmtcompile]\n"
+				}
+			}
+
+			return $body
 
 		}
 
