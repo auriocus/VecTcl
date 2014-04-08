@@ -73,3 +73,33 @@ test compiler sliceexpression-9 -body {
 	
 } -result {1 5}
 
+test compiler boolif-1 -body {
+	
+	vexpr {r={ }; for x=1:20 { if x>5 && x<15 { r=vstack(r,x) }}; r}
+	
+} -result {6 7 8 9 10 11 12 13 14}
+
+test compiler boolif-2 -body {
+	
+	vexpr {r={ }; for x=1:20 { if x>3 && x<5 || x>17 { r=vstack(r,x) }}; r}
+	
+} -result {4 18 19 20}
+
+test compiler boolif-3 -body {
+	
+	vexpr {r={ }; for x=1:20 { if x>=3 && (x<=5 || x>=17) { r=vstack(r,x) }}; r}
+	
+} -result {3 4 5 17 18 19 20}
+
+test compiler boolif-4 -body {
+	
+	vexpr {r={ }; for x=1:20 { if x>=3 { r=vstack(r,x) }}; r}
+	
+} -result {3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20}
+
+test compiler boolif-5 -body {
+	
+	vexpr {r={ }; for x=1:20 { if !(x>=3) { r=vstack(r,x) }}; r}
+	
+} -result {1 2}
+

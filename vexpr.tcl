@@ -15,11 +15,14 @@ namespace eval vectcl {
 	variable VMathGrammar {
 	PEG VMath (Program)
 		Program      <- Sequence;
+		# A program is a sequence of statements
 		Sequence     <- WS Statement (WS Separator WS Statement)* WS;
 		Statement    <- ForLoop / ForEachLoop / WhileLoop / IfClause /
 		                Assignment / OpAssignment / Expression / Empty;
 		Empty        <- WS;
-		Expression   <- Term (WS AddOp WS Term)*;
+		
+		# Statements can be assignments, single expressions
+		# or control constructs
 		Assignment   <- VarSlice ( WS ',' WS VarSlice)* WS '=' WS Expression;
 		OpAssignment <- VarSlice WS AssignOp WS Expression;
 		ForEachLoop  <- 'for' WSob Var WS '=' WS Expression
@@ -31,6 +34,17 @@ namespace eval vectcl {
 		IfClause     <- 'if' WSob Expression WSob '{' Sequence '}' 
 				(WSob 'else' WSob '{' Sequence '}')?;
 
+		# Expressions are constructed from additive, multiplicative
+		# and power operators and may contain references to variables
+		# and function calls
+		
+		Expression   <- BoolOrExpr;
+		BoolOrExpr   <- BoolAndExpr (WS AndOp WS BoolAndExpr)*;
+		BoolAndExpr  <- RelExpr (WS OrOp WS RelExpr)*;
+		
+		RelExpr      <- AddExpr (WS RelOp AddExpr)?;
+
+		AddExpr      <- Term (WS AddOp WS Term)*;
 		Term         <- ( Factor (WS MulOp WS Factor)* ) / Sign Factor (WS MulOp WS Factor)*;
 		Factor       <- Transpose WS PowOp WS Factor / Transpose;
 
@@ -46,16 +60,19 @@ namespace eval vectcl {
 		IndexExpr	 <- Sign? RealNumber;
 		SignedNumber <- Sign? RealNumber;
 
-		Literal      <- '{' WS ( ComplexNumber / Literal )  (<space>+ (ComplexNumber / Literal))* WS '}';
+		Literal      <- '{' WS (( ComplexNumber / Literal )  (WSob (ComplexNumber / Literal))* WS)? '}';
 		ComplexNumber  <- Sign? RealNumber ( Sign ImaginaryNumber)?;
 leaf:	TransposeOp  <- "'";
 leaf:	AssignOp     <- '=' / '+=' / '-=' / '.+=' / '.-=' / '.*=' / './=' / '.^=' / '.**=';
 leaf:	RealNumber    <- <ddigit> + ('.' <ddigit> + )? ( ('e' / 'E' ) ('+' / '-') ? <ddigit> + )?;
 leaf:	ImaginaryNumber <- <ddigit> + ('.' <ddigit> + )? ( ('e' / 'E' ) ('+' / '-') ? <ddigit> + )? ('i' / 'I');
 leaf:	Number       <- ImaginaryNumber / RealNumber;
-leaf:	Sign         <- '+' / '-';
+leaf:	Sign         <- '+' / '-' / '!';
 leaf:	Var          <- Identifier;
 leaf:	FunctionName <- Identifier;
+leaf:   RelOp        <- '==' / '<=' / '>=' / '<' / '>' / '!=';
+leaf:   AndOp        <- '&&';
+leaf:   OrOp         <- '||';
 leaf:	MulOp        <- '*' / '/' / '.*' / './' / '\\' / '%';
 leaf:	AddOp        <- '+' / '-' / '.+' / '.-';
 leaf:	PowOp        <- '^' / '**' / '.^' / '.**';
@@ -245,12 +262,20 @@ void:   EOL          <- '\n';
 
 			set value [my Expression-Compound $from $to {*}$args]
 
-			if {$sign eq "-"} {
+			switch $sign {
+			    - {
 				return "numarray::neg [my bracket $value]"
-			} else {
+			      } 
+			    ! {
+				return "numarray::not [my bracket $value]"
+			    }
+			    + {
 				return $value
-			}
-				
+			    }
+			    default {
+				error "Unkown unary operator $sign"
+			    }
+			}			
 		}
 		
 		variable resultvar
@@ -485,7 +510,7 @@ void:   EOL          <- '\n';
 		    set selse [my {*}$Else]
 		    
 		    set body ""
-		    append body "if $cond {\n"
+		    append body "[list if $cond] {\n"
 		    append body $sthen
 		    append body "\n}"
 		    if {$selse ne ""} {
@@ -503,7 +528,7 @@ void:   EOL          <- '\n';
 		    set sbody [my {*}$Body]
 		    
 		    set body ""
-		    append body "while $cond {\n"
+		    append body "[list while $cond] {\n"
 		    append body $sbody
 		    append body "\n}"
 
@@ -527,6 +552,10 @@ void:   EOL          <- '\n';
 		forward IndexExpr	my SignedNumber
 
 		forward Expression   my Expression-Compound
+		forward AddExpr      my Expression-Compound
+		forward RelExpr      my Expression-Compound
+		forward BoolAndExpr  my Expression-Compound
+		forward BoolOrExpr   my Expression-Compound
 		forward Factor       my Expression-Compound
 		forward Fragment     my Expression-Compound
 
@@ -534,6 +563,9 @@ void:   EOL          <- '\n';
 			return [list numarray::[string range $script $from $to]]
 		}
 
+		forward OrOp         my Expression-Operator
+		forward AndOp        my Expression-Operator
+		forward RelOp        my Expression-Operator
 		forward AddOp        my Expression-Operator
 		forward MulOp        my Expression-Operator
 		forward PowOp        my Expression-Operator
@@ -567,8 +599,7 @@ void:   EOL          <- '\n';
 		}
 		
 		method Sign {from to args} {
-			# unary plus or minus
-			# no-op for +, neg for minus
+			# unary plus or minus, unary bool ! 
 			string range $script $from $to
 		}
 		
@@ -754,4 +785,15 @@ proc numarray::inv {matrix} {
     vexpr {matrix \ eye(n)}
 }
 
-interp alias {} numarray::getrow {} lindex
+namespace eval numarray {
+    # Tcl stub implementations for new features
+    interp alias {} ::numarray::getrow {} lindex
+
+    foreach binop {< > == != >= <= && ||} {
+	proc $binop {a1 a2} "
+	    expr \[list \$a1 $binop \$a2\]
+	"
+    }
+
+    proc not {c} { expr {!$c} }
+}
