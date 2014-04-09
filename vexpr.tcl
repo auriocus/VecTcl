@@ -103,7 +103,7 @@ void:   EOL          <- '\n';
 		variable proccache {}
 		variable cachecount 0
 
-		namespace export vexpr
+		namespace export vexpr vproc
 	}
 
 	proc vexpr {e} {
@@ -124,6 +124,18 @@ void:   EOL          <- '\n';
 
 			return [uplevel 1 $procname]
 		}
+	}
+	
+	proc vproc {name arglist body} {
+	    # compile and define a VMath procedure
+	    variable compiler
+	    variable cachecount
+
+	    set procbody [$compiler compile $body -novarrefs]
+	    set procname ::numarray::compiledexpression[incr cachecount]
+
+	    proc $procname $arglist $procbody
+	    interp alias {} $name {} $procname
 	}
 
 	oo::class create ${ns}::CompileVMath {
@@ -157,13 +169,13 @@ void:   EOL          <- '\n';
 			}
 		}
 
-		method compile {script_} {
+		method compile {script_ args} {
 			# Instantiate the parser
 			set script $script_
 			set varrefs {}
 			set tempcount 0
 
-			return [my {*}[$parser parset $script]]
+			return [my {*}[$parser parset $script] {*}$args]
 		}
 
 		# get name for temp var
@@ -280,13 +292,20 @@ void:   EOL          <- '\n';
 		
 		variable resultvar
 
-		method Program {from to sequence} {
+		method Program {from to sequence args} {
+			# check arguments
+			set opt {-novarrefs 0}; set nopt [dict size $opt]
+			foreach arg $args {
+			    dict set opt $arg 1
+			}
+			if {[dict size $opt] != $nopt} { return -code error "Unkown option(s) $args" }
+
 			# first check if we parsed the full program
 			# if not, there was an error...
 			if {$to+1 < [string length $script]} {
 				return -code error "Parse error near [string range $script $to [expr {$to+3}]]"
 			}
-			
+		    
 			# the single arg represents a sequence. 
 			# Compile, don't bracketize anymore	
 			set body [my {*}$sequence]
@@ -300,12 +319,14 @@ void:   EOL          <- '\n';
 				append body "return \$[list $resultvar]"
 			}
 
+			
 			# create upvars and prepend to body
 			set upvars {}
-			foreach ref [my getvarrefs] {
-				append upvars [list upvar 1 $ref $ref ]\n
+			if {![dict get $opt -novarrefs]} {
+			    foreach ref [my getvarrefs] {
+				    append upvars [list upvar 1 $ref $ref ]\n
+			    }
 			}
-
 			return $upvars$body
 
 		}
