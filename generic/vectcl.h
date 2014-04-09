@@ -42,6 +42,16 @@ extern const char * NumArray_typename[NumArray_SentinelType];
 #define UPCAST_double_NumArray_Complex(X) NumArray_mkComplex(X, 0.0)
 #define UPCAST_NumArray_Complex_NumArray_Complex(X) X
 
+#define UPCAST_COMMON(T1, T2) NUMARRAYTPASTER4(UPCAST_COMMON_, T1, _, T2)
+#define UPCAST_COMMON_int_int int
+#define UPCAST_COMMON_int_double double
+#define UPCAST_COMMON_double_int double
+#define UPCAST_COMMON_double_double double
+#define UPCAST_COMMON_int_NumArray_Complex NumArray_Complex
+#define UPCAST_COMMON_NumArray_Complex_int NumArray_Complex
+#define UPCAST_COMMON_double_NumArray_Complex NumArray_Complex
+#define UPCAST_COMMON_NumArray_Complex_double NumArray_Complex
+#define UPCAST_COMMON_NumArray_Complex_NumArray_Complex NumArray_Complex
 
 
 
@@ -205,6 +215,18 @@ SUBCOMMAND(NumArrayMinusCmd);
 SUBCOMMAND(NumArrayTimesCmd);
 SUBCOMMAND(NumArrayLdivideCmd);
 SUBCOMMAND(NumArrayRdivideCmd);
+/* relation operators */
+SUBCOMMAND(NumArrayGreaterCmd);
+SUBCOMMAND(NumArrayLesserCmd);
+SUBCOMMAND(NumArrayGreaterEqualCmd);
+SUBCOMMAND(NumArrayLesserEqualCmd);
+SUBCOMMAND(NumArrayEqualCmd);
+SUBCOMMAND(NumArrayUnequalCmd);
+/* boolean operators */
+SUBCOMMAND(NumArrayNotCmd);
+SUBCOMMAND(NumArrayAndCmd);
+SUBCOMMAND(NumArrayOrCmd);
+
 SUBCOMMAND(NumArrayBackslashCmd);
 SUBCOMMAND(NumArraySlashCmd);
 SUBCOMMAND(NumArrayMatrixPowCmd);

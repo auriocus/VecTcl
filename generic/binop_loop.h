@@ -1,4 +1,4 @@
-
+#define TUP UPCAST_COMMON(T1, T2)
 /* for scalar values, take the first value as 
  * the constant and operate over the second field */
 static int BINOP_LOOP_FUN(CMD, T1, T2) (Tcl_Interp *interp,void *bufptr, NumArrayInfo *info1, NumArrayInfo *info2, NumArrayIterator *it1, NumArrayIterator *it2) {
@@ -8,7 +8,7 @@ static int BINOP_LOOP_FUN(CMD, T1, T2) (Tcl_Interp *interp,void *bufptr, NumArra
 	#else 
 	const int pitch = sizeof(TRES);
 	if (ISSCALARINFO(info1)) {
-		TRES op1 = UPCAST(T1, TRES, GETOP1);
+		TUP op1 = UPCAST(T1, TUP, GETOP1);
 		T2 *op2ptr = NumArrayIteratorDeRefPtr(it2);
 		const int op2pitch = NumArrayIteratorRowPitchTyped(it2);
 		const int length = NumArrayIteratorRowLength(it2);
@@ -17,14 +17,14 @@ static int BINOP_LOOP_FUN(CMD, T1, T2) (Tcl_Interp *interp,void *bufptr, NumArra
 			for (i=0; i<length; i++) {
 				TRES *result = bufptr;
 				bufptr += pitch;
-				TRES op2 = UPCAST(T2, TRES, *op2ptr);
+				TUP op2 = UPCAST(T2, TUP, *op2ptr);
 				OP;
 				op2ptr += op2pitch;
 			}
 			op2ptr = NumArrayIteratorAdvanceRow(it2);
 		}
 	} else if (ISSCALARINFO(info2)) {
-		TRES op2 = UPCAST(T2, TRES, GETOP2);
+		TUP op2 = UPCAST(T2, TUP, GETOP2);
 		T1 *op1ptr = NumArrayIteratorDeRefPtr(it1);
 		const int op1pitch = NumArrayIteratorRowPitchTyped(it1);
 		const int length = NumArrayIteratorRowLength(it1);
@@ -33,7 +33,7 @@ static int BINOP_LOOP_FUN(CMD, T1, T2) (Tcl_Interp *interp,void *bufptr, NumArra
 			for (i=0; i<length; i++) {
 				TRES *result = bufptr;
 				bufptr += pitch;
-				TRES op1 = UPCAST(T1, TRES, *op1ptr);
+				TUP op1 = UPCAST(T1, TUP, *op1ptr);
 				OP;
 				op1ptr += op1pitch;
 			}
@@ -53,8 +53,8 @@ static int BINOP_LOOP_FUN(CMD, T1, T2) (Tcl_Interp *interp,void *bufptr, NumArra
 			for (i=0; i<length; i++) {
 				TRES *result = bufptr;
 				bufptr += pitch;
-				TRES op1 = UPCAST(T1, TRES, *op1ptr);
-				TRES op2 = UPCAST(T2, TRES, *op2ptr);
+				TUP op1 = UPCAST(T1, TUP, *op1ptr);
+				TUP op2 = UPCAST(T2, TUP, *op2ptr);
 				OP;
 				op1ptr += op1pitch;
 				op2ptr += op2pitch;
@@ -70,4 +70,5 @@ static int BINOP_LOOP_FUN(CMD, T1, T2) (Tcl_Interp *interp,void *bufptr, NumArra
 #undef T1
 #undef T2
 #undef TRES
+#undef TUP
 #undef OP

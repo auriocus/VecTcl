@@ -42,7 +42,7 @@ namespace eval vectcl {
 		BoolOrExpr   <- BoolAndExpr (WS AndOp WS BoolAndExpr)*;
 		BoolAndExpr  <- RelExpr (WS OrOp WS RelExpr)*;
 		
-		RelExpr      <- AddExpr (WS RelOp AddExpr)?;
+		RelExpr      <- AddExpr (WS RelOp WS AddExpr)?;
 
 		AddExpr      <- Term (WS AddOp WS Term)*;
 		Term         <- ( Factor (WS MulOp WS Factor)* ) / Sign Factor (WS MulOp WS Factor)*;
@@ -809,12 +809,4 @@ proc numarray::inv {matrix} {
 namespace eval numarray {
     # Tcl stub implementations for new features
     interp alias {} ::numarray::getrow {} lindex
-
-    foreach binop {< > == != >= <= && ||} {
-	proc $binop {a1 a2} "
-	    expr \[list \$a1 $binop \$a2\]
-	"
-    }
-
-    proc not {c} { expr {!$c} }
 }

@@ -130,7 +130,11 @@ int CMD(
  * for all datatypes */
 
 /* (int,int) -> int */
-#define TRES int
+#ifdef INTRES
+	#define TRES INTRES
+#else
+	#define TRES int
+#endif
 #define T1 int
 #define T2 int
 
@@ -142,16 +146,24 @@ int CMD(
 
 
 /* (int,double) -> double */
-#define TRES double
+#ifdef DBLRES
+	#define TRES DBLRES
+#else
+	#define TRES double
+#endif
 #define T1 int
 #define T2 double
 #ifdef OPDBL
-#define OP OPDBL
+	#define OP OPDBL
 #endif
 #include "binop_loop.h"
 
 /* (double, int) -> double */
-#define TRES double
+#ifdef DBLRES
+	#define TRES DBLRES
+#else
+	#define TRES double
+#endif
 #define T1 double
 #define T2 int
 #ifdef OPDBL
@@ -160,7 +172,11 @@ int CMD(
 #include "binop_loop.h"
 
 /* (double, double) -> double */
-#define TRES double
+#ifdef DBLRES
+	#define TRES DBLRES
+#else
+	#define TRES double
+#endif
 #define T1 double
 #define T2 double
 #ifdef OPDBL
@@ -169,7 +185,11 @@ int CMD(
 #include "binop_loop.h"
 
 /* (int, complex) -> complex */
-#define TRES NumArray_Complex
+#ifdef CPLXRES
+	#define TRES CPLXRES
+#else
+	#define TRES NumArray_Complex
+#endif
 #define T1 int
 #define T2 NumArray_Complex
 #ifdef OPCPLX
@@ -178,7 +198,11 @@ int CMD(
 #include "binop_loop.h"
 
 /* (double, complex) -> complex */
-#define TRES NumArray_Complex
+#ifdef CPLXRES
+	#define TRES CPLXRES
+#else
+	#define TRES NumArray_Complex
+#endif
 #define T1 double
 #define T2 NumArray_Complex
 #ifdef OPCPLX
@@ -186,10 +210,12 @@ int CMD(
 #endif
 #include "binop_loop.h"
 
-
-
 /* (int, complex) -> complex */
-#define TRES NumArray_Complex
+#ifdef CPLXRES
+	#define TRES CPLXRES
+#else
+	#define TRES NumArray_Complex
+#endif
 #define T1 NumArray_Complex
 #define T2 int
 #ifdef OPCPLX
@@ -198,7 +224,11 @@ int CMD(
 #include "binop_loop.h"
 
 /* (double, complex) -> complex */
-#define TRES NumArray_Complex
+#ifdef CPLXRES
+	#define TRES CPLXRES
+#else
+	#define TRES NumArray_Complex
+#endif
 #define T1 NumArray_Complex
 #define T2 double
 #ifdef OPCPLX
@@ -207,7 +237,11 @@ int CMD(
 #include "binop_loop.h"
 
 /* (complex, complex) -> complex */
-#define TRES NumArray_Complex
+#ifdef CPLXRES
+	#define TRES CPLXRES
+#else
+	#define TRES NumArray_Complex
+#endif
 #define T1 NumArray_Complex
 #define T2 NumArray_Complex
 #ifdef OPCPLX
@@ -225,3 +259,6 @@ int CMD(
 #undef OPINT
 #undef OPDBL
 #undef OPCPLX
+#undef INTRES
+#undef DBLRES
+#undef CPLXRES

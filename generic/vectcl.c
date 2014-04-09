@@ -617,6 +617,17 @@ static const EnsembleMap implementationMap[] = {
 	{"binarymin", NumArrayMinCmd, NULL},
 	{"binarymax", NumArrayMaxCmd, NULL},
 	{"%", NumArrayReminderCmd, NULL},
+	/* relation operators */
+	{">", NumArrayGreaterCmd, NULL},
+	{"<", NumArrayLesserCmd, NULL},
+	{">=", NumArrayGreaterEqualCmd, NULL},
+	{"<=", NumArrayLesserEqualCmd, NULL},
+	{"==", NumArrayEqualCmd, NULL},
+	{"!=", NumArrayUnequalCmd, NULL},
+	/* boolean operators */
+	{"not", NumArrayNotCmd, NULL},
+	{"&&", NumArrayAndCmd, NULL},
+	{"||", NumArrayOrCmd, NULL},
 	/* binary matrix product */
 	{"*", NumArrayDotCmd, NULL},
 	{"\\", NumArrayBackslashCmd, NULL},
@@ -2915,6 +2926,59 @@ double NumArrayIndex3DGetDouble(NumArrayIndex *ind, int i, int j, int k) {
 	}
 #include "binop.h"
 
+#define CMD NumArrayGreaterCmd
+#define OPINT *result = (op1>op2);
+#define OPDBL *result = (op1>op2);
+#define DBLRES int
+#include "binop.h"
+
+#define CMD NumArrayLesserCmd
+#define OPINT *result = (op1<op2);
+#define OPDBL *result = (op1<op2);
+#define DBLRES int
+#include "binop.h"
+
+#define CMD NumArrayGreaterEqualCmd
+#define OPINT *result = (op1>=op2);
+#define OPDBL *result = (op1<=op2);
+#define DBLRES int
+#include "binop.h"
+
+#define CMD NumArrayLesserEqualCmd
+#define OPINT *result = (op1<=op2);
+#define OPDBL *result = (op1<=op2);
+#define DBLRES int
+#include "binop.h"
+
+#define CMD NumArrayEqualCmd
+#define OPINT *result = (op1==op2);
+#define OPDBL *result = (op1==op2);
+#define DBLRES int
+#define OPCPLX *result = ((op1.re==op2.re) && (op1.im==op2.im))
+#define CPLXRES int
+#include "binop.h"
+
+#define CMD NumArrayUnequalCmd
+#define OPINT *result = (op1!=op2);
+#define OPDBL *result = (op1!=op2);
+#define DBLRES int
+#define OPCPLX *result = ((op1.re!=op2.re) || (op1.im!=op2.im))
+#define CPLXRES int
+#include "binop.h"
+
+/* boolean operators */
+#define CMD NumArrayNotCmd
+#define INTOP *result = !op;
+#define INTRES int
+#include "uniop.h"
+
+#define CMD NumArrayAndCmd
+#define OPINT *result = (op1 && op2);
+#include "binop.h"
+
+#define CMD NumArrayOrCmd
+#define OPINT *result = (op1 || op2);
+#include "binop.h"
 
 #define CMD NumArrayPowCmd
 /*#define OPINT *result = pow(op1,op2); */
