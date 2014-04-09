@@ -274,11 +274,6 @@ NumArrayConcatCmd(
     Tcl_SetObjResult(interp, result);
     return TCL_OK;
 
-cleandims:
-	ckfree(resultdims);
-cleaninfo:
-	DeleteNumArrayInfo(resultinfo);
-
 cleanobj:
 	if (allocobj1) Tcl_DecrRefCount(naObj1);
 	if (allocobj2) Tcl_DecrRefCount(naObj2);

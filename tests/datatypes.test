@@ -394,3 +394,81 @@ test datatypes complex-20 -body {
 	
 } -result 3.7
 
+test datatypes boolean-1 -body {
+	
+	vexpr {a={1 2 3 4}; all(a>0)}
+	
+} -result 1
+
+test datatypes boolean-2 -body {
+	
+	vexpr {a={1 2 3 4}; all(a>1)}
+	
+} -result 0
+
+test datatypes boolean-3 -body {
+	
+	vexpr {a={1 2 3 4}; any(a>1)}
+	
+} -result 1
+
+test datatypes boolean-4 -body {
+	
+	vexpr {a={1 2 3 4}; any(a>3)}
+	
+} -result 1
+
+test datatypes boolean-5 -body {
+	
+	vexpr {a={1 2 3 4}; any(a>4)}
+	
+} -result 0
+
+test datatypes boolean-6 -body {
+	
+	vexpr {a={1 2 3 4}; any(a>=4)}
+	
+} -result 1
+
+test datatypes boolean-7 -body {
+	
+	vexpr {a={1 2 3 4}; any(a>=5)}
+	
+} -result 0
+
+test datatypes boolean-8 -body {
+	
+	vexpr {a={1 2 3 4}; any(a<=1)}
+	
+} -result 1
+
+test datatypes boolean-9 -body {
+	
+	vexpr {a={1 2 3 4}; any(a<=0)}
+	
+} -result 0
+
+test datatypes boolean-10 -body {
+	
+	vexpr {a={1 2 3 4}; any(a==0)}
+	
+} -result 0
+
+test datatypes boolean-11 -body {
+	
+	vexpr {a={1 2 3 4}; any(a==2)}
+	
+} -result 1
+
+test datatypes boolean-12 -body {
+	
+	vexpr {a={1 2 3 4}; any(a!=2)}
+	
+} -result 1
+
+test datatypes boolean-13 -body {
+	
+	vexpr {{1 2 3 4}!=3}
+	
+} -result {1 1 0 1}
+

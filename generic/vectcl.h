@@ -265,5 +265,7 @@ SUBCOMMAND(NumArrayAxisMaxCmd);
 SUBCOMMAND(NumArrayMeanCmd);
 SUBCOMMAND(NumArrayStdCmd);
 SUBCOMMAND(NumArrayStd1Cmd);
+SUBCOMMAND(NumArrayAllCmd);
+SUBCOMMAND(NumArrayAnyCmd);
 
 #endif

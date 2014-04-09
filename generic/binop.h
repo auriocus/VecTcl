@@ -3,7 +3,7 @@
  * which works by iterating over all elements
  * for compatible operands */
 #ifndef BINOP_LOOP
-typedef int (binop_loop_fun) (Tcl_Interp *interp, void *bufptr, NumArrayInfo *info1, NumArrayInfo *info2, NumArrayIterator *it1, NumArrayIterator *it2);
+typedef int (binop_loop_fun) (Tcl_Interp *interp, Tcl_Obj *naObj1, Tcl_Obj *naObj2, Tcl_Obj **resultObj);
 #define BINOP_LOOP_FUN(C, T1, T2) BINOP_LOOP_FUN1(C, T1, T2)
 #define BINOP_LOOP_FUN1(C, T1, T2) C##_loop_##T1##_##T2
 #define DECLARE_BINOP(T1, T2) static binop_loop_fun BINOP_LOOP_FUN(CMD, T1, T2)
@@ -40,9 +40,7 @@ int CMD(
 		Tcl_Obj *const *objv)
 {	
 	Tcl_Obj *naObj1, *naObj2, *resultObj;
-	NumArrayInfo *info1, *info2, *resultinfo;
-	NumArrayType resulttype;
-	NumArraySharedBuffer *sharedbuf;
+	NumArrayInfo *info1, *info2;
 
 	if (objc != 3) {
 		Tcl_WrongNumArgs(interp, 1, objv, "numarray1 numarray2");
@@ -59,72 +57,18 @@ int CMD(
 	if (Tcl_ConvertToType(interp, naObj2, &NumArrayTclType) != TCL_OK) {
 		return TCL_ERROR;
 	}
-
+	
 	info1 = naObj1->internalRep.twoPtrValue.ptr2;
 	info2 = naObj2->internalRep.twoPtrValue.ptr2;
-	
-	/* check if the operands have compatible dimensions */
-	if (!NumArrayCompatibleDimensions(info1, info2) && 
-		!ISSCALARINFO(info1)  && !ISSCALARINFO(info2)) {
 
-		Tcl_SetResult(interp, "incompatible operands", NULL);
+	if (LOOPTBL[info1->type][info2->type](interp, naObj1, naObj2, &resultObj) != TCL_OK) {
 		return TCL_ERROR;
 	}
-
-	/* TODO: Upcasting */
-	resulttype = NumArray_UpcastCommonType(info1 -> type, info2 -> type);
-	/* Keep more complex dimension */
-	if (ISSCALARINFO(info1)) {
-		resultinfo = CreateNumArrayInfo(info2 -> nDim, info2 -> dims, resulttype);
-	} else if  (ISSCALARINFO(info2)) {
-		resultinfo = CreateNumArrayInfo(info1 -> nDim, info1 -> dims, resulttype);
-	} else if (info1->nDim > info2 -> nDim) {
-		resultinfo = CreateNumArrayInfo(info1 -> nDim, info1 -> dims, resulttype);
-	} else {
-		resultinfo = CreateNumArrayInfo(info2 -> nDim, info2 -> dims, resulttype);
-	}
-
-	/* allocate buffer of this size */
-	sharedbuf = NumArrayNewSharedBuffer(resultinfo -> bufsize);
-	void *bufptr = NumArrayGetPtrFromSharedBuffer(sharedbuf);
-
-	/* the new shared buffer is in canonical form, 
-	 * thus we can simply iterate over it by pointer
-	 * arithmetics. But the input arrays may be non-canonical
-	 * TODO optimize for canonical case */
-
-	NumArrayIterator it1, it2;
-	NumArrayIteratorInitObj(NULL, naObj1, &it1);
-	NumArrayIteratorInitObj(NULL, naObj2, &it2);
 	
-	if (LOOPTBL[info1->type][info2->type](interp, bufptr, info1, info2, &it1, &it2) != TCL_OK) {
-		/* an error happened during the computation */
-		NumArrayIteratorFree(&it1);
-		NumArrayIteratorFree(&it2);
-		NumArraySharedBufferDecrRefcount(sharedbuf);
-		DeleteNumArrayInfo(resultinfo);
-		return TCL_ERROR;
-	}
-
-	
-	NumArrayIteratorFree(&it1);
-	NumArrayIteratorFree(&it2);
-	
-	resultObj=Tcl_NewObj();
-	NumArraySetInternalRep(resultObj, sharedbuf, resultinfo);
 	Tcl_SetObjResult(interp, resultObj);
 
 	return TCL_OK;
 }
-
-#define DEREFIT_int NumArrayIteratorDeRefInt
-#define DEREFIT_double NumArrayIteratorDeRefDouble
-#define DEREFIT_NumArray_Complex NumArrayIteratorDeRefComplex
-
-#define GETOP_IMP(T) NUMARRAYTPASTER(DEREFIT_,T)
-
-#define GETOP1 GETOP_IMP(T1)(it1)
-#define GETOP2 GETOP_IMP(T2)(it2)
 
 /* Implement the inner loop for the binary operators 
  * for all datatypes */

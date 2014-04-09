@@ -673,6 +673,8 @@ static const EnsembleMap implementationMap[] = {
 	{"mean", NumArrayMeanCmd, NULL},
 	{"std", NumArrayStdCmd, NULL},
 	{"std1", NumArrayStd1Cmd, NULL},
+	{"all", NumArrayAllCmd, NULL},
+	{"any", NumArrayAnyCmd, NULL},
 	{NULL, NULL, NULL}
 };
 
@@ -3314,6 +3316,19 @@ double NumArrayIndex3DGetDouble(NumArrayIndex *ind, int i, int j, int k) {
 #define RETURN *result = sqrt(*result/nlength - (sum/nlength)*(sum/nlength));
 #include "reduction.h"
 
+#define CMD NumArrayAllCmd
+#define INIT ;
+#define FIRST if (op) { *result=1; } else { *result=0; break; }
+#define INTOP if (!op) { *result=0; break; } 
+#define RETURN ;
+#include "reduction.h"
+
+#define CMD NumArrayAnyCmd
+#define INIT ;
+#define FIRST if (!op) { *result=0; } else { *result=1; break; }
+#define INTOP if (op) { *result=1; break; } 
+#define RETURN ;
+#include "reduction.h"
 
 
 int Vectcl_Init(Tcl_Interp* interp) {
