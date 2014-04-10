@@ -601,6 +601,7 @@ static const EnsembleMap implementationMap[] = {
 	{"complex", NumArrayConvComplexCmd, NULL},
 	/* elementary manipulations of complex values*/
 	{"abs", NumArrayAbsCmd, NULL},
+	{"sign", NumArraySignCmd, NULL},
 	{"real", NumArrayRealCmd, NULL},
 	{"imag", NumArrayImagCmd, NULL},
 	{"arg", NumArrayArgCmd, NULL},
@@ -1838,9 +1839,14 @@ NumArrayTransposeAdjointCmd(
 			Tcl_SetObjResult(interp, naObj);
 			return TCL_OK;
 		}
-
-		if ((dim1 == 0 && dim2 ==1) || (dim1 == 1 && dim2 == 0)) {
-			/* create rowvector, i.e. 1xN 2D array */
+		
+		/* Check for scalar */
+		if (info -> dims[0] == 1) {
+			transposeinfo = DupNumArrayInfo(info);
+			/* that's it */
+		} else if ((dim1 == 0 && dim2 ==1) || (dim1 == 1 && dim2 == 0)) {
+			/* in case of a columnvector,
+			 * create rowvector, i.e. 1xN 2D array */
 			transposeinfo = CreateNumArrayInfo(2, NULL, info->type);
 			transposeinfo -> bufsize = info -> bufsize;
 			/* a rowvector from canonical column vector 
@@ -2877,6 +2883,23 @@ double NumArrayIndex3DGetDouble(NumArrayIndex *ind, int i, int j, int k) {
 	return *((double *) (ind->baseptr + i*ind->pitches[0] + j*ind->pitches[1]+ k*ind->pitches[2]));
 }
 
+/* sign function */
+static inline int isign(int x) {
+	if (x==0) return 0;
+	if (x<0) return -1;
+	return 1;
+}
+
+static inline double fsign(double x) {
+	/* NaN is a sign in it's own right */
+	if (x!=x) return x;
+
+	if (x<0) return -1.0;
+	if (x>0) return 1.0;
+	return 0.0;
+}
+
+
 /* Implement elementwise binary operators */
 #define CMD NumArrayPlusCmd
 #define OPINT *result = op1 + op2;
@@ -3076,6 +3099,15 @@ double NumArrayIndex3DGetDouble(NumArrayIndex *ind, int i, int j, int k) {
 #define DBLOP *result = fabs(op);
 #define CPLXRES double
 #define CPLXOP *result = NumArray_ComplexAbs(op);
+#include "uniop.h"
+
+#define CMD NumArraySignCmd
+#define INTRES int
+#define INTOP *result = isign(op);
+#define DBLRES double
+#define DBLOP *result = fsign(op);
+#define CPLXRES NumArray_Complex
+#define CPLXOP *result = NumArray_ComplexSign(op);
 #include "uniop.h"
 
 #define CMD NumArrayArgCmd

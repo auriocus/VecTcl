@@ -206,6 +206,7 @@ SUBCOMMAND(NumArrayFastAddCmd);
 SUBCOMMAND(NumArrayConvDoubleCmd);
 SUBCOMMAND(NumArrayConvComplexCmd);
 SUBCOMMAND(NumArrayAbsCmd);
+SUBCOMMAND(NumArraySignCmd);
 SUBCOMMAND(NumArrayRealCmd);
 SUBCOMMAND(NumArrayImagCmd);
 SUBCOMMAND(NumArrayArgCmd);
