@@ -41,49 +41,77 @@ proc bench_mat {M N} {
 proc run_bench {A B rep} {
 	set memsize [dict get [numarray info $A] bufsize]
 	
+	variable results
+	set line $memsize
+
 	puts "Memcopy: "
-	compute_bandwidth {numarray fastcopy A $B} $rep
+	lappend line [compute_bandwidth {numarray fastcopy A $B} $rep]
 
 	puts "Addition in C loop"
-	compute_bandwidth {numarray fastadd A $B} $rep
+	lappend line [compute_bandwidth {numarray fastadd A $B} $rep]
 
 	# puts "Result should be 1001: [numarray get $A 23]"
 
 	puts "Reduction"
-	compute_bandwidth {numarray sum $B} $rep
+	lappend line [compute_bandwidth {numarray sum $B} $rep]
 
 	puts "Assignment via iterators"
-	compute_bandwidth {numarray = A $B} $rep
+	lappend line [compute_bandwidth {numarray = A $B} $rep]
 
 	puts "Addition via iterators"
-	compute_bandwidth {numarray += A $B} $rep
+	lappend line [compute_bandwidth {numarray += A $B} $rep]
 
 	puts "Unary operator"
-	compute_bandwidth {numarray neg $B} $rep
+	lappend line [compute_bandwidth {numarray neg $B} $rep]
 
 	puts "Binary operator"
-	compute_bandwidth {numarray + $A $B} $rep
+	lappend line [compute_bandwidth {numarray + $A $B} $rep]
 
+	lappend results $line
 	# puts "Result should be 1001: [numarray get $A 23]"
 	puts ""
 }
 
+set benchdir [file dirname [file dirname [info script]]]
+set fd [open [file join $benchdir benchmark benchmemcpy-[clock scan now].dat] w]
+fconfigure $fd -buffering line
 # vectors
-bench_vec 100
-bench_vec 1000
-bench_vec 10000
-bench_vec 100000
-bench_vec 1000000
+set results {}
+foreach s {10 20 50 100 200 500 1000 2000 5000 10000 20000 50000 100000 200000 500000 1000000} {
+	bench_vec $s
+}
+puts $fd "# Vectors"
+puts $fd [join $results \n]
+puts $fd "\n"
 
-# square matrices
-bench_mat 10 10
-bench_mat 100 100
-bench_mat 1000 1000
+set results {}
+foreach s {2 5 10 20 50 100 200 500 1000} {
+	# square matrices
+	bench_mat $s $s
+}
 
-# rectangular matrices
-bench_mat 2 1000
-bench_mat 1000 2
+puts $fd "# Square matrices N x N"
+puts $fd [join $results \n]
+puts $fd "\n"
 
-bench_mat 2 10000
-bench_mat 10000 2
+set results {}
+foreach N {5 10 20 50 100 200 500 1000 2000 5000 10000} {
+	# wide matrices 2 x N
+	bench_mat 2 $N
+}
 
+puts $fd "# Wide matrices 2 x N"
+puts $fd [join $results \n]
+puts $fd "\n"
+
+set results {}
+foreach N {5 10 20 50 100 200 500 1000 2000 5000 10000} {
+	# tall matrices N x 2
+	bench_mat $N 2
+}
+
+puts $fd "# Tall matrices N x 2"
+puts $fd [join $results \n]
+puts $fd "\n"
+
+close $fd
