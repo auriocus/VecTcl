@@ -1,0 +1,29 @@
+<nav>
+    <ul>
+    	
+		<li>
+			<a  href="{{ site.baseurl }}/" class="navheader">
+				VecTcl
+			</a>
+		</li>
+    	<li>
+    		<a href="{{ site.baseurl }}/">
+    	    Home
+    	    </a>
+    	</li>
+        {% for p in site.pages %}
+        	{% if p.bench  %}
+        	{% else %}
+			{% if p.home %}
+			{% else %}
+        <li>
+        	<a {% if p.url == page.url %}class="active"{% endif %} href="{{ site.baseurl }}{{ p.url }}">
+            {{ p.subtitle }}
+            </a>
+        </li>
+		{% endif %}
+        {% endif %}
+        {% endfor %}
+    </ul>
+    
+</nav>

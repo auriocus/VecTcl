@@ -13,7 +13,7 @@ fieldset, form, label, legend,
 table, caption, tbody, tfoot, thead, tr, th, td,
 article, aside, canvas, details, embed, 
 figure, figcaption, footer, header, hgroup, 
-menu, nav, output, ruby, section, summary,
+menu, output, ruby, section, summary,
 time, mark, audio, video {
 	margin: 0;
 	padding: 0;
@@ -90,8 +90,9 @@ header h2 {
 }
 
 .inner {
-  width: 620px;
+  width: 800px;
   margin: 0 auto;
+  margin-left: 180px;
 }
 
 #container .inner img {
@@ -337,6 +338,13 @@ footer a:hover {
 * html .clearfix {height: 1%;}
 .clearfix {display: block;}
 
+div#Inhalt {
+	max-width: 620px;
+	margin-left: 250px;
+	overflow: visible;
+}
+
+
 /* #Media Queries
 ================================================== */
 
@@ -369,3 +377,61 @@ footer a:hover {
 
 /* Mobile Portrait Size to Mobile Landscape Size (devices and browsers) */
 @media only screen and (max-width: 479px) {}
+
+/* Navigation bar */
+
+nav {
+	padding: 0px;
+/*	border: 1px solid #D5000D; */
+	position: relative;
+	float: left; width: 180px;
+/* text color */	
+	background-color: #F0F0F0;
+	color: #85000D;
+    }
+
+nav ul {
+	margin: 0;
+	list-style: none;
+	border-style: solid;
+	border-color: #85000D;
+	border-width: 0px 0px 1px 10px;
+    }
+
+nav ul li {
+	list-style: none;
+	padding: 0px;
+}
+
+nav ul li a {
+	display: block;
+	border-style: solid;
+	border-color: #85000D;
+	border-width: 0px 0px 1px 0px;
+
+	padding-left: 0.5em;
+	padding-top: 1.5ex;
+	padding-bottom: 1.5ex;
+	padding-right: 0px;
+
+	text-shadow: none;
+}
+
+nav ul li a.navheader {
+	/* title bar of the navigation bar */
+	background-color: #85000D;
+	color: #F0F0F0;
+	font-size: 150%;
+	padding: 1ex 0px 1ex 1em;
+}
+
+nav ul li a.navheader:hover {
+}
+
+nav ul li a:hover {
+	background-color: #303030;
+	color: #F0F0F0;
+	font: bold;
+}
+
+
