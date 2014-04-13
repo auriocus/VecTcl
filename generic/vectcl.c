@@ -44,9 +44,9 @@ static void		DupNumArrayInternalRep(Tcl_Obj *srcPtr, Tcl_Obj *copyPtr);
 static void		FreeNumArrayInternalRep(Tcl_Obj *listPtr);
 static int		SetNumArrayFromAny(Tcl_Interp *interp, Tcl_Obj *objPtr);
 static void		UpdateStringOfNumArray(Tcl_Obj *listPtr);
-
+#ifdef LIST_INJECT
 static int		SetListFromNumArray(Tcl_Interp *interp, Tcl_Obj *objPtr);
-
+#endif
 
 const Tcl_ObjType NumArrayTclType = {
 	"NumArray",			/* name */\
