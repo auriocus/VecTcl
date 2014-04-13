@@ -152,6 +152,8 @@ int CMD(
             return TCL_ERROR;
 	}
 
+	ckfree(resultdims);
+
 	/* allocate buffer of this size */
 	resultbuf = NumArrayNewSharedBuffer(resultinfo -> bufsize);
 	void *bufptr = NumArrayGetPtrFromSharedBuffer(resultbuf);
@@ -253,7 +255,9 @@ int CMD(
             return TCL_ERROR;
 	}
 
-	ckfree(resultdims);
+	NumArrayIteratorFree(&it);
+	DeleteNumArrayInfo(sliceinfo);
+
 	resultObj=Tcl_NewObj();
 	NumArraySetInternalRep(resultObj, resultbuf, resultinfo);
 	Tcl_SetObjResult(interp, resultObj);
