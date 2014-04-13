@@ -60,7 +60,7 @@ Tcl_ObjType * tclListType;
 const Tcl_ObjType * tclDoubleType;
 const Tcl_ObjType * tclIntType;
 #ifndef TCL_WIDE_INT_IS_LONG
-Tcl_ObjType * tclWideIntType;
+const Tcl_ObjType * tclWideIntType;
 #endif
 
 Tcl_SetFromAnyProc *listSetFromAny;
@@ -73,7 +73,7 @@ NumArrayType NumArray_UpcastType(NumArrayType base) {
 	NumArrayType result = base+1;
 	if (result >= NumArray_SentinelType) {
 		/* signal that we don't have a type left */
-		result = -1;
+		result = NumArray_NoType;
 	}
 	return result;
 }
@@ -728,7 +728,6 @@ myTcl_MakeEnsemble(
 
 	if (ensemble != NULL) {
 		Tcl_Obj *mapDict, *fromObj, *toObj;
-		Tcl_Command cmd;
 
 		mapDict=Tcl_NewObj();
 		for (i=0; map[i].name != NULL ; i++) {
@@ -742,7 +741,7 @@ myTcl_MakeEnsemble(
 			Tcl_DictObjPut(NULL, mapDict, fromObj, toObj);
 
 			if (map[i].proc) {
-				cmd = Tcl_CreateObjCommand(interp, Tcl_GetString(toObj), map[i].proc, NULL, NULL);
+				Tcl_CreateObjCommand(interp, Tcl_GetString(toObj), map[i].proc, NULL, NULL);
 			}
 		}
 
@@ -2107,14 +2106,14 @@ static int  SetNumArrayFromAny(Tcl_Interp *interp, Tcl_Obj *objPtr) {
 	NumArraySharedBuffer *sharedbuf;
 
 	Tcl_Obj *dimlist;
-	NumArrayType dtype;
+	NumArrayType dtype=NumArray_NoType;
 	
 	/* parse dimensions and update info */
 	if (ScanNumArrayDimensionsFromValue(interp, objPtr, &dimlist, &dtype) != TCL_OK) {
 		return TCL_ERROR;
 	}
 
-	while (dtype != -1) {
+	while (dtype != NumArray_NoType) {
 		if (CreateNumArrayInfoFromList(interp, dimlist, dtype, &info) != TCL_OK) {
 			goto cleanlist;
 		}
@@ -2142,7 +2141,7 @@ cleanlist:
 static void UpdateStringOfNumArray(Tcl_Obj *naPtr) {
 	Tcl_DString srep;
 	NumArrayInfo* info = naPtr -> internalRep.twoPtrValue.ptr2;
-	char *buffer;
+	char *buffer=NULL;
 
 	int nDim = info -> nDim;
 	int *counter = ckalloc(sizeof(int)*nDim);
@@ -2250,6 +2249,7 @@ static void UpdateStringOfNumArray(Tcl_Obj *naPtr) {
 	ckfree(counter);
 }
 
+#ifdef LIST_INJECT
 static int SetListFromNumArray(Tcl_Interp *interp, Tcl_Obj *objPtr) {
 	/* check if we got a NumArray as input
 	 * if not, handle by original proc */
@@ -2316,7 +2316,7 @@ static int SetListFromNumArray(Tcl_Interp *interp, Tcl_Obj *objPtr) {
 	objPtr -> typePtr = tclListType;
 	return TCL_OK;
 }
-
+#endif
 
 NumArraySharedBuffer *NumArrayNewSharedBuffer (int size) {
 	NumArraySharedBuffer* sharedbuf=ckalloc(sizeof(NumArraySharedBuffer));

@@ -36,7 +36,7 @@ int CMD(
 		Tcl_Obj *const *objv)
 {
 	Tcl_Obj *naObj, *value, *resultPtr;
-	int allocobj = 0; int slicing = 0; int outofplace = 0;
+	int allocobj = 0; int slicing = 0;
 
 	NumArraySharedBuffer * sharedbuf;
 	NumArrayInfo *info, *sliceinfo, *valueinfo;
@@ -74,7 +74,6 @@ int CMD(
 	/* Check if upcasting is required. This may need
 	 * an out-of-place operation */
 	if (info -> type < valueinfo -> type) {
-		outofplace = 1;
 		Tcl_Obj *conv;
 		if (NumArrayConvertToType(interp, naObj, valueinfo ->type, &conv) != TCL_OK) {
 			return TCL_ERROR;
