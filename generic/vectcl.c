@@ -3295,70 +3295,70 @@ static inline double fsign(double x) {
 /* Implement reductions with optional dimension */
 #define CMD NumArraySumCmd
 #define INIT ;
-#define FIRST *result=op;
-#define INTOP *result+=op;
-#define DBLOP *result+=op;
-#define CPLXOP *result=NumArray_ComplexAdd(*result, op);
+#define FIRST accum=op;
+#define INTOP accum+=op;
+#define DBLOP accum+=op;
+#define CPLXOP accum=NumArray_ComplexAdd(accum, op);
 #define RETURN ;
 #include "reduction.h"
 
 
 #define CMD NumArrayMeanCmd
 #define INIT ;
-#define FIRST *result=op;
+#define FIRST accum=op;
 #define INTRES double
-#define INTOP *result+=op;
-#define DBLOP *result+=op;
-#define CPLXOP *result=NumArray_ComplexAdd(*result, op);
-#define RETURN *result /= nlength;
-#define CPLXRETURN result->re /= nlength; result->im /= nlength; 
+#define INTOP accum+=op;
+#define DBLOP accum+=op;
+#define CPLXOP accum=NumArray_ComplexAdd(accum, op);
+#define RETURN accum /= nlength;
+#define CPLXRETURN accum.re /= nlength; accum.im /= nlength; 
 #include "reduction.h"
 
 #define CMD NumArrayAxisMinCmd
 #define INIT ;
-#define FIRST *result=op;
-#define INTOP if (op < *result) *result=op;
-#define DBLOP if (op < *result) *result=op;
+#define FIRST accum=op;
+#define INTOP if (op < accum) accum=op;
+#define DBLOP if (op < accum) accum=op;
 #define RETURN ;
 #include "reduction.h"
 
 #define CMD NumArrayAxisMaxCmd
 #define INIT ;
-#define FIRST *result=op;
-#define INTOP if (op > *result) *result=op;
-#define DBLOP if (op > *result) *result=op;
+#define FIRST accum=op;
+#define INTOP if (op > accum) accum=op;
+#define DBLOP if (op > accum) accum=op;
 #define RETURN ;
 #include "reduction.h"
 
 #define CMD NumArrayStdCmd
 #define INIT double first; double sum=0;
-#define FIRST *result=0; first=op;
-#define DBLOP  *result+=(op-first)*(op-first); sum+=(op-first);
+#define FIRST accum=0; first=op;
+#define DBLOP  accum+=(op-first)*(op-first); sum+=(op-first);
 #define INTOP DBLOP
 #define INTRES double
-#define RETURN *result = (nlength==1)?0:sqrt(*result/(nlength-1) - (sum*sum/nlength)/(nlength-1));
+#define RETURN accum = (nlength==1)?0:sqrt(accum/(nlength-1) - (sum*sum/nlength)/(nlength-1));
 #include "reduction.h"
 
 #define CMD NumArrayStd1Cmd
 #define INIT double first; double sum=0;
-#define FIRST *result=0; first=op;
-#define DBLOP  *result+=(op-first)*(op-first); sum+=(op-first);
+#define FIRST accum=0; first=op;
+#define DBLOP  accum+=(op-first)*(op-first); sum+=(op-first);
 #define INTOP  DBLOP
 #define INTRES double
-#define RETURN *result = sqrt(*result/nlength - (sum/nlength)*(sum/nlength));
+#define RETURN accum = sqrt(accum/nlength - (sum/nlength)*(sum/nlength));
 #include "reduction.h"
 
 #define CMD NumArrayAllCmd
 #define INIT ;
-#define FIRST if (op) { *result=1; } else { *result=0; break; }
-#define INTOP if (!op) { *result=0; break; } 
+#define FIRST if (op) { accum=1; } else { accum=0; }
+#define INTOP if (!op) { accum=0; break; } 
 #define RETURN ;
 #include "reduction.h"
 
 #define CMD NumArrayAnyCmd
 #define INIT ;
-#define FIRST if (!op) { *result=0; } else { *result=1; break; }
-#define INTOP if (op) { *result=1; break; } 
+#define FIRST if (!op) { accum=0; } else { accum=1; }
+#define INTOP if (op) { accum=1; break; } 
 #define RETURN ;
 #include "reduction.h"
 

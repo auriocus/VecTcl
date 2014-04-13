@@ -174,23 +174,24 @@ int CMD(
 	switch (info -> type) {
 		#ifdef DBLOP
 		case NumArray_Float64: {
-			DBLRES *result = bufptr;
+			DBLRES *resultptr = bufptr;
 			for (; ! NumArrayIteratorFinished(&it); 
-				NumArrayIteratorAdvance(&it), result++) {
+				NumArrayIteratorAdvance(&it)) {
 				void *opptr = NumArrayIteratorDeRefPtr(&it);
-				int i;
 				DBLINIT;
-				for (i=0; i<nlength; i++) {
-					double op = *((double *) opptr);
-					if (i==0) { 
-						DBLFIRST; 
-					} else {
-						DBLOP;
-					}
+				DBLRES accum;
+				const double op = *((double *) opptr);
+				DBLFIRST; 
+				opptr += increment;
+				int i;
+				for (i=0; i<nlength-1; i++) {
+					const double op = *((double *) opptr);
+					DBLOP;
 					/* increment along the selected axis */
 					opptr += increment;
 				}
 				DBLRETURN
+				*resultptr++ = accum; 
 			}
 			break;
 		}
@@ -198,52 +199,54 @@ int CMD(
 		
 		#ifdef INTOP
 		case NumArray_Int64: {
-			INTRES *result = bufptr;
+			INTRES *resultptr = bufptr;
 			for (; ! NumArrayIteratorFinished(&it); 
-				NumArrayIteratorAdvance(&it), bufptr++) {
+				NumArrayIteratorAdvance(&it)) {
 				void *opptr = NumArrayIteratorDeRefPtr(&it);
-				int i;
 				INTINIT;
-				for (i=0; i<nlength; i++) {
-					int op = *((int *) opptr);
-					if (i==0) { 
-						INTFIRST; 
-					} else {
-						INTOP;
-					}
+				INTRES accum;
+				const int op = *((int *) opptr);
+				INTFIRST; 
+				opptr += increment;
+				int i;
+				for (i=0; i<nlength-1; i++) {
+					const int op = *((int *) opptr);
+					INTOP;
 					/* increment along the selected axis */
 					opptr += increment;
 				}
 				INTRETURN
+				*resultptr++ = accum; 
 			}
 			break;
 		}
 		#endif
-
+		
 		#ifdef CPLXOP
 		case NumArray_Complex128: {
-			CPLXRES *result = bufptr;
+			CPLXRES *resultptr = bufptr;
 			for (; ! NumArrayIteratorFinished(&it); 
-				NumArrayIteratorAdvance(&it), result++) {
+				NumArrayIteratorAdvance(&it)) {
 				void *opptr = NumArrayIteratorDeRefPtr(&it);
-				int i;
 				CPLXINIT;
-				for (i=0; i<nlength; i++) {
-					NumArray_Complex op = *((NumArray_Complex *) opptr);
-					if (i==0) { 
-						CPLXFIRST; 
-					} else {
-						CPLXOP;
-					}
+				CPLXRES accum;
+				const NumArray_Complex op = *((NumArray_Complex *) opptr);
+				CPLXFIRST; 
+				opptr += increment;
+				int i;
+				for (i=0; i<nlength-1; i++) {
+					const NumArray_Complex op = *((NumArray_Complex *) opptr);
+					CPLXOP;
 					/* increment along the selected axis */
 					opptr += increment;
 				}
 				CPLXRETURN
+				*resultptr++ = accum; 
 			}
 			break;
 		}
 		#endif
-
+		
 		default:
 			/* Can't happen */
 			RESULTPRINTF(("Undefined function for datatype %s", NumArray_typename[info->type]));

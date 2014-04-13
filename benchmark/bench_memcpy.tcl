@@ -85,7 +85,7 @@ puts $fd [join $results \n]
 puts $fd "\n"
 
 set results {}
-foreach s {2 5 10 20 50 100 200 500 1000} {
+foreach s {2 5 10 20 50 100 200 500 1000 2000} {
 	# square matrices
 	bench_mat $s $s
 }
@@ -95,7 +95,7 @@ puts $fd [join $results \n]
 puts $fd "\n"
 
 set results {}
-foreach N {5 10 20 50 100 200 500 1000 2000 5000 10000} {
+foreach N {5 10 20 50 100 200 500 1000 2000 5000 10000 20000 50000 100000 200000 500000} {
 	# wide matrices 2 x N
 	bench_mat 2 $N
 }
@@ -105,7 +105,7 @@ puts $fd [join $results \n]
 puts $fd "\n"
 
 set results {}
-foreach N {5 10 20 50 100 200 500 1000 2000 5000 10000} {
+foreach N {5 10 20 50 100 200 500 1000 2000 5000 10000 20000 50000 100000 200000 500000} {
 	# tall matrices N x 2
 	bench_mat $N 2
 }
