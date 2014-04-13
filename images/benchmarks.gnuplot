@@ -61,7 +61,7 @@ set out "memcpy_vectors.eps"
 set key bottom right
 i=0
 plot \
-	"benchmemcpy-1397312672.dat" u 1:2 index i w lp ls 1 title "memcpy", \
+	"benchmemcpy-1397384533.dat" u 1:2 index i w lp ls 1 title "memcpy", \
 	"" u 1:3 index i w lp ls 2 title "C loop x+=y", \
 	"" u 1:4 index i w lp ls 3 title "sum(x)", \
 	"" u 1:5 index i w lp ls 4 title "x[:]=y", \
