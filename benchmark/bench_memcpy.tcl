@@ -45,27 +45,27 @@ proc run_bench {A B rep} {
 	set line $memsize
 
 	puts "Memcopy: "
-	lappend line [compute_bandwidth {numarray fastcopy A $B} $rep]
+	lappend line [compute_bandwidth {numarray::fastcopy A $B} $rep]
 
 	puts "Addition in C loop"
-	lappend line [compute_bandwidth {numarray fastadd A $B} $rep]
+	lappend line [compute_bandwidth {numarray::fastadd A $B} $rep]
 
 	# puts "Result should be 1001: [numarray get $A 23]"
 
 	puts "Reduction"
-	lappend line [compute_bandwidth {numarray sum $B} $rep]
+	lappend line [compute_bandwidth {numarray::sum $B} $rep]
 
 	puts "Assignment via iterators"
-	lappend line [compute_bandwidth {numarray = A $B} $rep]
+	lappend line [compute_bandwidth {numarray::= A $B} $rep]
 
 	puts "Addition via iterators"
-	lappend line [compute_bandwidth {numarray += A $B} $rep]
+	lappend line [compute_bandwidth {numarray::+= A $B} $rep]
 
 	puts "Unary operator"
-	lappend line [compute_bandwidth {numarray neg $B} $rep]
+	lappend line [compute_bandwidth {numarray::neg $B} $rep]
 
 	puts "Binary operator"
-	lappend line [compute_bandwidth {numarray + $A $B} $rep]
+	lappend line [compute_bandwidth {numarray::+ $A $B} $rep]
 
 	lappend results $line
 	# puts "Result should be 1001: [numarray get $A 23]"
