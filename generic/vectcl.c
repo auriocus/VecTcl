@@ -5,6 +5,7 @@
 #include "vectcl.h"
 #include "arrayshape.h"
 #include "linalg.h"
+#include "fft.h"
 #include <string.h>
 #include <stdlib.h>
 //#define DEBUG_REFCOUNT
@@ -676,6 +677,9 @@ static const EnsembleMap implementationMap[] = {
 	{"std1", NumArrayStd1Cmd, NULL},
 	{"all", NumArrayAllCmd, NULL},
 	{"any", NumArrayAnyCmd, NULL},
+	/* FFT */
+	{"fft", NumArrayFFTCmd, NULL},
+	{"ifft", NumArrayIFFTCmd, NULL},
 	{NULL, NULL, NULL}
 };
 

@@ -5284,7 +5284,7 @@ done
 #-----------------------------------------------------------------------
 
 
-    vars="vectcl.c linalg.c arrayshape.c nacomplex.c"
+    vars="vectcl.c linalg.c arrayshape.c nacomplex.c hsfft.c fft.c"
     for i in $vars; do
 	case $i in
 	    \$*)
@@ -5319,7 +5319,7 @@ done
 
 
 
-    vars="generic/vectcl.h generic/nacomplex.h"
+    vars="generic/vectcl.h generic/nacomplex.h generic/hsfft.h"
     for i in $vars; do
 	# check for existence, be strict because it is installed
 	if test ! -f "${srcdir}/$i" ; then
