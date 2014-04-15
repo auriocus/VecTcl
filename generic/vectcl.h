@@ -203,6 +203,7 @@ SUBCOMMAND(NumArraySetCmd);
 SUBCOMMAND(NumArrayGetCmd);
 SUBCOMMAND(NumArrayFastCopyCmd);
 SUBCOMMAND(NumArrayFastAddCmd);
+SUBCOMMAND(NumArrayLinRegCmd);
 SUBCOMMAND(NumArrayConvDoubleCmd);
 SUBCOMMAND(NumArrayConvComplexCmd);
 SUBCOMMAND(NumArrayAbsCmd);

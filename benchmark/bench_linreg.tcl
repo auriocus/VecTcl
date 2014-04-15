@@ -79,6 +79,17 @@ proc linear_regression_vexprQR {xv yv rep} {
 	list $t1 $t2 $alpha $beta
 }
 
+proc linear_regression_C {xv yv rep} {
+	set t1 [time {numarray create $xv; numarray create $yv}]
+	# setup can't be repeated, because it is cached 
+	# in the Tcl_Objs of x and y
+	set t2 [time {
+		set result [numarray::linreg $xv $yv]
+	} $rep]
+	list $t1 $t2 {*}$result
+}
+
+
 proc linear_regression_rbc {xv yv rep} {
 	set t1 [time {
 		vector create x
@@ -141,8 +152,10 @@ proc benchlinreg {vlength} {
 		"Tcl" linear_regression_tcl 1e10
 		"Rbc" linear_regression_rbc 1e10
 		"NAP" linear_regression_nap_1f 50000
+		"NAP_LS" linear_regression_nap 50000
 		"vexpr" linear_regression_vexpr 1e10
 		"vexprQR" linear_regression_vexprQR 1e10
+		"vexprC" linear_regression_C 1e10
 	}
 	
 #	puts "Correctness: "

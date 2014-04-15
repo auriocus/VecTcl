@@ -591,6 +591,8 @@ static const EnsembleMap implementationMap[] = {
 	 * arrays for benchmark purposes */
 	{"fastcopy", NumArrayFastCopyCmd, NULL},
 	{"fastadd", NumArrayFastAddCmd, NULL},
+	/* linear regression, for benchmarking */
+	{"linreg", NumArrayLinRegCmd, NULL},
 	/* commands that change the shape */
 	{"reshape", NumArrayReshapeCmd, NULL},
 	{"transpose", NumArrayTransposeCmd, NULL},
@@ -1300,6 +1302,94 @@ int NumArrayFastCopyCmd(
 cleanobj:
 	if (allocobj) Tcl_DecrRefCount(naObj);
 	return TCL_ERROR;
+}
+
+int NumArrayLinRegCmd(
+		ClientData dummy,
+		Tcl_Interp *interp,
+		int objc,
+		Tcl_Obj *const *objv)
+{
+	Tcl_Obj *xval, *yval, *result;
+
+	NumArraySharedBuffer *xbuf, *ybuf;
+	NumArrayInfo *xvalinfo, *yvalinfo;
+	
+	if (objc != 3) {
+		Tcl_WrongNumArgs(interp, 1, objv, "vectorx vectory");
+		return TCL_ERROR;
+	}
+	
+	xval = objv[1];
+	yval = objv[2];
+
+	if (Tcl_ConvertToType(interp, xval, &NumArrayTclType) != TCL_OK) {
+		return TCL_ERROR;
+	}
+	
+	if (Tcl_ConvertToType(interp, yval, &NumArrayTclType) != TCL_OK) {
+		return TCL_ERROR;
+	}
+	
+	xbuf = xval -> internalRep.twoPtrValue.ptr1;
+	ybuf = yval -> internalRep.twoPtrValue.ptr1;
+
+	xvalinfo = xval -> internalRep.twoPtrValue.ptr2;
+	yvalinfo = yval -> internalRep.twoPtrValue.ptr2;
+
+	/* Check that we have two double vectors */
+	if (xvalinfo -> type != NumArray_Float64 || yvalinfo -> type != NumArray_Float64) {
+		Tcl_SetResult(interp, "Datatype must be double", NULL);
+		return TCL_ERROR;
+	}
+
+	if (xvalinfo->nDim != 1 || yvalinfo -> nDim != 1) {
+		Tcl_SetResult(interp, "Input data must be vectors", NULL);
+		return TCL_ERROR;
+	}	
+	
+	if (xvalinfo->dims[0] != yvalinfo -> dims[0]) {
+		Tcl_SetResult(interp, "Input data must have the same length", NULL);
+		return TCL_ERROR;
+	}	
+
+	int length = xvalinfo->dims[0];
+	int xpitch = xvalinfo->pitches[0]/sizeof(double);
+	int ypitch = yvalinfo->pitches[0]/sizeof(double);
+
+	/* add value to dest by simple loop */
+	double *x= (double *)NumArrayGetPtrFromSharedBuffer(xbuf);
+	double *y= (double *)NumArrayGetPtrFromSharedBuffer(ybuf);
+	
+	/* Now compute the mean values */
+	int i;
+	double xm=0.0; double ym=0.0;
+	for (i=0; i<length; i++) {
+		xm+=x[i*xpitch]; 
+		ym+=y[i*ypitch];
+	}
+	xm /= length;
+	ym /= length;
+
+	double xsum = 0.0;
+	double ysum = 0.0;
+	for (i=0; i<length; i++) {
+		double dx=x[i*xpitch]-xm; 
+		double dy=y[i*ypitch]-ym;
+		xsum += dx*dy;
+		ysum += dx*dx;
+	}
+	
+	double b = xsum / ysum;
+	double a = ym - b*xm;
+
+	result = Tcl_NewObj();
+	Tcl_ListObjAppendElement(interp, result,  Tcl_NewDoubleObj(a));
+	Tcl_ListObjAppendElement(interp, result,  Tcl_NewDoubleObj(b));
+	
+	
+    Tcl_SetObjResult(interp, result);
+    return TCL_OK;
 }
 
 
