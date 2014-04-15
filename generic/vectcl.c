@@ -3137,7 +3137,8 @@ static inline double fsign(double x) {
 #include "binop.h"
 
 #define CMD NumArrayPowCmd
-/*#define OPINT *result = pow(op1,op2); */
+#define OPINT *result = pow(op1,op2);
+#define INTRES double
 #define OPDBL *result = pow(op1,op2);
 #define OPCPLX *result = NumArray_ComplexPow(op1,op2);
 #include "binop.h"
