@@ -7,7 +7,8 @@ home: false
 ---
 
 Given 2 Tcl lists with doubles x and y, compute the linear regression
-line $$y\approx \alpha+\beta x$$. VecTcl is the clear winner in this contest:
+line $$y\approx \alpha+\beta x$$. VecTcl is the clear winner in this contest (apart from C, which is 
+included as the baseline):
 
 ![Linear regression, computation only]({{ site.baseurl }}/images/linreg_comp.png "Computation only")
 ![Linear regression, setup included]({{ site.baseurl }}/images/linreg_total.png "Total")
@@ -27,7 +28,42 @@ vexpr {
 }
 {% endraw %}
 {% endhighlight %}
-	
+
+Compared to the C solution, there is still a large gap to bridge. At small
+numbers of datapoints, the time is completely dominated by the one-time costs.
+The C solution comprises only 1 function call numarray::linreg, whereas the
+VecTcl solution compiles into 12 nested function calls. For large number of
+datapoints, the speed is limited by the memory bandwidth. The C solution needs
+only 2 passes over the dataset, whereas the VecTcl solution does 4.5 - hence a 
+slowdown of 2.5 is reached between 5000 and 20000 datapoints. For even larger
+numbers (>20000), VecTcl becomes slower again, as soon as the temporaries exceed
+the cache.
+
+This is the inner loop in C:
+
+{% highlight c %}
+{% raw %}
+int i;
+double xm=0.0; double ym=0.0;
+for (i=0; i<length; i++) {
+	xm+=x[i*xpitch]; 
+	ym+=y[i*ypitch];
+}
+xm /= length;
+ym /= length;
+
+double xsum = 0.0; double ysum = 0.0;
+for (i=0; i<length; i++) {
+	double dx=x[i*xpitch]-xm; 
+	double dy=y[i*ypitch]-ym;
+	xsum += dx*dy;
+	ysum += dx*dx;
+}
+
+double b = xsum / ysum;
+double a = ym - b*xm;
+{% endraw %}
+{% endhighlight %}
 
 And here comes the math:
 
@@ -65,5 +101,5 @@ $$
 </div>
 {% endraw %}
 
-Only the solution "VecTcl LS" uses the second formula, all others compute the
-direct formula. 
+Only "VecTcl LS" and "NAP LS" use the matrix decomposition, the other solutions compute the
+direct formula.
