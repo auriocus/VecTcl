@@ -6,6 +6,8 @@
 #include "arrayshape.h"
 #include "linalg.h"
 #include "fft.h"
+#include "svd.h"
+
 #include <string.h>
 #include <stdlib.h>
 //#define DEBUG_REFCOUNT
@@ -599,6 +601,7 @@ static const EnsembleMap implementationMap[] = {
 	{"adjoint", NumArrayAdjointCmd, NULL},
 	{"slice", NumArraySliceCmd, NULL},
 	{"concat", NumArrayConcatCmd, NULL},
+	{"diag", NumArrayDiagCmd, NULL},
 	/* data type conversion operators */
 	{"double", NumArrayConvDoubleCmd, NULL},
 	{"complex", NumArrayConvComplexCmd, NULL},
@@ -670,6 +673,8 @@ static const EnsembleMap implementationMap[] = {
 	{"atanh", NumArrayAtanhCmd, NULL},
 	/* Matrix decompositions */
 	{"qreco", NumArrayQRecoCmd, NULL},
+	{"svd1", NumArraySVD1Cmd, NULL},
+	{"svd", NumArraySVDCmd, NULL},
 	/* Reductions */
 	{"sum", NumArraySumCmd, NULL},
 	{"axismin", NumArrayAxisMinCmd, NULL},
@@ -1027,7 +1032,7 @@ NumArrayGetCmd(
 		Tcl_Obj *const *objv)
 {
 	NumArrayInfo *info;
-	char *bufptr; int d;
+	void *bufptr; int d;
 
 	if (objc < 3) {
 		Tcl_WrongNumArgs(interp, 1, objv, "numarray ind ?ind ...?");
@@ -1591,6 +1596,25 @@ static void DupNumArrayInternalRep(Tcl_Obj *srcPtr, Tcl_Obj *copyPtr) {
 	NumArraySharedBufferIncrRefcount(sharedbuf);
 	copyPtr -> typePtr = &NumArrayTclType;
 	dprintf(("DupNumArrayInternalRep, refocunt %d\n", sharedbuf -> refcount));
+}
+
+/* Functions to create a vector or matrix */
+Tcl_Obj *NumArrayNewVector(NumArrayType type, int m) {
+	Tcl_Obj* result = Tcl_NewObj();
+	NumArrayInfo *info = CreateNumArrayInfo(1, &m, type);
+	NumArraySharedBuffer *sharedbuf = NumArrayNewSharedBuffer(info->bufsize);
+	NumArraySetInternalRep(result, sharedbuf, info);
+	return result;
+}
+
+Tcl_Obj *NumArrayNewMatrix(NumArrayType type, int m, int n) {
+	Tcl_Obj* result = Tcl_NewObj();
+	int dims[2];
+	dims[0]=m; dims[1]=n;
+	NumArrayInfo *info = CreateNumArrayInfo(2, dims, type);
+	NumArraySharedBuffer *sharedbuf = NumArrayNewSharedBuffer(info->bufsize);
+	NumArraySetInternalRep(result, sharedbuf, info);
+	return result;
 }
 
 static void FreeNumArrayInternalRep(Tcl_Obj *naPtr) {
@@ -2235,7 +2259,7 @@ cleanlist:
 static void UpdateStringOfNumArray(Tcl_Obj *naPtr) {
 	Tcl_DString srep;
 	NumArrayInfo* info = naPtr -> internalRep.twoPtrValue.ptr2;
-	char *buffer=NULL;
+	void *buffer=NULL;
 
 	int nDim = info -> nDim;
 	int *counter = ckalloc(sizeof(int)*nDim);
@@ -2440,7 +2464,7 @@ void NumArraySharedBufferDecrRefcount(NumArraySharedBuffer *sharedbuf) {
 	}
 }
 
-char * NumArrayGetPtrFromSharedBuffer(NumArraySharedBuffer *sharedbuf) {
+void * NumArrayGetPtrFromSharedBuffer(NumArraySharedBuffer *sharedbuf) {
 	return sharedbuf -> buffer;
 }
 
@@ -2501,7 +2525,7 @@ void NumArrayDecrRefcount(Tcl_Obj *naObj) {
 	}
 }
 
-int NumArrayGetBufferFromObj(Tcl_Interp *interp, Tcl_Obj* naObj, char ** bufptr) {
+int NumArrayGetBufferFromObj(Tcl_Interp *interp, Tcl_Obj* naObj, void ** bufptr) {
 	if (Tcl_ConvertToType(interp, naObj, &NumArrayTclType) != TCL_OK) {
 		return TCL_ERROR;
 	}
@@ -2964,6 +2988,19 @@ int NumArrayIndexInitObj(Tcl_Interp *interp, Tcl_Obj *naObj, NumArrayIndex *ind)
 
 	return TCL_OK;
 }
+
+void *NumArrayIndex1DGetPtr(NumArrayIndex *ind, int i) {
+	return ind->baseptr + i*ind->pitches[0];
+}
+
+void *NumArrayIndex2DGetPtr(NumArrayIndex *ind, int i, int j) {
+	return ind->baseptr + i*ind->pitches[0] + j*ind->pitches[1];
+}
+
+void *NumArrayIndex3DGetPtr(NumArrayIndex *ind, int i, int j, int k) {
+	return ind->baseptr + i*ind->pitches[0] + j*ind->pitches[1]+ k*ind->pitches[2];
+}
+
 
 double NumArrayIndex1DGetDouble(NumArrayIndex *ind, int i) {
 	return *((double *) (ind->baseptr + i*ind->pitches[0]));

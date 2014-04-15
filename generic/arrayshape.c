@@ -281,5 +281,178 @@ cleanobj:
 	return TCL_ERROR;
 }
 
+/* extract diagonal / put back */
 
+int NumArrayDiagMatrix(Tcl_Interp *interp, Tcl_Obj *din, int diag, Tcl_Obj **dout) {
+	
+	if (Tcl_ConvertToType(interp, din, &NumArrayTclType) != TCL_OK) {
+		return TCL_ERROR;
+	}
+	
+	NumArrayInfo *info=din -> internalRep.twoPtrValue.ptr2;
 
+	/* Check for dimensionality */
+	if (info->nDim > 2) {
+		RESULTPRINTF(("Diag undefined for %d dimensions", info->nDim));
+		*dout=NULL;
+		return TCL_ERROR;
+	}
+
+	if (info->nDim == 1 || (info->nDim == 2 && info->dims[0]==1)) {
+		/* Row- or columnvector */
+		int nelem = info->dims[info->nDim-1];
+		/* Handle trivial cases, empty and scalar */
+		if (nelem == 0) {
+			*dout = Tcl_NewObj();
+			return TCL_OK;
+		}
+
+		if (nelem==1 && diag==0) {
+			/* simply create copy */
+			*dout = din;
+			Tcl_IncrRefCount(din);
+			return TCL_OK;
+		}
+
+		/* Here we have a row- or columnvector with nelem >= 1 
+		 * Create a square matrix with the appropriate size */
+		int nsize = nelem + abs(diag);
+		*dout = NumArrayNewMatrix(info->type, nsize, nsize);
+		
+		NumArrayIterator it;
+		NumArrayIteratorInitObj(NULL, din, &it);
+
+		switch (info->type) {
+			case NumArray_Int64: {
+				int i, j;
+				int *cpyPtr;
+				NumArrayGetBufferFromObj(NULL, *dout, &cpyPtr); /* can't fail */
+
+				for (i=0; i<nsize; i++) {
+					for (j=0; j<nsize; j++) {
+						if (i-j == diag) {
+							*cpyPtr++ = NumArrayIteratorDeRefInt(&it);
+							NumArrayIteratorAdvance(&it);
+						} else {
+							*cpyPtr++ = 0;
+						}
+					}
+				}
+				break;
+			}
+
+			case NumArray_Float64: {
+				int i, j;
+				double *cpyPtr;
+				NumArrayGetBufferFromObj(NULL, *dout, &cpyPtr); /* can't fail */
+
+				for (i=0; i<nsize; i++) {
+					for (j=0; j<nsize; j++) {
+						if (i-j == diag) {
+							*cpyPtr++ = NumArrayIteratorDeRefDouble(&it);
+							NumArrayIteratorAdvance(&it);
+						} else {
+							*cpyPtr++ = 0.0;
+						}
+					}
+				}
+				break;
+			}
+
+			case NumArray_Complex128: {
+				int i, j;
+				NumArray_Complex *cpyPtr;
+				NumArrayGetBufferFromObj(NULL, *dout, &cpyPtr); /* can't fail */
+
+				for (i=0; i<nsize; i++) {
+					for (j=0; j<nsize; j++) {
+						if (i-j == diag) {
+							*cpyPtr++ = NumArrayIteratorDeRefComplex(&it);
+							NumArrayIteratorAdvance(&it);
+						} else {
+							*cpyPtr++ = NumArray_mkComplex(0.0, 0.0);
+						}
+					}
+				}
+				break;
+			}
+
+			default: {
+				/* can't happen */
+				Tcl_SetResult(interp, "Unknown datatype", NULL);
+				return TCL_ERROR;
+			}
+		}
+
+		NumArrayIteratorFree(&it);
+		return TCL_OK;
+
+	} else {
+		/* 2D-input - we must extract the diagonal into a vector */
+		const int m=info->dims[0];
+		const int n=info->dims[1];
+
+		if (diag <= -m || diag >=n) {
+			Tcl_SetResult(interp, "requested diagonal out of range", NULL);
+			*dout = NULL;
+			return TCL_ERROR;
+		}
+		
+		NumArrayIndex ind;
+		NumArrayIndexInitObj(interp, din, &ind);
+		int dlength;
+		int i, j;
+		if (diag >= 0) {
+			i=0; j=diag;
+			dlength = MIN(n-diag, m);
+		} else {
+			i=-diag; j=0;
+			dlength = MIN(m+diag, n);
+		}
+		
+		*dout = NumArrayNewVector(info->type, dlength);
+		void *destptr;
+		NumArrayGetBufferFromObj(NULL, *dout, &destptr);
+		const int elsize = NumArrayType_SizeOf(info->type);
+
+		int k;
+		for (k=0; k<dlength; k++) {
+			void *srcptr = NumArrayIndex2DGetPtr(&ind, i++, j++);
+			memcpy(destptr, srcptr, elsize);
+			destptr += elsize;
+		}
+		
+		return TCL_OK;
+	}
+}
+
+int NumArrayDiagCmd(
+		ClientData dummy,
+		Tcl_Interp *interp,
+		int objc,
+		Tcl_Obj *const *objv)
+{
+	if (objc!=2 && objc!=3) {
+		Tcl_WrongNumArgs(interp, 1, objv, "numarray index");
+		return TCL_ERROR;
+	}
+
+	Tcl_Obj *matrix=objv[1];
+	
+	int diag=0;
+	if (objc==2) {
+		diag = 0;
+	} else {
+		if (Tcl_GetIntFromObj(interp, objv[2], &diag) != TCL_OK) {
+			return TCL_ERROR;
+		}
+	}
+
+	Tcl_Obj *result;
+	if (NumArrayDiagMatrix(interp, matrix, diag, &result)!=TCL_OK) {
+		return TCL_ERROR;
+	}
+
+	Tcl_SetObjResult(interp, result);
+	return TCL_OK;
+}

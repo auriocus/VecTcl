@@ -12,15 +12,9 @@
 
 typedef double fft_type;
 
-static int divideby(int M,int d);
-
 static int dividebyN(int N);
 
-//void arrrev(int M, int* arr);
-
 static int factors(int M, int* arr);
-
-static void twiddle(NumArray_Complex *sig,int N, int radix);
 
 static void longvectorN(NumArray_Complex *sig,int N, int *array, int M);
 
@@ -1639,16 +1633,6 @@ void fft_exec(fft_object obj,NumArray_Complex *inp,NumArray_Complex *oup) {
 
 }
 
-static int divideby(int M,int d) {
-	while (M%d == 0) {
-		M = M/d;
-	}
-	if (M == 1) {
-		return 1;
-	}
-	 return 0;
-}
-
 static int dividebyN(int N) {
 	while (N%53 == 0) {
 		N = N/53;
@@ -1827,7 +1811,7 @@ static int factors(int M, int* arr) {
 
 }
 
-
+/*
 static void twiddle(NumArray_Complex *vec,int N, int radix) {
 	int K,KL;
 	fft_type theta,theta2;
@@ -1843,7 +1827,7 @@ static void twiddle(NumArray_Complex *vec,int N, int radix) {
 	}
 
 }
-
+*/
 static void longvectorN(NumArray_Complex *sig,int N, int *array, int tx) {
 	int L,i,Ls,ct,j,k;
 	fft_type theta;

@@ -86,7 +86,7 @@ typedef struct  {
 
 typedef struct {
 	int refcount;
-	char *buffer;
+	void *buffer;
 } NumArraySharedBuffer;
 
 extern const Tcl_ObjType NumArrayTclType;
@@ -96,10 +96,14 @@ NumArrayInfo* CreateNumArrayInfoColMaj(int nDim, const int *dims, NumArrayType d
 void DeleteNumArrayInfo(NumArrayInfo* info);
 NumArrayInfo* DupNumArrayInfo(NumArrayInfo* src);
 
+/* Convenience to create a vector and 2D matrix */
+Tcl_Obj *NumArrayNewVector(NumArrayType type, int m);
+Tcl_Obj *NumArrayNewMatrix(NumArrayType type, int m, int n);
+
 int NumArrayInfoSlice(Tcl_Interp *interp, NumArrayInfo *info, Tcl_Obj *slicelist, NumArrayInfo **resultPtr);
 int NumArrayInfoSlice1Axis(Tcl_Interp *interp, NumArrayInfo *info, int axis, int start, int stop, int incr);
 
-int NumArrayGetBufferFromObj(Tcl_Interp *interp, Tcl_Obj* naObj, char ** bufptr);
+int NumArrayGetBufferFromObj(Tcl_Interp *interp, Tcl_Obj* naObj, void ** bufptr);
 void NumArrayIncrRefcount(Tcl_Obj* naObj);
 void NumArrayDecrRefcount(Tcl_Obj* naObj);
 void NumArraySetInternalRep(Tcl_Obj *naObj, NumArraySharedBuffer *sharedbuf, NumArrayInfo *info);
@@ -110,7 +114,7 @@ void NumArrayEnsureWriteable(Tcl_Obj *naObj);
 #define ISEMPTYINFO(i) (i->nDim == 1 && i->dims[0] == 0)
 
 NumArraySharedBuffer *NumArrayNewSharedBuffer (int size);
-char * NumArrayGetPtrFromSharedBuffer(NumArraySharedBuffer *sharedbuf);
+void * NumArrayGetPtrFromSharedBuffer(NumArraySharedBuffer *sharedbuf);
 void NumArraySharedBufferDecrRefcount(NumArraySharedBuffer *sharedbuf);
 void NumArraySharedBufferIncrRefcount(NumArraySharedBuffer* sharedbuf);
 void NumArrayUnshareBuffer(Tcl_Obj *naObj);
@@ -184,6 +188,8 @@ void NumArrayIndexInit(NumArrayInfo *info, NumArraySharedBuffer *sharedbuf, NumA
 int NumArrayIndexInitObj(Tcl_Interp *interp, Tcl_Obj *naObj, NumArrayIndex *ind);
 double NumArrayIndex1DGetDouble(NumArrayIndex *ind, int i);
 double NumArrayIndex2DGetDouble(NumArrayIndex *ind, int i, int j);
+void* NumArrayIndex1DGetPtr(NumArrayIndex *ind, int i);
+void* NumArrayIndex2DGetPtr(NumArrayIndex *ind, int i, int j);
 
 #define SUBCOMMAND(X) \
 	int	X(ClientData dummy, Tcl_Interp *interp,\

@@ -242,7 +242,7 @@ int QRsolveColMaj(Tcl_Interp *interp, Tcl_Obj *qr, Tcl_Obj *rdiag, Tcl_Obj *B) {
 	}
 
 	double *Xbuf, *QRbuf, *Rdiag;
-	char *bufptr;
+	void *bufptr;
 	
 	NumArrayGetBufferFromObj(NULL, qr, &bufptr);
 	QRbuf = (double*) bufptr;
@@ -451,7 +451,7 @@ int QRsolveColMajC(Tcl_Interp *interp, Tcl_Obj *qr, Tcl_Obj *rdiag, Tcl_Obj *B) 
 	}
 
 	NumArray_Complex *Xbuf, *QRbuf, *Rdiag;
-	char *bufptr;
+	void *bufptr;
 	
 	NumArrayGetBufferFromObj(NULL, qr, &bufptr);
 	QRbuf = (NumArray_Complex*) bufptr;

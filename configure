@@ -5284,7 +5284,7 @@ done
 #-----------------------------------------------------------------------
 
 
-    vars="vectcl.c linalg.c arrayshape.c nacomplex.c hsfft.c fft.c"
+    vars="vectcl.c linalg.c arrayshape.c nacomplex.c hsfft.c fft.c svd.c"
     for i in $vars; do
 	case $i in
 	    \$*)
