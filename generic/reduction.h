@@ -179,7 +179,7 @@ int CMD(
 			DBLRES *resultptr = bufptr;
 			for (; ! NumArrayIteratorFinished(&it); 
 				NumArrayIteratorAdvance(&it)) {
-				void *opptr = NumArrayIteratorDeRefPtr(&it);
+				char *opptr = NumArrayIteratorDeRefPtr(&it);
 				DBLINIT;
 				DBLRES accum;
 				const double op = *((double *) opptr);
@@ -204,7 +204,7 @@ int CMD(
 			INTRES *resultptr = bufptr;
 			for (; ! NumArrayIteratorFinished(&it); 
 				NumArrayIteratorAdvance(&it)) {
-				void *opptr = NumArrayIteratorDeRefPtr(&it);
+				char *opptr = NumArrayIteratorDeRefPtr(&it);
 				INTINIT;
 				INTRES accum;
 				const int op = *((int *) opptr);
@@ -229,7 +229,7 @@ int CMD(
 			CPLXRES *resultptr = bufptr;
 			for (; ! NumArrayIteratorFinished(&it); 
 				NumArrayIteratorAdvance(&it)) {
-				void *opptr = NumArrayIteratorDeRefPtr(&it);
+				char *opptr = NumArrayIteratorDeRefPtr(&it);
 				CPLXINIT;
 				CPLXRES accum;
 				const NumArray_Complex op = *((NumArray_Complex *) opptr);

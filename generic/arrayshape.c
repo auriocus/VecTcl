@@ -325,8 +325,7 @@ int NumArrayDiagMatrix(Tcl_Interp *interp, Tcl_Obj *din, int diag, Tcl_Obj **dou
 		switch (info->type) {
 			case NumArray_Int64: {
 				int i, j;
-				int *cpyPtr;
-				NumArrayGetBufferFromObj(NULL, *dout, &cpyPtr); /* can't fail */
+				int *cpyPtr = NumArrayGetPtrFromObj(NULL, *dout); /* can't fail */
 
 				for (i=0; i<nsize; i++) {
 					for (j=0; j<nsize; j++) {
@@ -343,8 +342,7 @@ int NumArrayDiagMatrix(Tcl_Interp *interp, Tcl_Obj *din, int diag, Tcl_Obj **dou
 
 			case NumArray_Float64: {
 				int i, j;
-				double *cpyPtr;
-				NumArrayGetBufferFromObj(NULL, *dout, &cpyPtr); /* can't fail */
+				double *cpyPtr = NumArrayGetPtrFromObj(NULL, *dout); /* can't fail */
 
 				for (i=0; i<nsize; i++) {
 					for (j=0; j<nsize; j++) {
@@ -361,8 +359,7 @@ int NumArrayDiagMatrix(Tcl_Interp *interp, Tcl_Obj *din, int diag, Tcl_Obj **dou
 
 			case NumArray_Complex128: {
 				int i, j;
-				NumArray_Complex *cpyPtr;
-				NumArrayGetBufferFromObj(NULL, *dout, &cpyPtr); /* can't fail */
+				NumArray_Complex *cpyPtr = NumArrayGetPtrFromObj(NULL, *dout); /* can't fail */
 
 				for (i=0; i<nsize; i++) {
 					for (j=0; j<nsize; j++) {
@@ -411,13 +408,12 @@ int NumArrayDiagMatrix(Tcl_Interp *interp, Tcl_Obj *din, int diag, Tcl_Obj **dou
 		}
 		
 		*dout = NumArrayNewVector(info->type, dlength);
-		void *destptr;
-		NumArrayGetBufferFromObj(NULL, *dout, &destptr);
+		char *destptr = NumArrayGetPtrFromObj(NULL, *dout);
 		const int elsize = NumArrayType_SizeOf(info->type);
 
 		int k;
 		for (k=0; k<dlength; k++) {
-			void *srcptr = NumArrayIndex2DGetPtr(&ind, i++, j++);
+			char *srcptr = NumArrayIndex2DGetPtr(&ind, i++, j++);
 			memcpy(destptr, srcptr, elsize);
 			destptr += elsize;
 		}

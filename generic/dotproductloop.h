@@ -91,12 +91,12 @@ if (info1->nDim == 1 && info2->nDim ==2 && info2->dims[0] == 1) {
 	/* Now run nested loop, outer = op1, inner = op2 */
 	const int op1pitch = NumArrayIteratorRowPitch(&it1);
 	TRES *result = (TRES *) NumArrayGetPtrFromSharedBuffer(sharedbuf);
-	void *op1ptr = NumArrayIteratorDeRefPtr(&it1);
+	char *op1ptr = NumArrayIteratorDeRefPtr(&it1);
 	
 	const int length = NumArrayIteratorRowLength(&it1);
 
 	while (op1ptr) {
-		void *op2ptr = NumArrayIteratorReset(&it2);
+		char *op2ptr = NumArrayIteratorReset(&it2);
 		while (op2ptr) {
 			INIT;
 			int i;

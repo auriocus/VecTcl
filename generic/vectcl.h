@@ -86,7 +86,7 @@ typedef struct  {
 
 typedef struct {
 	int refcount;
-	void *buffer;
+	char *buffer;
 } NumArraySharedBuffer;
 
 extern const Tcl_ObjType NumArrayTclType;
@@ -103,7 +103,8 @@ Tcl_Obj *NumArrayNewMatrix(NumArrayType type, int m, int n);
 int NumArrayInfoSlice(Tcl_Interp *interp, NumArrayInfo *info, Tcl_Obj *slicelist, NumArrayInfo **resultPtr);
 int NumArrayInfoSlice1Axis(Tcl_Interp *interp, NumArrayInfo *info, int axis, int start, int stop, int incr);
 
-int NumArrayGetBufferFromObj(Tcl_Interp *interp, Tcl_Obj* naObj, void ** bufptr);
+void *NumArrayGetPtrFromObj(Tcl_Interp *interp, Tcl_Obj* naObj);
+
 void NumArrayIncrRefcount(Tcl_Obj* naObj);
 void NumArrayDecrRefcount(Tcl_Obj* naObj);
 void NumArraySetInternalRep(Tcl_Obj *naObj, NumArraySharedBuffer *sharedbuf, NumArrayInfo *info);
@@ -114,7 +115,7 @@ void NumArrayEnsureWriteable(Tcl_Obj *naObj);
 #define ISEMPTYINFO(i) (i->nDim == 1 && i->dims[0] == 0)
 
 NumArraySharedBuffer *NumArrayNewSharedBuffer (int size);
-void * NumArrayGetPtrFromSharedBuffer(NumArraySharedBuffer *sharedbuf);
+void *NumArrayGetPtrFromSharedBuffer(NumArraySharedBuffer *sharedbuf);
 void NumArraySharedBufferDecrRefcount(NumArraySharedBuffer *sharedbuf);
 void NumArraySharedBufferIncrRefcount(NumArraySharedBuffer* sharedbuf);
 void NumArrayUnshareBuffer(Tcl_Obj *naObj);
@@ -127,12 +128,12 @@ typedef struct {
 } NumArrayIteratorDimension;
 
 typedef struct {
-	void *ptr;
+	char *ptr;
 	int finished;
 	int nDim;
 	NumArrayIteratorDimension *dinfo;
 	NumArrayType type;
-	void *baseptr;
+	char *baseptr;
 } NumArrayIterator;
 
 

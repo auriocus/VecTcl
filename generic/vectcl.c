@@ -1010,7 +1010,7 @@ NumArrayGetCmd(
 		Tcl_Obj *const *objv)
 {
 	NumArrayInfo *info;
-	void *bufptr; int d;
+	char *bufptr; int d;
 
 	if (objc < 3) {
 		Tcl_WrongNumArgs(interp, 1, objv, "numarray ind ?ind ...?");
@@ -1019,12 +1019,11 @@ NumArrayGetCmd(
 	
 	Tcl_Obj *naObj=objv[1];
 
-	if (NumArrayGetBufferFromObj(interp, naObj, &bufptr) != TCL_OK) {
+	if (!(bufptr = NumArrayGetPtrFromObj(interp, naObj))) {
 		return TCL_ERROR;
 	}
 
 	info = naObj -> internalRep.twoPtrValue.ptr2;
-	bufptr += info->offset;
 	
 	if (info -> nDim != objc - 2) {
 		Tcl_SetResult(interp, "Dimension mismatch", NULL);
@@ -2234,7 +2233,7 @@ cleanlist:
 static void UpdateStringOfNumArray(Tcl_Obj *naPtr) {
 	Tcl_DString srep;
 	NumArrayInfo* info = naPtr -> internalRep.twoPtrValue.ptr2;
-	void *buffer=NULL;
+	char *buffer=NULL;
 
 	int nDim = info -> nDim;
 	int *counter = ckalloc(sizeof(int)*nDim);
@@ -2252,14 +2251,15 @@ static void UpdateStringOfNumArray(Tcl_Obj *naPtr) {
 		return;
 	}
 
-	NumArrayGetBufferFromObj(NULL, naPtr, &buffer); /* can't fail */
+	buffer = NumArrayGetPtrFromObj(NULL, naPtr); /* can't fail */
 	Tcl_DStringInit(&srep);
 	/* set all counters to initial value */
 	for (d=0; d<nDim; d++) {
 		counter[d] = 0;
 	}
 
-	baseptr[0] = buffer + info -> offset;
+	baseptr[0] = buffer;
+
 	for (d=1; d<nDim; d++) {
 		baseptr[d] = baseptr[d-1];
 	}
@@ -2500,13 +2500,13 @@ void NumArrayDecrRefcount(Tcl_Obj *naObj) {
 	}
 }
 
-int NumArrayGetBufferFromObj(Tcl_Interp *interp, Tcl_Obj* naObj, void ** bufptr) {
+void *NumArrayGetPtrFromObj(Tcl_Interp *interp, Tcl_Obj* naObj) {
 	if (Tcl_ConvertToType(interp, naObj, &NumArrayTclType) != TCL_OK) {
-		return TCL_ERROR;
+		return NULL;
 	}
 	NumArraySharedBuffer *sharedbuf = naObj -> internalRep.twoPtrValue.ptr1;
-	*bufptr = sharedbuf->buffer;
-	return TCL_OK;
+	NumArrayInfo *info = naObj -> internalRep.twoPtrValue.ptr2;
+	return sharedbuf->buffer + info->offset;
 }
 
 void NumArraySetInternalRep(Tcl_Obj *naObj, NumArraySharedBuffer *sharedbuf, NumArrayInfo *info) {
@@ -2526,7 +2526,7 @@ void NumArrayIteratorInitColMaj(NumArrayInfo *info, NumArraySharedBuffer *shared
 	it -> type = info -> type;
 	it -> dinfo = ckalloc(sizeof(NumArrayIteratorDimension)*(info->nDim+1));
 
-	it->baseptr = NumArrayGetPtrFromSharedBuffer(sharedbuf)+info->offset;
+	it->baseptr = (char *)NumArrayGetPtrFromSharedBuffer(sharedbuf)+info->offset;
 
 	/* copy dimensional information into the 
 	 * iterators counter in reverse order, 
@@ -2570,7 +2570,7 @@ void NumArrayIteratorInit(NumArrayInfo *info, NumArraySharedBuffer *sharedbuf, N
 	it -> type = info -> type;
 	it -> dinfo = ckalloc(sizeof(NumArrayIteratorDimension)*(info->nDim+1));
 
-	it->baseptr = NumArrayGetPtrFromSharedBuffer(sharedbuf)+info->offset;
+	it->baseptr = (char *)NumArrayGetPtrFromSharedBuffer(sharedbuf)+info->offset;
 	it->ptr = it->baseptr;
 
 	/* copy dimensional information into the 
@@ -2889,7 +2889,7 @@ int NumArrayGetScalarValueFromObj(Tcl_Interp *interp, Tcl_Obj* naObj, NumArray_V
 	NumArrayInfo * info = naObj -> internalRep.twoPtrValue.ptr2;
 	
 	if (info->nDim == 1 && info->dims[0] == 1) {
-		void *bufptr = NumArrayGetPtrFromSharedBuffer(sharedbuf);
+		char *bufptr = NumArrayGetPtrFromSharedBuffer(sharedbuf);
 		bufptr += info->offset;
 
 		value -> type = info -> type;

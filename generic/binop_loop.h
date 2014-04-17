@@ -34,7 +34,7 @@ static int BINOP_LOOP_FUN(CMD, T1, T2) (Tcl_Interp *interp, Tcl_Obj *naObj1, Tcl
 
 	/* allocate buffer of this size */
 	NumArraySharedBuffer *sharedbuf = NumArrayNewSharedBuffer(resultinfo -> bufsize);
-	void *bufptr = NumArrayGetPtrFromSharedBuffer(sharedbuf);
+	char *bufptr = NumArrayGetPtrFromSharedBuffer(sharedbuf);
 
 	/* the new shared buffer is in canonical form, 
 	 * thus we can simply iterate over it by pointer
@@ -55,7 +55,7 @@ static int BINOP_LOOP_FUN(CMD, T1, T2) (Tcl_Interp *interp, Tcl_Obj *naObj1, Tcl
 		while (op2ptr) {
 			int i;
 			for (i=0; i<length; i++) {
-				TRES *result = bufptr;
+				TRES *result = (TRES *)bufptr;
 				bufptr += pitch;
 				TUP op2 = UPCAST(T2, TUP, *op2ptr);
 				OP;
@@ -72,7 +72,7 @@ static int BINOP_LOOP_FUN(CMD, T1, T2) (Tcl_Interp *interp, Tcl_Obj *naObj1, Tcl
 		while (op1ptr) {
 			int i;
 			for (i=0; i<length; i++) {
-				TRES *result = bufptr;
+				TRES *result = (TRES *)bufptr;
 				bufptr += pitch;
 				TUP op1 = UPCAST(T1, TUP, *op1ptr);
 				OP;
@@ -92,7 +92,7 @@ static int BINOP_LOOP_FUN(CMD, T1, T2) (Tcl_Interp *interp, Tcl_Obj *naObj1, Tcl
 		while (op1ptr) {
 			int i;
 			for (i=0; i<length; i++) {
-				TRES *result = bufptr;
+				TRES *result = (TRES *)bufptr;
 				bufptr += pitch;
 				TUP op1 = UPCAST(T1, TUP, *op1ptr);
 				TUP op2 = UPCAST(T2, TUP, *op2ptr);

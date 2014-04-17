@@ -232,7 +232,7 @@ NumArray_Complex NumArray_ComplexCos(NumArray_Complex c) {
 	return result;
 }
 
-;
+
 NumArray_Complex NumArray_ComplexTan(NumArray_Complex c) {
 	NumArray_Complex result;
 	double denom = SQR(cos(c.re))+SQR(sinh(c.im));
@@ -256,7 +256,7 @@ NumArray_Complex NumArray_ComplexLog(NumArray_Complex c) {
 	return result;
 }
 
-;
+
 NumArray_Complex NumArray_ComplexSinh(NumArray_Complex c) {
 	NumArray_Complex result;
 	result.re=sinh(c.re)*cos(c.im);
@@ -264,7 +264,7 @@ NumArray_Complex NumArray_ComplexSinh(NumArray_Complex c) {
 	return result;
 }
 
-;
+
 NumArray_Complex NumArray_ComplexCosh(NumArray_Complex c) {
 	NumArray_Complex result;
 	result.re=cosh(c.re)*cos(c.im);
@@ -272,7 +272,7 @@ NumArray_Complex NumArray_ComplexCosh(NumArray_Complex c) {
 	return result;
 }
 
-;
+
 NumArray_Complex NumArray_ComplexTanh(NumArray_Complex c) {
 	NumArray_Complex result;
 	
@@ -294,7 +294,7 @@ NumArray_Complex NumArray_ComplexAsin(NumArray_Complex c) {
 	return result;
 }
 
-;
+
 NumArray_Complex NumArray_ComplexAcos(NumArray_Complex c) {
 	NumArray_Complex result;
 	NumArray_Complex asin=NumArray_ComplexAsin(c);

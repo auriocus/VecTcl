@@ -42,8 +42,7 @@ int SVDecomposition(Tcl_Interp * interp, Tcl_Obj *matrix, Tcl_Obj **sv, Tcl_Obj 
 
 	int nu = min(m,n);
 	*sv = NumArrayNewVector(NumArray_Float64, min(m+1,n));
-	double *s;
-	NumArrayGetBufferFromObj(NULL, *sv, &s);
+	double *s = NumArrayGetPtrFromObj(NULL, *sv);
 	
 	int wantu = U!=NULL;
 	int wantv = V!=NULL;
@@ -57,13 +56,13 @@ int SVDecomposition(Tcl_Interp * interp, Tcl_Obj *matrix, Tcl_Obj **sv, Tcl_Obj 
 	double *Vbuf;
 	if (wantu) {
 		*U = NumArrayNewMatrix(NumArray_Float64, m, nu);
-		NumArrayGetBufferFromObj(NULL, *U, &Ubuf); /* can't fail */
+		Ubuf = NumArrayGetPtrFromObj(NULL, *U); /* can't fail */
 		/* Filling U with constant 0. A bit arcane... */
 		NumArraySetValue((*U)->internalRep.twoPtrValue.ptr2, (*U)->internalRep.twoPtrValue.ptr1, zero);
 	}
 	if (wantv) {
 		*V = NumArrayNewMatrix(NumArray_Float64, n, n);
-		NumArrayGetBufferFromObj(NULL, *V, &Vbuf); /* can't fail */
+		Vbuf = NumArrayGetPtrFromObj(NULL, *V); /* can't fail */
 		/* Filling V with constant 0. A bit arcane... */
 		NumArraySetValue((*V)->internalRep.twoPtrValue.ptr2, (*V)->internalRep.twoPtrValue.ptr1, zero);
 	}

@@ -242,15 +242,12 @@ int QRsolveColMaj(Tcl_Interp *interp, Tcl_Obj *qr, Tcl_Obj *rdiag, Tcl_Obj *B) {
 	}
 
 	double *Xbuf, *QRbuf, *Rdiag;
-	void *bufptr;
-	
-	NumArrayGetBufferFromObj(NULL, qr, &bufptr);
-	QRbuf = (double*) bufptr;
+
+	QRbuf = (double*) NumArrayGetPtrFromObj(NULL, qr);
 
 	Xbuf = (double*) NumArrayGetPtrFromSharedBuffer(Xsharedbuf);
 
-	NumArrayGetBufferFromObj(NULL, rdiag, &bufptr);
-	Rdiag = (double *) bufptr;
+	Rdiag = (double *) NumArrayGetPtrFromObj(NULL, rdiag);
 
 	#define X(i, j)  (Xbuf[i+j*m])
 	/* QR is in column major order */
@@ -451,15 +448,12 @@ int QRsolveColMajC(Tcl_Interp *interp, Tcl_Obj *qr, Tcl_Obj *rdiag, Tcl_Obj *B) 
 	}
 
 	NumArray_Complex *Xbuf, *QRbuf, *Rdiag;
-	void *bufptr;
 	
-	NumArrayGetBufferFromObj(NULL, qr, &bufptr);
-	QRbuf = (NumArray_Complex*) bufptr;
+	QRbuf = NumArrayGetPtrFromObj(NULL, qr);
 
-	Xbuf = (NumArray_Complex*) NumArrayGetPtrFromSharedBuffer(Xsharedbuf);
+	Xbuf = NumArrayGetPtrFromSharedBuffer(Xsharedbuf);
 
-	NumArrayGetBufferFromObj(NULL, rdiag, &bufptr);
-	Rdiag = (NumArray_Complex *) bufptr;
+	Rdiag =  NumArrayGetPtrFromObj(NULL, rdiag);
 
 	#define X(i, j)  (Xbuf[i+j*m])
 	/* QR is in column major order */
