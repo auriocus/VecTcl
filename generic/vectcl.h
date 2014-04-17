@@ -78,9 +78,9 @@ typedef struct  {
 	NumArrayType type;
 	int nDim;
 	int bufsize;
+	int offset;
 	int canonical;
 	int *dims;
-	int *offsets;
 	int *pitches;
 } NumArrayInfo;
 

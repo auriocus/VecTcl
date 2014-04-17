@@ -10,7 +10,7 @@
 
 #include <string.h>
 #include <stdlib.h>
-//#define DEBUG_REFCOUNT
+/*#define DEBUG_REFCOUNT*/
 #ifdef DEBUG_REFCOUNT
 #include <stdio.h>
 #define dprintf(X) printf X
@@ -196,7 +196,7 @@ NumArrayInfo* CreateNumArrayInfo(int nDim, const int *dims, NumArrayType dtype) 
 	result -> bufsize = elemsize;
 	result -> type = dtype;
 	result -> dims = ckalloc(sizeof(int)*nDim);
-	result -> offsets = ckalloc(sizeof(int)*nDim);
+	result -> offset = 0;
 	result -> pitches = ckalloc(sizeof(int)*nDim);
 	
 	for (d=0; d<nDim; d++) {
@@ -207,7 +207,6 @@ NumArrayInfo* CreateNumArrayInfo(int nDim, const int *dims, NumArrayType dtype) 
 		}
 		result -> bufsize *= dim;
 		result -> dims[d] = dim;
-		result -> offsets[d] = 0;
 	}
 
 	if (result -> bufsize == 0) {
@@ -243,7 +242,7 @@ NumArrayInfo* CreateNumArrayInfoColMaj(int nDim, const int *dims, NumArrayType d
 	result -> bufsize = elemsize;
 	result -> type = dtype;
 	result -> dims = ckalloc(sizeof(int)*nDim);
-	result -> offsets = ckalloc(sizeof(int)*nDim);
+	result -> offset = 0;
 	result -> pitches = ckalloc(sizeof(int)*nDim);
 	
 	for (d=0; d<nDim; d++) {
@@ -254,7 +253,6 @@ NumArrayInfo* CreateNumArrayInfoColMaj(int nDim, const int *dims, NumArrayType d
 		}
 		result -> bufsize *= dim;
 		result -> dims[d] = dim;
-		result -> offsets[d] = 0;
 	}
 
 	if (result -> bufsize == 0) {
@@ -324,7 +322,6 @@ cleandims:
 
 void DeleteNumArrayInfo(NumArrayInfo* info) {
 	ckfree(info -> pitches);
-	ckfree(info -> offsets);
 	ckfree(info -> dims);
 	ckfree(info);
 }
@@ -338,13 +335,12 @@ NumArrayInfo* DupNumArrayInfo(NumArrayInfo* src) {
 	result -> canonical = src -> canonical;
 	result -> bufsize = src -> bufsize;
 	result -> type = src -> type;
+	result -> offset = src -> offset;
 
 	result -> dims = ckalloc(sizeof(int)*nDim);
-	result -> offsets = ckalloc(sizeof(int)*nDim);
 	result -> pitches = ckalloc(sizeof(int)*nDim);
 	for (i=0; i<nDim; i++) {
 		result -> dims[i] = src -> dims[i];
-		result -> offsets[i] = src -> offsets[i];
 		result -> pitches[i] = src -> pitches[i];
 	}
 	dprintf(("DupNumArrayInfo %p->%p\n", src, result));
@@ -358,14 +354,11 @@ void NumArrayStripSingletonDimensions(NumArrayInfo *info) {
 	
 	/* count number of singleton dimensions */
 	
-	int d=0, dest=0, skipoffset=0;
+	int d=0, dest=0;
 	for (d=0; d<info -> nDim; d++) {
 		info -> dims[dest] = info -> dims[d];
-		info -> offsets[dest] = info -> offsets[d];
 		info -> pitches[dest] = info -> pitches[d];
-		if (info -> dims[d] == 1) {
-			skipoffset += info -> offsets[d];
-		} else {
+		if (info -> dims[d] != 1) {
 			dest++;
 		}
 	}
@@ -375,17 +368,6 @@ void NumArrayStripSingletonDimensions(NumArrayInfo *info) {
 	if (info -> nDim == 0) {
 		/* it reduced to a single scalar value */
 		info -> nDim = 1;
-	}
-	
-	if (info->dims[info -> nDim - 1] == 1) {
-		/* if the last dimension was a singleton
-		 * we added its offset to skipoffset already, so
-		 * skipoffset contains the total offset */
-		info -> offsets[info->nDim - 1] = skipoffset;
-	} else {
-		/* if the last dimension was not a singleton,
-		 * add every offset from the singletons here */
-		info -> offsets[info->nDim - 1] += skipoffset;
 	}
 }
 
@@ -455,7 +437,7 @@ int NumArrayInfoSlice1Axis(Tcl_Interp *interp, NumArrayInfo *info, int axis, int
 	/* Count number of elements in this dimension */
 	int nelem = (stop - start) / incr + 1;
 	info -> dims[axis] = nelem;
-	info -> offsets[axis] = info -> offsets[axis] + start * info->pitches[axis];
+	info -> offset += start * info->pitches[axis];
 	info -> pitches[axis] = info -> pitches[axis]*incr;
 
 	return TCL_OK;
@@ -551,7 +533,7 @@ int NumArrayInfoSlice(Tcl_Interp *interp, NumArrayInfo *info, Tcl_Obj *slicelist
 		/* Count number of elements in this dimension */
 		int nelem = (stop - start) / incr + 1;
 		sliceinfo -> dims[d] = nelem;
-		sliceinfo -> offsets[d] = info -> offsets[d] + start * info->pitches[d];
+		sliceinfo -> offset += start * info->pitches[d];
 		sliceinfo -> pitches[d] = info -> pitches[d]*incr;
 	}
 
@@ -1001,11 +983,7 @@ NumArrayInfoCmd(
 	}
 	Tcl_DictObjPut(interp, infodict, Tcl_NewStringObj("dimensions", -1), plist);
 	
-	plist = Tcl_NewObj();
-	for (i=0; i<info->nDim; i++) {
-		Tcl_ListObjAppendElement(interp, plist,  Tcl_NewIntObj(info->offsets[i]));
-	}
-	Tcl_DictObjPut(interp, infodict, Tcl_NewStringObj("offset", -1), plist);
+	Tcl_DictObjPut(interp, infodict, Tcl_NewStringObj("offset", -1), Tcl_NewIntObj(info->offset));
 
 	plist = Tcl_NewObj();
 	for (i=0; i<info->nDim; i++) {
@@ -1046,6 +1024,7 @@ NumArrayGetCmd(
 	}
 
 	info = naObj -> internalRep.twoPtrValue.ptr2;
+	bufptr += info->offset;
 	
 	if (info -> nDim != objc - 2) {
 		Tcl_SetResult(interp, "Dimension mismatch", NULL);
@@ -1067,7 +1046,7 @@ NumArrayGetCmd(
 			return TCL_ERROR;
 		}
 
-		bufptr += ind*info->pitches[d] + info->offsets[d];
+		bufptr += ind*info->pitches[d];
 	}
 
 	switch (info->type) {
@@ -1137,6 +1116,7 @@ NumArraySetCmd(
 	sharedbuf = naObj->internalRep.twoPtrValue.ptr1;
 	info = naObj->internalRep.twoPtrValue.ptr2;
 	bufptr = NumArrayGetPtrFromSharedBuffer(sharedbuf);
+	bufptr += info->offset;
 
 	if (objc-3 != info->nDim) {
 		Tcl_SetResult(interp, "Dimension mismatch.", NULL);
@@ -1155,7 +1135,7 @@ NumArraySetCmd(
 			goto cleanobj;
 		}
 
-		bufptr += info->pitches[d]*index + info->offsets[d];
+		bufptr += info->pitches[d]*index;
 	}
 
 	/* get value to set */
@@ -1557,7 +1537,6 @@ NumArrayReshapeCmd(
 		}	
 		reshapenelem *= dim;
 		reshapeinfo -> dims[i] = dim;
-		reshapeinfo -> offsets[i] = 0;
 	}
 
 	if (nelem != reshapenelem) {
@@ -1972,8 +1951,7 @@ NumArrayTransposeAdjointCmd(
 			transposeinfo -> dims[0] = 1;
 			transposeinfo -> dims[1] = info->dims[0];
 
-			transposeinfo -> offsets[0] = 0;
-			transposeinfo -> offsets[1] = info->offsets[0];
+			transposeinfo -> offset = info->offset;
 
 			transposeinfo -> pitches[0] = info->pitches[0]*info->dims[0];
 			transposeinfo -> pitches[1] = info->pitches[0];
@@ -1990,7 +1968,7 @@ NumArrayTransposeAdjointCmd(
 			
 			transposeinfo -> canonical = info -> canonical;
 			transposeinfo -> dims[0] = info->dims[1];
-			transposeinfo -> offsets[0] = info->offsets[1];
+			transposeinfo -> offset = info->offset;
 			transposeinfo -> pitches[0] = info->pitches[1];
 		} else {
 			Tcl_SetResult(interp, "Dimension index out of range for columnvector", NULL);
@@ -2009,9 +1987,6 @@ NumArrayTransposeAdjointCmd(
 		
 		transposeinfo -> dims[dim1] = info -> dims[dim2];
 		transposeinfo -> dims[dim2] = info -> dims[dim1];
-
-		transposeinfo -> offsets[dim1] = info -> offsets[dim2];
-		transposeinfo -> offsets[dim2] = info -> offsets[dim1];
 
 		transposeinfo -> pitches[dim1] = info -> pitches[dim2];
 		transposeinfo -> pitches[dim2] = info -> pitches[dim1];
@@ -2284,9 +2259,9 @@ static void UpdateStringOfNumArray(Tcl_Obj *naPtr) {
 		counter[d] = 0;
 	}
 
-	baseptr[0] = buffer + info -> offsets[0];
+	baseptr[0] = buffer + info -> offset;
 	for (d=1; d<nDim; d++) {
-		baseptr[d] = baseptr[d-1]+info->offsets[d];
+		baseptr[d] = baseptr[d-1];
 	}
 
 	while (1) {
@@ -2350,7 +2325,7 @@ static void UpdateStringOfNumArray(Tcl_Obj *naPtr) {
 
 		/* recalculate indices for wrapped-over counters */
 		for (d=d+1; d<nDim; d++) {
-			baseptr[d] = baseptr[d-1]+info->offsets[d];
+			baseptr[d] = baseptr[d-1];
 		}		
 	}
 
@@ -2551,14 +2526,7 @@ void NumArrayIteratorInitColMaj(NumArrayInfo *info, NumArraySharedBuffer *shared
 	it -> type = info -> type;
 	it -> dinfo = ckalloc(sizeof(NumArrayIteratorDimension)*(info->nDim+1));
 
-
-	/* compute total offset */
-	int offset=0;
-	for (d=0; d<info->nDim; d++) {
-		offset += info->offsets[d];
-	}
-
-	it->baseptr = NumArrayGetPtrFromSharedBuffer(sharedbuf)+offset;
+	it->baseptr = NumArrayGetPtrFromSharedBuffer(sharedbuf)+info->offset;
 
 	/* copy dimensional information into the 
 	 * iterators counter in reverse order, 
@@ -2602,14 +2570,7 @@ void NumArrayIteratorInit(NumArrayInfo *info, NumArraySharedBuffer *sharedbuf, N
 	it -> type = info -> type;
 	it -> dinfo = ckalloc(sizeof(NumArrayIteratorDimension)*(info->nDim+1));
 
-
-	/* compute total offset */
-	int offset=0;
-	for (d=0; d<info->nDim; d++) {
-		offset += info->offsets[d];
-	}
-
-	it->baseptr = NumArrayGetPtrFromSharedBuffer(sharedbuf)+offset;
+	it->baseptr = NumArrayGetPtrFromSharedBuffer(sharedbuf)+info->offset;
 	it->ptr = it->baseptr;
 
 	/* copy dimensional information into the 
@@ -2929,7 +2890,7 @@ int NumArrayGetScalarValueFromObj(Tcl_Interp *interp, Tcl_Obj* naObj, NumArray_V
 	
 	if (info->nDim == 1 && info->dims[0] == 1) {
 		void *bufptr = NumArrayGetPtrFromSharedBuffer(sharedbuf);
-		bufptr += info->offsets[0];
+		bufptr += info->offset;
 
 		value -> type = info -> type;
 		switch (value -> type) {
@@ -2965,13 +2926,11 @@ void NumArrayIndexInit(NumArrayInfo *info, NumArraySharedBuffer *sharedbuf, NumA
 	ind -> pitches[2] = 0;
 
 	ind -> baseptr = NumArrayGetPtrFromSharedBuffer(sharedbuf);
-	int offset  = 0;
 	for (d=0; d<info->nDim; d++) {
-		offset += info -> offsets[d];
 		ind -> pitches[d] = info -> pitches[d];
 	}
 
-	ind -> baseptr += offset;
+	ind -> baseptr += info->offset;
 }
 
 int NumArrayIndexInitObj(Tcl_Interp *interp, Tcl_Obj *naObj, NumArrayIndex *ind) {
