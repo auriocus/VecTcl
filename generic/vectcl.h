@@ -3,11 +3,7 @@
 #include <tcl.h>
 #include "nacomplex.h"
 
-/* Token pasting macro */
-#define NUMARRAYTPASTER(X, Y) X##Y
-#define NUMARRAYTPASTER3(X, Y, Z) X##Y##Z
-#define NUMARRAYTPASTER4(X, Y, Z, W) X##Y##Z##W
-
+/* Possible datatypes */
 typedef enum {
 	NumArray_NoType=-1,
 	NumArray_Int64=0,
@@ -15,48 +11,6 @@ typedef enum {
 	NumArray_Complex128=2,
 	NumArray_SentinelType=3
 } NumArrayType;
-
-extern const char * NumArray_typename[NumArray_SentinelType];
-
-/* Macros for preprocessor magic
- * Convert between C type and numeric array type */
-
-#define C_FROM_NATYPE_NumArray_Int64 int
-#define C_FROM_NATYPE_NumArray_Float64 double
-#define C_FROM_NATYPE_NumArray_Complex128 NumArray_Complex
-
-#define NATYPE_FROM_C_int	NumArray_Int64
-#define NATYPE_FROM_C_double NumArray_Float64
-#define NATYPE_FROM_C_NumArray_Complex NumArray_Complex128
-
-#define C_FROM_NATYPE(X) NUMARRAYTPASTER(C_FROM_NATYPE_, X)
-#define NATYPE_FROM_C(X) NUMARRAYTPASTER(NATYPE_FROM_C_, X)
-
-/* Macro to handle upcasting */
-#define UPCAST(TFROM, TTO, X) NUMARRAYTPASTER4(UPCAST_, TFROM, _, TTO)(X)
-
-#define UPCAST_int_int(X) X
-#define UPCAST_int_double(X) X
-#define UPCAST_double_double(X) X
-#define UPCAST_int_NumArray_Complex(X) NumArray_mkComplex(X, 0.0)
-#define UPCAST_double_NumArray_Complex(X) NumArray_mkComplex(X, 0.0)
-#define UPCAST_NumArray_Complex_NumArray_Complex(X) X
-
-#define UPCAST_COMMON(T1, T2) NUMARRAYTPASTER4(UPCAST_COMMON_, T1, _, T2)
-#define UPCAST_COMMON_int_int int
-#define UPCAST_COMMON_int_double double
-#define UPCAST_COMMON_double_int double
-#define UPCAST_COMMON_double_double double
-#define UPCAST_COMMON_int_NumArray_Complex NumArray_Complex
-#define UPCAST_COMMON_NumArray_Complex_int NumArray_Complex
-#define UPCAST_COMMON_double_NumArray_Complex NumArray_Complex
-#define UPCAST_COMMON_NumArray_Complex_double NumArray_Complex
-#define UPCAST_COMMON_NumArray_Complex_NumArray_Complex NumArray_Complex
-
-
-
-/* Useful to print formatted error messages */
-#define RESULTPRINTF(X) Tcl_SetObjResult(interp, Tcl_ObjPrintf X)
 
 /* struct for storing a single polymorphic value */
 typedef struct {
@@ -68,12 +22,14 @@ typedef struct {
 	} value;
 } NumArray_ValueType;
 
+/* Manipulating datatypes */
 NumArrayType NumArray_UpcastType(NumArrayType base);
 NumArrayType NumArray_UpcastCommonType(NumArrayType type1, NumArrayType type2);
 
 int NumArrayConvertToType(Tcl_Interp *interp, Tcl_Obj *naObj, NumArrayType type, Tcl_Obj **dest);
 int NumArrayType_SizeOf(NumArrayType type);
 
+/* Metadata to describe the raw buffer */
 typedef struct  {
 	NumArrayType type;
 	int nDim;
@@ -84,43 +40,47 @@ typedef struct  {
 	int *pitches;
 } NumArrayInfo;
 
-typedef struct {
-	int refcount;
-	char *buffer;
-} NumArraySharedBuffer;
-
-extern const Tcl_ObjType NumArrayTclType;
-
+/* Constructor, destructor, copy constructor for NumArrayInfo */
 NumArrayInfo* CreateNumArrayInfo(int nDim, const int *dims, NumArrayType dtype);
 NumArrayInfo* CreateNumArrayInfoColMaj(int nDim, const int *dims, NumArrayType dtype);
 void DeleteNumArrayInfo(NumArrayInfo* info);
 NumArrayInfo* DupNumArrayInfo(NumArrayInfo* src);
 
-/* Convenience to create a vector and 2D matrix */
-Tcl_Obj *NumArrayNewVector(NumArrayType type, int m);
-Tcl_Obj *NumArrayNewMatrix(NumArrayType type, int m, int n);
+#define ISSCALARINFO(i) (i->nDim == 1 && i->dims[0] == 1)
+#define ISEMPTYINFO(i) (i->nDim == 1 && i->dims[0] == 0)
 
+/* Create an array slice */
 int NumArrayInfoSlice(Tcl_Interp *interp, NumArrayInfo *info, Tcl_Obj *slicelist, NumArrayInfo **resultPtr);
 int NumArrayInfoSlice1Axis(Tcl_Interp *interp, NumArrayInfo *info, int axis, int start, int stop, int incr);
 
-void *NumArrayGetPtrFromObj(Tcl_Interp *interp, Tcl_Obj* naObj);
-
-void NumArrayIncrRefcount(Tcl_Obj* naObj);
-void NumArrayDecrRefcount(Tcl_Obj* naObj);
-void NumArraySetInternalRep(Tcl_Obj *naObj, NumArraySharedBuffer *sharedbuf, NumArrayInfo *info);
-void NumArrayEnsureContiguous(Tcl_Obj *naObj);
-void NumArrayEnsureWriteable(Tcl_Obj *naObj);
-
-#define ISSCALARINFO(i) (i->nDim == 1 && i->dims[0] == 1)
-#define ISEMPTYINFO(i) (i->nDim == 1 && i->dims[0] == 0)
+/* A refcounted buffer */
+typedef struct {
+	int refcount;
+	char *buffer;
+} NumArraySharedBuffer;
 
 NumArraySharedBuffer *NumArrayNewSharedBuffer (int size);
 void *NumArrayGetPtrFromSharedBuffer(NumArraySharedBuffer *sharedbuf);
 void NumArraySharedBufferDecrRefcount(NumArraySharedBuffer *sharedbuf);
-void NumArraySharedBufferIncrRefcount(NumArraySharedBuffer* sharedbuf);
+void NumArraySharedBufferIncrRefcount(NumArraySharedBuffer *sharedbuf);
+
+/* Convenience to create a vector and 2D matrix */
+Tcl_Obj *NumArrayNewVector(NumArrayType type, int m);
+Tcl_Obj *NumArrayNewMatrix(NumArrayType type, int m, int n);
+Tcl_Obj *NumArrayNewMatrixColMaj(NumArrayType type, int m, int n);
+
+/* Assemble / retrieve info and data storage into a Tcl_Obj */
+void NumArraySetInternalRep(Tcl_Obj *naObj, NumArraySharedBuffer *sharedbuf, NumArrayInfo *info);
+NumArrayInfo *NumArrayGetInfoFromObj(Tcl_Interp *interp, Tcl_Obj* naObj);
+NumArraySharedBuffer *NumArrayGetSharedBufferFromObj(Tcl_Interp *interp, Tcl_Obj* naObj);
+void *NumArrayGetPtrFromObj(Tcl_Interp *interp, Tcl_Obj* naObj);
+
+/* Handle copy-on-write */
+void NumArrayEnsureContiguous(Tcl_Obj *naObj);
+void NumArrayEnsureWriteable(Tcl_Obj *naObj);
 void NumArrayUnshareBuffer(Tcl_Obj *naObj);
 
-/* Iterator to loop over all elements in array */
+/* Iterator to loop over all elements in an array */
 typedef struct {
 	int counter;
 	int pitch;
@@ -136,8 +96,7 @@ typedef struct {
 	char *baseptr;
 } NumArrayIterator;
 
-
-/* Init & Free iterator from NumArray */
+/* Constructor and destructor for iterator objects */
 int NumArrayIteratorInitObj(Tcl_Interp* interp, Tcl_Obj* naObj, NumArrayIterator *it);
 void NumArrayIteratorInit(NumArrayInfo *info, NumArraySharedBuffer *buffer, NumArrayIterator *it);
 void NumArrayIteratorInitColMaj(NumArrayInfo *info, NumArraySharedBuffer *buffer, NumArrayIterator *it);
@@ -145,26 +104,26 @@ void NumArrayIteratorFree(NumArrayIterator *it);
 void* NumArrayIteratorReset(NumArrayIterator *it);
 
 /* Iterator advance and test for end condition */
-/*int * NumArrayIteratorGetIndices(NumArrayIterator *it);
-int NumArrayIteratorGetIndex(NumArrayIterator* it, int dim);*/
 void* NumArrayIteratorAdvance(NumArrayIterator *it);
-void* NumArrayIteratorAdvanceRow(NumArrayIterator *it);
+int NumArrayIteratorFinished(NumArrayIterator *it);
 
+/* For faster looping, advance row-wise. */
+void* NumArrayIteratorAdvanceRow(NumArrayIterator *it);
+/* Retrieve pitch and
+ * number of elements in the innermost loop */
 int NumArrayIteratorRowPitchTyped(NumArrayIterator *it);
 int NumArrayIteratorRowPitch(NumArrayIterator *it);
 int NumArrayIteratorRowLength(NumArrayIterator *it);
 
-
-int NumArrayIteratorFinished(NumArrayIterator *it);
-
 /* Retrieve value from iterator */
-NumArray_ValueType NumArrayIteratorDeRefValue(NumArrayIterator *it);
-double NumArrayIteratorDeRefDouble(NumArrayIterator *it);
-double *NumArrayIteratorDeRefDoublePtr(NumArrayIterator *it);
-int NumArrayIteratorDeRefInt(NumArrayIterator *it);
-NumArray_Complex NumArrayIteratorDeRefComplex(NumArrayIterator *it);
-char *NumArrayIteratorDeRefCharPtr(NumArrayIterator *it);
+/* Pointer */
 void *NumArrayIteratorDeRefPtr(NumArrayIterator *it);
+/* single dataype */
+int NumArrayIteratorDeRefInt(NumArrayIterator *it);
+double NumArrayIteratorDeRefDouble(NumArrayIterator *it);
+NumArray_Complex NumArrayIteratorDeRefComplex(NumArrayIterator *it);
+/* polymorph value */
+NumArray_ValueType NumArrayIteratorDeRefValue(NumArrayIterator *it);
 
 
 /* Analogs to memcpy and memset,
@@ -174,6 +133,10 @@ void *NumArrayIteratorDeRefPtr(NumArrayIterator *it);
 int NumArrayCopy(NumArrayInfo *srcinfo, NumArraySharedBuffer *srcbuf, 
 			NumArrayInfo *destinfo, NumArraySharedBuffer *destbuf);
 
+/* same with a Tcl_Obj */
+int NumArrayObjCopy(Tcl_Interp *interp, Tcl_Obj *srcObj, Tcl_Obj *destObj);
+
+/* Fill a buffer with a constant value */
 int NumArraySetValue(NumArrayInfo *destinfo, NumArraySharedBuffer *destbuf, NumArray_ValueType value);
 
 /* Retrieve value from scalar NumArray */
@@ -187,94 +150,8 @@ typedef struct {
 
 void NumArrayIndexInit(NumArrayInfo *info, NumArraySharedBuffer *sharedbuf, NumArrayIndex *ind);
 int NumArrayIndexInitObj(Tcl_Interp *interp, Tcl_Obj *naObj, NumArrayIndex *ind);
-double NumArrayIndex1DGetDouble(NumArrayIndex *ind, int i);
-double NumArrayIndex2DGetDouble(NumArrayIndex *ind, int i, int j);
 void* NumArrayIndex1DGetPtr(NumArrayIndex *ind, int i);
 void* NumArrayIndex2DGetPtr(NumArrayIndex *ind, int i, int j);
-
-#define SUBCOMMAND(X) \
-	int	X(ClientData dummy, Tcl_Interp *interp,\
-		int objc, Tcl_Obj *const *objv)
-
-SUBCOMMAND(NumArrayCreateCmd);
-SUBCOMMAND(NumArrayConstFillCmd);
-SUBCOMMAND(NumArrayEyeCmd);
-SUBCOMMAND(NumArrayInfoCmd);
-SUBCOMMAND(NumArrayDimensionsCmd);
-SUBCOMMAND(NumArrayShapeCmd);
-SUBCOMMAND(NumArrayReshapeCmd);
-SUBCOMMAND(NumArrayTransposeCmd);
-SUBCOMMAND(NumArrayAdjointCmd);
-SUBCOMMAND(NumArraySliceCmd);
-SUBCOMMAND(NumArraySetCmd);
-SUBCOMMAND(NumArrayGetCmd);
-SUBCOMMAND(NumArrayFastCopyCmd);
-SUBCOMMAND(NumArrayFastAddCmd);
-SUBCOMMAND(NumArrayLinRegCmd);
-SUBCOMMAND(NumArrayConvDoubleCmd);
-SUBCOMMAND(NumArrayConvComplexCmd);
-SUBCOMMAND(NumArrayAbsCmd);
-SUBCOMMAND(NumArraySignCmd);
-SUBCOMMAND(NumArrayRealCmd);
-SUBCOMMAND(NumArrayImagCmd);
-SUBCOMMAND(NumArrayArgCmd);
-SUBCOMMAND(NumArrayConjCmd);
-SUBCOMMAND(NumArrayPlusCmd);
-SUBCOMMAND(NumArrayMinusCmd);
-SUBCOMMAND(NumArrayTimesCmd);
-SUBCOMMAND(NumArrayLdivideCmd);
-SUBCOMMAND(NumArrayRdivideCmd);
-/* relation operators */
-SUBCOMMAND(NumArrayGreaterCmd);
-SUBCOMMAND(NumArrayLesserCmd);
-SUBCOMMAND(NumArrayGreaterEqualCmd);
-SUBCOMMAND(NumArrayLesserEqualCmd);
-SUBCOMMAND(NumArrayEqualCmd);
-SUBCOMMAND(NumArrayUnequalCmd);
-/* boolean operators */
-SUBCOMMAND(NumArrayNotCmd);
-SUBCOMMAND(NumArrayAndCmd);
-SUBCOMMAND(NumArrayOrCmd);
-
-SUBCOMMAND(NumArrayBackslashCmd);
-SUBCOMMAND(NumArraySlashCmd);
-SUBCOMMAND(NumArrayMatrixPowCmd);
-SUBCOMMAND(NumArrayReminderCmd);
-SUBCOMMAND(NumArrayPowCmd);
-SUBCOMMAND(NumArrayMinCmd);
-SUBCOMMAND(NumArrayMaxCmd);
-SUBCOMMAND(NumArraySetAssignCmd);
-SUBCOMMAND(NumArrayPlusAssignCmd);
-SUBCOMMAND(NumArrayMinusAssignCmd);
-SUBCOMMAND(NumArrayTimesAssignCmd);
-SUBCOMMAND(NumArrayLdivideAssignCmd);
-SUBCOMMAND(NumArrayRdivideAssignCmd);
-SUBCOMMAND(NumArrayPowAssignCmd);
-SUBCOMMAND(NumArrayNegCmd);
-SUBCOMMAND(NumArrayNegCmd);
-SUBCOMMAND(NumArraySinCmd);
-SUBCOMMAND(NumArrayCosCmd);
-SUBCOMMAND(NumArrayTanCmd);
-SUBCOMMAND(NumArrayExpCmd);
-SUBCOMMAND(NumArrayLogCmd);
-SUBCOMMAND(NumArraySqrtCmd);
-SUBCOMMAND(NumArraySinhCmd);
-SUBCOMMAND(NumArrayCoshCmd);
-SUBCOMMAND(NumArrayTanhCmd);
-SUBCOMMAND(NumArrayAsinCmd);
-SUBCOMMAND(NumArrayAcosCmd);
-SUBCOMMAND(NumArrayAtanCmd);
-SUBCOMMAND(NumArrayAsinhCmd);
-SUBCOMMAND(NumArrayAcoshCmd);
-SUBCOMMAND(NumArrayAtanhCmd);
-SUBCOMMAND(NumArrayQRecoCmd);
-SUBCOMMAND(NumArraySumCmd);
-SUBCOMMAND(NumArrayAxisMinCmd);
-SUBCOMMAND(NumArrayAxisMaxCmd);
-SUBCOMMAND(NumArrayMeanCmd);
-SUBCOMMAND(NumArrayStdCmd);
-SUBCOMMAND(NumArrayStd1Cmd);
-SUBCOMMAND(NumArrayAllCmd);
-SUBCOMMAND(NumArrayAnyCmd);
+void *NumArrayIndex3DGetPtr(NumArrayIndex *ind, int i, int j, int k);
 
 #endif

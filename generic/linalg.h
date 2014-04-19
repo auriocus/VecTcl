@@ -3,7 +3,7 @@
 
 #ifndef LINALG_H
 #define LINALG_H
-#include "vectcl.h"
+#include "vectclInt.h"
 
 int NumArrayDotCmd(ClientData dummy, Tcl_Interp *interp,
     int objc, Tcl_Obj *const *objv);

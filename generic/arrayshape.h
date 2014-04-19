@@ -1,7 +1,7 @@
 #ifndef ARRAYSHAPE_H
 #define ARRAYSHAPE_H
 
-#include "vectcl.h"
+#include "vectclInt.h"
 SUBCOMMAND(NumArrayConcatCmd);
 SUBCOMMAND(NumArrayDiagCmd);
 

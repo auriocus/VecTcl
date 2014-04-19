@@ -5284,7 +5284,7 @@ done
 #-----------------------------------------------------------------------
 
 
-    vars="vectcl.c linalg.c arrayshape.c nacomplex.c hsfft.c fft.c svd.c"
+    vars="vectclapi.c vectcl.c linalg.c arrayshape.c nacomplex.c hsfft.c fft.c svd.c"
     for i in $vars; do
 	case $i in
 	    \$*)
@@ -5352,7 +5352,7 @@ done
 
 
 
-    vars=""
+    vars="vectclapi.c"
     for i in $vars; do
 	# check for existence - allows for generic/win/unix VPATH
 	if test ! -f "${srcdir}/$i" -a ! -f "${srcdir}/generic/$i" \

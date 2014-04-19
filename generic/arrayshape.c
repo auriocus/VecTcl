@@ -1,4 +1,4 @@
-#include "vectcl.h"
+#include "arrayshape.h"
 #include <string.h>
 #include <stdlib.h>
 

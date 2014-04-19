@@ -1,6 +1,6 @@
 #ifndef VECTCL_FFT_H
 #define VECTCL_FFT_H
-#include "vectcl.h"
+#include "vectclInt.h"
 SUBCOMMAND(NumArrayFFTCmd);
 SUBCOMMAND(NumArrayIFFTCmd);
 
