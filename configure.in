@@ -188,6 +188,8 @@ AC_DEFINE(LIST_INJECT)
 AC_MSG_RESULT([yes]), 
 AC_MSG_RESULT([no]))
 
+TEA_EXPORT_CONFIG
+
 #--------------------------------------------------------------------
 # Finally, substitute all of the various values into the Makefile.
 # You may alternatively have a special pkgIndex.tcl.in or other files

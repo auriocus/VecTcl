@@ -112,30 +112,6 @@ cleandims:
 	return TCL_ERROR;
 }
 
-void NumArrayStripSingletonDimensions(NumArrayInfo *info) {
-	/* Remove singleton dimensions.
-	 * Note this also transforms rowvectors into columnvectors
-	 * but these are interchangeable (and with lists) anyway */
-	
-	/* count number of singleton dimensions */
-	
-	int d=0, dest=0;
-	for (d=0; d<info -> nDim; d++) {
-		info -> dims[dest] = info -> dims[d];
-		info -> pitches[dest] = info -> pitches[d];
-		if (info -> dims[d] != 1) {
-			dest++;
-		}
-	}
-
-	
-	info -> nDim = dest;
-	if (info -> nDim == 0) {
-		/* it reduced to a single scalar value */
-		info -> nDim = 1;
-	}
-}
-
 int NumArrayCompatibleDimensions(NumArrayInfo *info1, NumArrayInfo *info2) {
 	/* return 1 if the dimensions are equal apart from singleton dimensions,
 	 * i.e. if we can copy from one into the other by iterating */
@@ -1996,28 +1972,6 @@ static int SetListFromNumArray(Tcl_Interp *interp, Tcl_Obj *objPtr) {
 }
 #endif
 
-void NumArrayUnshareBuffer(Tcl_Obj *naObj) {
-	if (naObj -> typePtr == &NumArrayTclType) {
-		NumArraySharedBuffer *sharedbuf = naObj -> internalRep.twoPtrValue.ptr1;
-		NumArrayInfo * info = naObj -> internalRep.twoPtrValue.ptr2;
-		
-		/* create info for contiguous buffer */
-		NumArrayInfo *copyinfo = CreateNumArrayInfo(info->nDim, info->dims, info->type);
-
-		/* alloc fresh shared buffer */
-		NumArraySharedBuffer *copysharedbuf = NumArrayNewSharedBuffer(copyinfo -> bufsize);
-
-		/* copy data */
-		NumArrayCopy(info, sharedbuf, copyinfo, copysharedbuf);
-
-		/* set into object and release reference to old buffer */
-		naObj -> internalRep.twoPtrValue.ptr1 = copysharedbuf;
-		naObj -> internalRep.twoPtrValue.ptr2 = copyinfo;
-		NumArraySharedBufferIncrRefcount(copysharedbuf);
-		NumArraySharedBufferDecrRefcount(sharedbuf);
-	}
-}
-
 void NumArrayIncrRefcount(Tcl_Obj *naObj) {
 	if (naObj -> typePtr == &NumArrayTclType) {
 		NumArraySharedBuffer *sharedbuf = naObj -> internalRep.twoPtrValue.ptr1;
@@ -2522,6 +2476,7 @@ int Vectcl_Init(Tcl_Interp* interp) {
 
 	Tcl_PkgProvide(interp, PACKAGE_NAME, PACKAGE_VERSION);
 
+	VecTclNumArrayObjType = &NumArrayTclType;
 	Tcl_RegisterObjType(&NumArrayTclType);
 	myTcl_MakeEnsemble(interp, "::numarray", "::numarray", implementationMap);
 

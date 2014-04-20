@@ -3,6 +3,21 @@
 /* This actually isn't a stub file. 
   * It contains the actual implementations out of laziness */
 
+/* The pointer to the object type. Must be populated in either
+ * Vectcl_Init or Vectcl_InitStubs */
+const Tcl_ObjType* VecTclNumArrayObjType;
+
+char* Vectcl_InitStubs(Tcl_Interp *interp, const char *version, int exact) {
+	/* Ignore version for now */
+	VecTclNumArrayObjType = Tcl_GetObjType("NumArray");
+	if (!VecTclNumArrayObjType) {
+		return NULL;
+	} else {
+		return PACKAGE_VERSION;
+	}
+}
+
+
 /* Manipulating datatypes */
 
 NumArrayType NumArray_UpcastType(NumArrayType base) {
@@ -42,7 +57,7 @@ int NumArrayType_SizeOf(NumArrayType type) {
 int NumArrayConvertToType(Tcl_Interp *interp, Tcl_Obj *naObj, NumArrayType type, Tcl_Obj **dest) {
 	NumArrayInfo *info, *convinfo; 
 	NumArraySharedBuffer *sharedbuf, *convbuf;
-	if (Tcl_ConvertToType(interp, naObj, &NumArrayTclType) != TCL_OK) {
+	if (Tcl_ConvertToType(interp, naObj, VecTclNumArrayObjType) != TCL_OK) {
 		return TCL_ERROR;
 	}
 	
@@ -391,6 +406,31 @@ int NumArrayInfoSlice1Axis(Tcl_Interp *interp, NumArrayInfo *info, int axis, int
 	return TCL_OK;
 }
 
+/* Remove singleton dimensions */
+void NumArrayStripSingletonDimensions(NumArrayInfo *info) {
+	 /* Note this also transforms rowvectors into columnvectors
+	 * but these are interchangeable (and with lists) anyway */
+	
+	/* count number of singleton dimensions */
+	
+	int d=0, dest=0;
+	for (d=0; d<info -> nDim; d++) {
+		info -> dims[dest] = info -> dims[d];
+		info -> pitches[dest] = info -> pitches[d];
+		if (info -> dims[d] != 1) {
+			dest++;
+		}
+	}
+
+	
+	info -> nDim = dest;
+	if (info -> nDim == 0) {
+		/* it reduced to a single scalar value */
+		info -> nDim = 1;
+	}
+}
+
+
 /* A refcounted buffer */
 NumArraySharedBuffer *NumArrayNewSharedBuffer (int size) {
 	NumArraySharedBuffer* sharedbuf=ckalloc(sizeof(NumArraySharedBuffer));
@@ -460,14 +500,14 @@ void NumArraySetInternalRep(Tcl_Obj *naObj, NumArraySharedBuffer *sharedbuf, Num
 	naObj -> internalRep.twoPtrValue.ptr1 = sharedbuf;
 	NumArraySharedBufferIncrRefcount(sharedbuf);
 	naObj -> internalRep.twoPtrValue.ptr2 = info;
-	naObj -> typePtr = &NumArrayTclType;
+	naObj -> typePtr = VecTclNumArrayObjType;
 }
 
 /* Extract the NumArrayInfo* from a Tcl_Obj
  * If naObj can't be converted to NumArray, 
  * NULL is returned */
 NumArrayInfo *NumArrayGetInfoFromObj(Tcl_Interp *interp, Tcl_Obj* naObj) {
-	if (Tcl_ConvertToType(interp, naObj, &NumArrayTclType) != TCL_OK) {
+	if (Tcl_ConvertToType(interp, naObj, VecTclNumArrayObjType) != TCL_OK) {
 		return NULL;
 	}
 	
@@ -478,7 +518,7 @@ NumArrayInfo *NumArrayGetInfoFromObj(Tcl_Interp *interp, Tcl_Obj* naObj) {
  * If naObj can't be converted to NumArray, 
  * NULL is returned */
 NumArraySharedBuffer *NumArrayGetSharedBufferFromObj(Tcl_Interp *interp, Tcl_Obj* naObj) {
-	if (Tcl_ConvertToType(interp, naObj, &NumArrayTclType) != TCL_OK) {
+	if (Tcl_ConvertToType(interp, naObj, VecTclNumArrayObjType) != TCL_OK) {
 		return NULL;
 	}
 	
@@ -489,7 +529,7 @@ NumArraySharedBuffer *NumArrayGetSharedBufferFromObj(Tcl_Interp *interp, Tcl_Obj
  * If naObj can't be converted to NumArray, 
  * NULL is returned */
 void *NumArrayGetPtrFromObj(Tcl_Interp *interp, Tcl_Obj* naObj) {
-	if (Tcl_ConvertToType(interp, naObj, &NumArrayTclType) != TCL_OK) {
+	if (Tcl_ConvertToType(interp, naObj, VecTclNumArrayObjType) != TCL_OK) {
 		return NULL;
 	}
 	NumArraySharedBuffer *sharedbuf = naObj -> internalRep.twoPtrValue.ptr1;
@@ -500,7 +540,7 @@ void *NumArrayGetPtrFromObj(Tcl_Interp *interp, Tcl_Obj* naObj) {
 /* Handle copy-on-write */
 void NumArrayEnsureContiguous(Tcl_Obj *naObj) {
 	/* copy buffer/unshare */
-	if (naObj -> typePtr == &NumArrayTclType) {
+	if (naObj -> typePtr == VecTclNumArrayObjType) {
 		NumArrayInfo * info = naObj -> internalRep.twoPtrValue.ptr2;
 
 		if (!info->canonical) { 
@@ -511,7 +551,7 @@ void NumArrayEnsureContiguous(Tcl_Obj *naObj) {
 }
 
 void NumArrayEnsureWriteable(Tcl_Obj *naObj) {
-	if (naObj -> typePtr == &NumArrayTclType) {
+	if (naObj -> typePtr == VecTclNumArrayObjType) {
 		NumArraySharedBuffer *sharedbuf = naObj -> internalRep.twoPtrValue.ptr1;
 		if (NumArrayIsShared(sharedbuf))  {
 			NumArrayUnshareBuffer(naObj);
@@ -519,12 +559,35 @@ void NumArrayEnsureWriteable(Tcl_Obj *naObj) {
 	}
 }
 
+void NumArrayUnshareBuffer(Tcl_Obj *naObj) {
+	if (naObj -> typePtr == VecTclNumArrayObjType) {
+		NumArraySharedBuffer *sharedbuf = naObj -> internalRep.twoPtrValue.ptr1;
+		NumArrayInfo * info = naObj -> internalRep.twoPtrValue.ptr2;
+		
+		/* create info for contiguous buffer */
+		NumArrayInfo *copyinfo = CreateNumArrayInfo(info->nDim, info->dims, info->type);
+
+		/* alloc fresh shared buffer */
+		NumArraySharedBuffer *copysharedbuf = NumArrayNewSharedBuffer(copyinfo -> bufsize);
+
+		/* copy data */
+		NumArrayCopy(info, sharedbuf, copyinfo, copysharedbuf);
+
+		/* set into object and release reference to old buffer */
+		naObj -> internalRep.twoPtrValue.ptr1 = copysharedbuf;
+		naObj -> internalRep.twoPtrValue.ptr2 = copyinfo;
+		NumArraySharedBufferIncrRefcount(copysharedbuf);
+		NumArraySharedBufferDecrRefcount(sharedbuf);
+	}
+}
+
+
 /* Iterator to loop over all elements in an array */
 /* Constructor and destructor for iterator objects */
 int NumArrayIteratorInitObj(Tcl_Interp* interp, Tcl_Obj* naObj, NumArrayIterator *it) {
 	NumArraySharedBuffer *sharedbuf; NumArrayInfo *info;
 
-	if (Tcl_ConvertToType(interp, naObj, &NumArrayTclType) != TCL_OK) {
+	if (Tcl_ConvertToType(interp, naObj, VecTclNumArrayObjType) != TCL_OK) {
 		return TCL_ERROR;
 	}
 	
@@ -805,10 +868,10 @@ cleanit:
 
 /* same with a Tcl_Obj */
 int NumArrayObjCopy(Tcl_Interp *interp, Tcl_Obj *srcObj, Tcl_Obj *destObj) {
-	if (Tcl_ConvertToType(interp, srcObj, &NumArrayTclType) != TCL_OK) {
+	if (Tcl_ConvertToType(interp, srcObj, VecTclNumArrayObjType) != TCL_OK) {
 		return TCL_ERROR;
 	}
-	if (Tcl_ConvertToType(interp, destObj, &NumArrayTclType) != TCL_OK) {
+	if (Tcl_ConvertToType(interp, destObj, VecTclNumArrayObjType) != TCL_OK) {
 		return TCL_ERROR;
 	}
 
@@ -902,7 +965,7 @@ cleanit:
 
 /* Retrieve value from scalar NumArray */
 int NumArrayGetScalarValueFromObj(Tcl_Interp *interp, Tcl_Obj* naObj, NumArray_ValueType *value) {
-	if (Tcl_ConvertToType(interp, naObj, &NumArrayTclType) != TCL_OK) {
+	if (Tcl_ConvertToType(interp, naObj, VecTclNumArrayObjType) != TCL_OK) {
 		return TCL_ERROR;
 	}
 
@@ -955,7 +1018,7 @@ void NumArrayIndexInit(NumArrayInfo *info, NumArraySharedBuffer *sharedbuf, NumA
 int NumArrayIndexInitObj(Tcl_Interp *interp, Tcl_Obj *naObj, NumArrayIndex *ind) {
 	NumArraySharedBuffer *sharedbuf; NumArrayInfo *info;
 
-	if (Tcl_ConvertToType(interp, naObj, &NumArrayTclType) != TCL_OK) {
+	if (Tcl_ConvertToType(interp, naObj, VecTclNumArrayObjType) != TCL_OK) {
 		return TCL_ERROR;
 	}
 	
