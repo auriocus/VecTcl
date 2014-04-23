@@ -134,7 +134,7 @@ int LapackSVDCmd(ClientData dummy, Tcl_Interp *interp, int objc, Tcl_Obj *const 
 	}
 }
 
-int Lapackvectcl_Init(Tcl_Interp *interp) {
+int Lsvd_Init(Tcl_Interp *interp) {
 	if (interp == 0) return TCL_ERROR;
 
 	if (Tcl_InitStubs(interp, TCL_VERSION, 0) == NULL) {
