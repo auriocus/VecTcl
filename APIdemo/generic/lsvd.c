@@ -28,13 +28,14 @@ int LapackSVDCmd(ClientData dummy, Tcl_Interp *interp, int objc, Tcl_Obj *const 
 
 	long int m = info->dims[0];
 	long int n = info->dims[1];
+
 	if (info->type != NumArray_Complex128) {
 		/* Real-valued matrix, prepare for dgesvd */
 		/* create a column-major copy of matrix 
 		 * This also converts an integer matrix to double */
 		Tcl_Obj *A = NumArrayNewMatrixColMaj(NumArray_Float64, m, n);
 		NumArrayObjCopy(interp, matrix, A);
-		/* create a complex matrix for U and V */
+		/* create a real matrix for U and V */
 		Tcl_Obj *U = NumArrayNewMatrixColMaj(NumArray_Float64, m, m);
 		Tcl_Obj *V = NumArrayNewMatrixColMaj(NumArray_Float64, n, n);
 		/* create a real vector for the singular values */
@@ -49,7 +50,9 @@ int LapackSVDCmd(ClientData dummy, Tcl_Interp *interp, int objc, Tcl_Obj *const 
 		/* setup workspace arrays */
 		long int lwork=MAX(MAX(1,3*MIN(m,n)+MAX(m,n)),5*MIN(m,n));
 		double* work=ckalloc(sizeof(double)*lwork);
-		long int lda = m;
+		long int lda = m; 
+		/* Leading dimensions. We made a fresh copy for A and
+		 * new matrices U, V, therefore we have the full matrices */
 		long int ldu = m;
 		long int ldvt = n;
 		long int info;
