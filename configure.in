@@ -167,6 +167,19 @@ AC_DEFINE(USE_TCL_STUBS, 1, [Use Tcl stubs])
 TEA_MAKE_LIB
 
 #--------------------------------------------------------------------
+# __CHANGE__
+# Change the name from exampeA_LIB_FILE to match your package name.
+# Use the stub_LIB_FILE substitution if your package creates a stub
+# library.
+#--------------------------------------------------------------------
+
+vectcl_STUB_LIB_FILE=${PKG_STUB_LIB_FILE}
+vectcl_LIB_FILE=${PKG_LIB_FILE}
+AC_SUBST(vectcl_STUB_LIB_FILE)
+AC_SUBST(vectcl_LIB_FILE)
+
+
+#--------------------------------------------------------------------
 # Determine the name of the tclsh and/or wish executables in the
 # Tcl and Tk build directories or the location they were installed
 # into. These paths are used to support running test cases only,
@@ -188,7 +201,7 @@ AC_DEFINE(LIST_INJECT)
 AC_MSG_RESULT([yes]), 
 AC_MSG_RESULT([no]))
 
-TEA_EXPORT_CONFIG
+TEA_EXPORT_CONFIG([vectcl])
 
 #--------------------------------------------------------------------
 # Finally, substitute all of the various values into the Makefile.
@@ -196,4 +209,4 @@ TEA_EXPORT_CONFIG
 # which require substituting th AC variables in.  Include these here.
 #--------------------------------------------------------------------
 
-AC_OUTPUT([Makefile pkgIndex.tcl])
+AC_OUTPUT([Makefile pkgIndex.tcl vectclConfig.sh])

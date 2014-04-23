@@ -623,13 +623,15 @@ LIBOBJS
 PATCHLEVEL
 MINOR_VERSION
 MAJOR_VERSION
-_STUB_LIB_PATH
-_BUILD_STUB_LIB_PATH
-_STUB_LIB_SPEC
-_BUILD_STUB_LIB_SPEC
-_LIB_SPEC
-_BUILD_LIB_SPEC
+vectcl_STUB_LIB_PATH
+vectcl_BUILD_STUB_LIB_PATH
+vectcl_STUB_LIB_SPEC
+vectcl_BUILD_STUB_LIB_SPEC
+vectcl_LIB_SPEC
+vectcl_BUILD_LIB_SPEC
 TCLSH_PROG
+vectcl_LIB_FILE
+vectcl_STUB_LIB_FILE
 VC_MANIFEST_EMBED_EXE
 VC_MANIFEST_EMBED_DLL
 RANLIB_STUB
@@ -8543,6 +8545,19 @@ rm -f conftest*
 
 
 #--------------------------------------------------------------------
+# __CHANGE__
+# Change the name from exampeA_LIB_FILE to match your package name.
+# Use the stub_LIB_FILE substitution if your package creates a stub
+# library.
+#--------------------------------------------------------------------
+
+vectcl_STUB_LIB_FILE=${PKG_STUB_LIB_FILE}
+vectcl_LIB_FILE=${PKG_LIB_FILE}
+
+
+
+
+#--------------------------------------------------------------------
 # Determine the name of the tclsh and/or wish executables in the
 # Tcl and Tk build directories or the location they were installed
 # into. These paths are used to support running test cases only,
@@ -8603,24 +8618,24 @@ fi
 
 
     #--------------------------------------------------------------------
-    # These are for Config.sh
+    # These are for vectclConfig.sh
     #--------------------------------------------------------------------
 
     # pkglibdir must be a fully qualified path and (not ${exec_prefix}/lib)
-    eval pkglibdir="${libdir}/${PACKAGE_VERSION}"
+    eval pkglibdir="${libdir}/vectcl${PACKAGE_VERSION}"
     if test "${TCL_LIB_VERSIONS_OK}" = "ok"; then
-	eval _LIB_FLAG="-l${PACKAGE_VERSION}${DBGX}"
-	eval _STUB_LIB_FLAG="-lstub${PACKAGE_VERSION}${DBGX}"
+	eval vectcl_LIB_FLAG="-lvectcl${PACKAGE_VERSION}${DBGX}"
+	eval vectcl_STUB_LIB_FLAG="-lvectclstub${PACKAGE_VERSION}${DBGX}"
     else
-	eval _LIB_FLAG="-l`echo ${PACKAGE_VERSION} | tr -d .`${DBGX}"
-	eval _STUB_LIB_FLAG="-lstub`echo ${PACKAGE_VERSION} | tr -d .`${DBGX}"
+	eval vectcl_LIB_FLAG="-lvectcl`echo ${PACKAGE_VERSION} | tr -d .`${DBGX}"
+	eval vectcl_STUB_LIB_FLAG="-lvectclstub`echo ${PACKAGE_VERSION} | tr -d .`${DBGX}"
     fi
-    _BUILD_LIB_SPEC="-L`pwd` ${_LIB_FLAG}"
-    _LIB_SPEC="-L${pkglibdir} ${_LIB_FLAG}"
-    _BUILD_STUB_LIB_SPEC="-L`pwd` ${_STUB_LIB_FLAG}"
-    _STUB_LIB_SPEC="-L${pkglibdir} ${_STUB_LIB_FLAG}"
-    _BUILD_STUB_LIB_PATH="`pwd`/${PKG_STUB_LIB_FILE}"
-    _STUB_LIB_PATH="${pkglibdir}/${PKG_STUB_LIB_FILE}"
+    vectcl_BUILD_LIB_SPEC="-L`pwd` ${vectcl_LIB_FLAG}"
+    vectcl_LIB_SPEC="-L${pkglibdir} ${vectcl_LIB_FLAG}"
+    vectcl_BUILD_STUB_LIB_SPEC="-L`pwd` ${vectcl_STUB_LIB_FLAG}"
+    vectcl_STUB_LIB_SPEC="-L${pkglibdir} ${vectcl_STUB_LIB_FLAG}"
+    vectcl_BUILD_STUB_LIB_PATH="`pwd`/${PKG_STUB_LIB_FILE}"
+    vectcl_STUB_LIB_PATH="${pkglibdir}/${PKG_STUB_LIB_FILE}"
 
 
 
@@ -8640,7 +8655,7 @@ fi
 # which require substituting th AC variables in.  Include these here.
 #--------------------------------------------------------------------
 
-ac_config_files="$ac_config_files Makefile pkgIndex.tcl"
+ac_config_files="$ac_config_files Makefile pkgIndex.tcl vectclConfig.sh"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -9351,6 +9366,7 @@ do
   case $ac_config_target in
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "pkgIndex.tcl") CONFIG_FILES="$CONFIG_FILES pkgIndex.tcl" ;;
+    "vectclConfig.sh") CONFIG_FILES="$CONFIG_FILES vectclConfig.sh" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac
