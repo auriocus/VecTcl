@@ -3,6 +3,7 @@ layout: default
 title: VecTcl
 subtitle: Benchmarks
 home: false
+permalink: "benchmarks.html"
 ---
 
 Benchmarks were run on a 2.4 GHz Core i5 with 8GB RAM and 8MB L3 cache.

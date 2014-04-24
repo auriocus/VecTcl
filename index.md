@@ -15,7 +15,7 @@ Matlab, which closely models the language used by textbook math.
 
 VecTcl has the following nice features, which sets it apart from similar packages:
 
-- [easy to use]({{ site.baseurl }}/examples.html)
+- [easy to use]({{ site.baseurl }}/tutorial.html)
 - [reasonably fast]({{ site.baseurl }}/benchmarks.html)
 - interoperability with commands working on lists, and math::linearalgebra
 - the vector language can be extended by Tcl procs
@@ -45,7 +45,8 @@ version could use a parser implemented in C.
 TODO
 ----
 * More examples
-* More linear algebra implementations (LU, eigenvalue, SVD, FFT)
+* More linear algebra implementations (LU, eigenvalue, <s>SVD, FFT</s>)
 * Optional LAPACK integration
+* Various performance improvements
 * User documentation
 * Source code documentation    

@@ -3,6 +3,7 @@ layout: default
 title: VecTcl
 subtitle: Downloads
 downloads: true
+permalink: "downloads.html"
 ---
 
 Latest development sources

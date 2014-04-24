@@ -3,6 +3,7 @@ title: VecTcl
 layout: default
 subtitle: Tutorial
 home: false
+permalink: "tutorial.html"
 ---
 
 Basic VecTcl usage

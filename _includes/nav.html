@@ -11,24 +11,17 @@
     	    Home
     	    </a>
     	</li>
-    	<li>
-    		<a href="{{ site.baseurl }}/downloads.html">
-    	    Downloads
-    	    </a>
-    	</li>
-        {% for p in site.pages %}
+		{% assign sorted_pages = site.pages | sort:"name" %}
+        {% for p in sorted_pages %}
         	{% if p.bench  %}
         	{% else %}
 			{% if p.home %}
-			{% else %}
-			{% if p.downloads %}
 			{% else %}
         <li>
         	<a {% if p.url == page.url %}class="active"{% endif %} href="{{ site.baseurl }}{{ p.url }}">
             {{ p.subtitle }}
             </a>
         </li>
-		{% endif %}
         {% endif %}
         {% endif %}
         {% endfor %}
