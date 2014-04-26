@@ -7,6 +7,7 @@
 #include "linalg.h"
 #include "fft.h"
 #include "svd.h"
+#include "bcexecute.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -251,6 +252,8 @@ static const EnsembleMap implementationMap[] = {
 	/* FFT */
 	{"fft", NumArrayFFTCmd, NULL},
 	{"ifft", NumArrayIFFTCmd, NULL},
+	/* Execute bytecode */
+	{"bcexecute", NumArrayBCExecuteCmd, NULL},
 	{NULL, NULL, NULL}
 };
 

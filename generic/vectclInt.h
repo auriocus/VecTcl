@@ -64,6 +64,8 @@ void NumArrayStripSingletonDimensions(NumArrayInfo *info);
 void NumArrayUnshareBuffer(Tcl_Obj *naObj);
 int NumArrayIsShared(NumArraySharedBuffer *sharedbuf);
 
+int NumArrayCompatibleDimensions(NumArrayInfo *info1, NumArrayInfo *info2);
+
 #define SUBCOMMAND(X) \
 	int	X(ClientData dummy, Tcl_Interp *interp,\
 		int objc, Tcl_Obj *const *objv)
