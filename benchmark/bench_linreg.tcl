@@ -89,6 +89,29 @@ proc linear_regression_C {xv yv rep} {
 	list $t1 $t2 {*}$result
 }
 
+proc linear_regression_vexprBC {xv yv rep} {
+	set t1 [time {numarray create $xv; numarray create $yv}]
+	# setup can't be repeated, because it is cached 
+	# in the Tcl_Objs of x and y
+	set t2 [time {
+		set xm [numarray::mean $xv]
+		set ym [numarray::mean $yv]
+		set beta [numarray::./ [numarray::sum \
+			[numarray::bcexecute [binary format c* {
+				2 5 1 2
+				2 6 3 4
+				3 0 5 6}] {} $xv $xm $yv $ym]] \
+			[numarray::sum \
+			[numarray::bcexecute [binary format c* {
+				2 0 1 2
+				6 0 0 3}] {} $xv $xm 2.0]]]
+
+		set alpha [expr {$ym-$beta*$xm}]
+
+	} $rep]
+	list $t1 $t2 $alpha $beta
+}
+
 
 proc linear_regression_rbc {xv yv rep} {
 	set t1 [time {
@@ -141,7 +164,7 @@ proc linear_regression_nap_1f {xv yv rep} {
 proc benchlinreg {vlength} {
 	puts "Number of datapoints: $vlength"
 	puts "============================="
-	set rep [expr {1000000/$vlength+1}] 
+	set rep [expr {100000/$vlength+1}] 
 	for {set i 0} {$i<$vlength} {incr i} {
 		lappend x [expr {double($i)}]
 		lappend y [expr {$i*3+rand()}]
@@ -156,14 +179,18 @@ proc benchlinreg {vlength} {
 		"vexpr" linear_regression_vexpr 1e10
 		"vexprQR" linear_regression_vexprQR 1e10
 		"vexprC" linear_regression_C 1e10
+		"vexprBC" linear_regression_vexprBC 1e10
 	}
-	
-#	puts "Correctness: "
-#	foreach {d s} $solutions {
-#		puts "$d: "
-#		puts [eval [list $s $x $y]]
-#	}
 
+#	puts "Correctness: "
+#	foreach {d s max} $solutions {
+#		if {$vlength>$max} { continue }
+#		puts "$d: "
+#		puts [eval [list $s $x $y 1]]
+#	}
+#
+#	return
+	
 	variable timings
 	dict lappend timings N $vlength
 	puts "Timings: "
