@@ -71,7 +71,8 @@ TEA_SETUP_COMPILER
 # and PKG_TCL_SOURCES.
 #-----------------------------------------------------------------------
 
-TEA_ADD_SOURCES([vectclapi.c vectcl.c linalg.c arrayshape.c nacomplex.c hsfft.c fft.c svd.c bcexecute.c])
+TEA_ADD_SOURCES([vectclapi.c vectcl.c linalg.c arrayshape.c nacomplex.c hsfft.c fft.c svd.c 
+				bcexecute.c vmparser.c])
 TEA_ADD_HEADERS([generic/vectcl.h generic/nacomplex.h generic/hsfft.h])
 TEA_ADD_INCLUDES([])
 TEA_ADD_LIBS([-lm])

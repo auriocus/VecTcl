@@ -1,0 +1,74 @@
+PEG VMath (Program)
+		Program      <- Sequence;
+		# A program is a sequence of statements
+		Sequence     <- WS Statement (WS Separator WS Statement)* WS;
+		Statement    <- ForLoop / ForEachLoop / WhileLoop / IfClause /
+		                Assignment / OpAssignment / Expression / Empty;
+		Empty        <- WS;
+		
+		# Statements can be assignments, single expressions
+		# or control constructs
+		Assignment   <- VarSlice ( WS ',' WS VarSlice)* WS '=' WS Expression;
+		OpAssignment <- VarSlice WS AssignOp WS Expression;
+		ForEachLoop  <- 'for' WSob Var WS '=' WS Expression
+		                      WSob '{' Sequence '}';
+		ForLoop      <- 'for' WSob Var WS '=' WS RangeExpr
+		                      WSob '{' Sequence '}';
+		WhileLoop    <- 'while'  WSob Expression WSob '{' Sequence '}';
+
+		IfClause     <- 'if' WSob Expression WSob '{' Sequence '}' 
+				(WSob 'else' WSob '{' Sequence '}')?;
+
+		# Expressions are constructed from additive, multiplicative
+		# and power operators and may contain references to variables
+		# and function calls
+		
+		Expression   <- BoolOrExpr;
+		BoolOrExpr   <- BoolAndExpr (WS AndOp WS BoolAndExpr)*;
+		BoolAndExpr  <- RelExpr (WS OrOp WS RelExpr)*;
+		
+		RelExpr      <- AddExpr (WS RelOp WS AddExpr)?;
+
+		AddExpr      <- Term (WS AddOp WS Term)*;
+		Term         <- ( Factor (WS MulOp WS Factor)* ) / Sign Factor (WS MulOp WS Factor)*;
+		Factor       <- Transpose WS PowOp WS Factor / Transpose;
+
+		Transpose    <- Fragment TransposeOp / Fragment;
+		Fragment     <- Number / '(' WS Expression WS  ')' / Function / VarSlice/Literal;
+
+		Function     <- FunctionName '(' ( Expression (',' WS Expression)* )? ')';
+		
+		VarSlice     <- Var ( WS '[' WS SliceExpr ( ',' WS SliceExpr )* WS ']' )?;
+		SliceExpr    <- Expression  WS (':' WS Expression WS ( ':' WS Expression )? )? / ':';
+		RangeExpr    <- Expression  WS ':' WS Expression (WS ':' WS Expression )?;
+		
+		Literal      <- '{' WS (( ComplexNumber / Literal )  (WSob (ComplexNumber / Literal))* WS)? '}';
+		ComplexNumber  <- Sign? RealNumber ( Sign ImaginaryNumber)?;
+leaf:	TransposeOp  <- "'";
+leaf:	AssignOp     <- '=' / '+=' / '-=' / '.+=' / '.-=' / '.*=' / './=' / '.^=' / '.**=';
+leaf:	RealNumber    <- <ddigit> + ('.' <ddigit> + )? ( ('e' / 'E' ) ('+' / '-') ? <ddigit> + )?;
+leaf:	ImaginaryNumber <- <ddigit> + ('.' <ddigit> + )? ( ('e' / 'E' ) ('+' / '-') ? <ddigit> + )? ('i' / 'I');
+leaf:	Number       <- ImaginaryNumber / RealNumber;
+leaf:	Sign         <- '+' / '-' / '!';
+leaf:	Var          <- Identifier;
+leaf:	FunctionName <- Identifier;
+leaf:   RelOp        <- '==' / '<=' / '>=' / '<' / '>' / '!=';
+leaf:   AndOp        <- '&&';
+leaf:   OrOp         <- '||';
+leaf:	MulOp        <- '*' / '%' / '/' / '.*' / './' / '\\';
+leaf:	AddOp        <- '+' / '-' / '.+' / '.-';
+leaf:	PowOp        <- '^' / '**' / '.^' / '.**';
+leaf:   Identifier   <- ('_' / '::' / <alpha>) ('_' / '::' / <alnum>)* ;
+# requiring :: to be in pairs is crucial; otherwise
+# we can't parse SliceExpr correctly. ':' and '1::' would be ambiguous
+#
+# facultative whitespace
+void:   WS			 <- (('\\' EOL) / (!EOL <space>))*;
+# obligatory whitespace
+void:   WSob			 <- (('\\' EOL) / (!EOL <space>))+;
+void:   Separator    <- Comment? EOL / ';';
+void:   Comment      <- '#' (!EOL .)* ;
+void:   EOL          <- '\n';
+
+END;
+

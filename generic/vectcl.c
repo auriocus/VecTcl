@@ -8,6 +8,7 @@
 #include "fft.h"
 #include "svd.h"
 #include "bcexecute.h"
+#include "vmparser.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -2483,7 +2484,16 @@ int Vectcl_Init(Tcl_Interp* interp) {
 	Tcl_RegisterObjType(&NumArrayTclType);
 	myTcl_MakeEnsemble(interp, "::numarray", "::numarray", implementationMap);
 
-	Complex_Init(interp);
+	/* Initialize complex data type */
+	if (Complex_Init(interp) != TCL_OK) {
+		return TCL_ERROR;
+	}
+	
+	/* Initialize expression parser */
+	if (Vmparser_Init(interp) != TCL_OK) {
+		return TCL_ERROR;
+	}
+
 
 	/* casting away const is intended for the dirty hack */
 	tclListType =  (Tcl_ObjType *) Tcl_GetObjType("list");	

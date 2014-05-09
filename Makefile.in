@@ -299,6 +299,13 @@ VPATH = $(srcdir):$(srcdir)/generic:$(srcdir)/unix:$(srcdir)/win:$(srcdir)/macos
 .c.@OBJEXT@:
 	$(COMPILE) -c `@CYGPATH@ $<` -o $@
 
+# the parser must be created from the grammar, if it was changed
+
+generic/vmparserules.h: generic/vexpr.peg
+	$(TCLSH_ENV) $(TCLSH_PROG) tools/parsergen.tcl $< $@
+
+vmparser.$(OBJEXT): generic/vmparserules.h
+
 #========================================================================
 # Distribution creation
 # You may need to tweak this target to make it work correctly.

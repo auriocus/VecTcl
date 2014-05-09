@@ -164,7 +164,7 @@ proc linear_regression_nap_1f {xv yv rep} {
 proc benchlinreg {vlength} {
 	puts "Number of datapoints: $vlength"
 	puts "============================="
-	set rep [expr {100000/$vlength+1}] 
+	set rep [expr {1000000/$vlength+1}] 
 	for {set i 0} {$i<$vlength} {incr i} {
 		lappend x [expr {double($i)}]
 		lappend y [expr {$i*3+rand()}]
