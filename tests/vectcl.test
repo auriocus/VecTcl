@@ -241,3 +241,22 @@ test vectcl shape-6 -body {
 	
 } -result 4
 
+test numarray shimmering-1 -body {
+	
+	set a {1.0 2.0 3 4}
+	numarray info $a
+	# shimmer to numarray
+	lindex $a 3
+	# shimmer back
+	
+} -result 4
+
+test numarray shimmering-2 -body {
+	
+	# shimmer empty object
+	set a {}
+	numarray info $a
+	lassign $a x
+	
+} -result {}
+

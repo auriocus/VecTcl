@@ -26,11 +26,11 @@
  */
 
 #define TclFreeIntRep(objPtr) \
-    if ((objPtr)->typePtr != NULL) { \
-	if ((objPtr)->typePtr->freeIntRepProc != NULL) { \
-	    (objPtr)->typePtr->freeIntRepProc(objPtr); \
-	} \
-	(objPtr)->typePtr = NULL; \
+	if ((objPtr)->typePtr != NULL) { \
+		if ((objPtr)->typePtr->freeIntRepProc != NULL) { \
+			(objPtr)->typePtr->freeIntRepProc(objPtr); \
+		} \
+		(objPtr)->typePtr = NULL; \
     }
 
 
@@ -1910,8 +1910,9 @@ static void UpdateStringOfNumArray(Tcl_Obj *naPtr) {
 #ifdef LIST_INJECT
 static int SetListFromNumArray(Tcl_Interp *interp, Tcl_Obj *objPtr) {
 	/* check if we got a NumArray as input
-	 * if not, handle by original proc */
-	if (objPtr -> typePtr != &NumArrayTclType) {
+	 * if not, handle by original proc 
+	 * likewise, if there is */
+	if (objPtr -> typePtr != &NumArrayTclType || objPtr -> bytes) {
 		return listSetFromAny(interp, objPtr);
 	}
 
@@ -1920,13 +1921,19 @@ static int SetListFromNumArray(Tcl_Interp *interp, Tcl_Obj *objPtr) {
 	/* extract internal rep */
 	NumArrayInfo *info = objPtr -> internalRep.twoPtrValue.ptr2;
 	NumArraySharedBuffer *sharedbuf = objPtr -> internalRep.twoPtrValue.ptr1;
-
-	/* DIRTY HACK: Create new object the internal rep of which
-	 * is then transferred to objPtr without properly releasing 
-	 * it. */
-	Tcl_Obj * result = Tcl_NewListObj(0,NULL);
+	
+	/* First check for the empty info. This must be handled by the original 
+	 * proc, because it is the only way to create an empty list
+	 * without getting back a reference to the empty object */
+	if (ISEMPTYINFO(info)) {
+		return listSetFromAny(interp, objPtr);
+	}
+	
+	/* Create a new object the internal rep of which
+	 * is then duplicated to objPtr */
+	Tcl_Obj * result = Tcl_NewListObj(0, NULL);
 	if (info -> nDim == 1) {
-		/* 1d-case: Construct list of doubles */
+		/* 1d-case: Construct list of values */
 		NumArrayIterator it;
 		NumArrayIteratorInit(info, sharedbuf, &it);
 		switch (info->type) {
@@ -1969,9 +1976,21 @@ static int SetListFromNumArray(Tcl_Interp *interp, Tcl_Obj *objPtr) {
 	}
 	
 	FreeNumArrayInternalRep(objPtr);
+
 	/* now transfer the internal rep from the list obj */
-	objPtr -> internalRep = result -> internalRep;
-	objPtr -> typePtr = tclListType;
+	/* objPtr -> internalRep = result -> internalRep; */
+	if (result -> typePtr) {
+		/* copy the internal rep from result into objPtr,
+		 * unless it is a pure string (empty object) */
+		result -> typePtr -> dupIntRepProc(result, objPtr);
+	} else {
+		objPtr -> typePtr = result -> typePtr;
+		/* necessary in case of empty string.
+		 * Lists set it in dupIntRepProc. */
+	}
+	
+	Tcl_DecrRefCount(result);
+
 	return TCL_OK;
 }
 #endif

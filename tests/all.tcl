@@ -57,6 +57,13 @@ puts [join $auto_path \n]
 package require vectcl
 namespace import vectcl::vexpr
 
+#trace add execution tcltest::test enter printargs
+proc printargs {args} { puts $args }
+
+#source tests/concat.test
+#source tests/reduction.test
+#source tests/concat.test
+#source tests/reduction.test
 
 # source each of the specified tests
 foreach file [lsort [::tcltest::getMatchingFiles]] {

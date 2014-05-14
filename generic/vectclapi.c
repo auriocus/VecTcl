@@ -611,31 +611,38 @@ void NumArrayIteratorInit(NumArrayInfo *info, NumArraySharedBuffer *sharedbuf, N
 
 	it->baseptr = (char *)NumArrayGetPtrFromSharedBuffer(sharedbuf)+info->offset;
 	it->ptr = it->baseptr;
-
-	/* copy dimensional information into the 
-	 * iterators counter in reverse order, 
-	 * while stripping sngleton dimensions */
-	int dfull; 
-	for (d=0, dfull=nDim-1; dfull >= 0; dfull--) {
-		/* strip singleton dimensions */
-		if (info -> dims[dfull] == 1) {
-			continue;
-		}
-		it -> dinfo[d].counter = info -> dims[dfull];
-		it -> dinfo[d].dim = info -> dims[dfull];
-		it -> dinfo[d].pitch = info -> pitches[dfull];
-		d++;
-	}
-	/* check if it was a scalar */
-	if (d==0) {
-		it -> nDim=1;
-		it -> dinfo[0].counter = 1;
-		it -> dinfo[0].dim = 1;
+	
+	/* Check for an empty array */
+	if (nDim == 1 && info -> dims[0] == 0) {
+		it -> finished = 1;
+		it -> dinfo[0].counter = 0;
+		it -> dinfo[0].dim = 0;
 		it -> dinfo[0].pitch = 0;
 	} else {
-		it -> nDim = d;
+		/* copy dimensional information into the 
+		 * iterators counter in reverse order, 
+		 * while stripping sngleton dimensions */
+		int dfull; 
+		for (d=0, dfull=nDim-1; dfull >= 0; dfull--) {
+			/* strip singleton dimensions */
+			if (info -> dims[dfull] == 1) {
+				continue;
+			}
+			it -> dinfo[d].counter = info -> dims[dfull];
+			it -> dinfo[d].dim = info -> dims[dfull];
+			it -> dinfo[d].pitch = info -> pitches[dfull];
+			d++;
+		}
+		/* check if it was a scalar */
+		if (d==0) {
+			it -> nDim=1;
+			it -> dinfo[0].counter = 1;
+			it -> dinfo[0].dim = 1;
+			it -> dinfo[0].pitch = 0;
+		} else {
+			it -> nDim = d;
+		}
 	}
-
 	/* append a singleton dimension for AdvanceRow 
 	 * in the vector case */
 	it -> dinfo[it->nDim].counter = 1;
