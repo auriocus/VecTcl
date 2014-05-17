@@ -14,22 +14,28 @@ typedef int (binop_loop_fun) (Tcl_Interp *interp, Tcl_Obj *naObj1, Tcl_Obj *naOb
 #define LOOPTABLE_IMP1(C) LOOPTABLE_IMP2(C)
 #define LOOPTABLE_IMP2(C) C##_table
 
-DECLARE_BINOP(int, int);
-DECLARE_BINOP(int, double);
-DECLARE_BINOP(int, NumArray_Complex);
-DECLARE_BINOP(double, int);
+DECLARE_BINOP(NaWideInt, NaWideInt);
+DECLARE_BINOP(NaWideInt, double);
+DECLARE_BINOP(NaWideInt, NumArray_Complex);
+DECLARE_BINOP(double, NaWideInt);
 DECLARE_BINOP(double, double);
 DECLARE_BINOP(double, NumArray_Complex);
-DECLARE_BINOP(NumArray_Complex, int);
+DECLARE_BINOP(NumArray_Complex, NaWideInt);
 DECLARE_BINOP(NumArray_Complex, double);
 DECLARE_BINOP(NumArray_Complex, NumArray_Complex);
 
 
 static binop_loop_fun * LOOPTBL[3][3] = {
-	{ BINOP_LOOP_FUN(CMD, int, int), BINOP_LOOP_FUN(CMD, int, double), BINOP_LOOP_FUN(CMD, int, NumArray_Complex)},
-	{ BINOP_LOOP_FUN(CMD, double, int), BINOP_LOOP_FUN(CMD, double, double), BINOP_LOOP_FUN(CMD, double, NumArray_Complex),},
-	{ BINOP_LOOP_FUN(CMD, NumArray_Complex, int), BINOP_LOOP_FUN(CMD, NumArray_Complex, double), BINOP_LOOP_FUN(CMD, NumArray_Complex, NumArray_Complex),},
-	
+	{ BINOP_LOOP_FUN(CMD, NaWideInt, NaWideInt), 
+	  BINOP_LOOP_FUN(CMD, NaWideInt, double), 
+	  BINOP_LOOP_FUN(CMD, NaWideInt, NumArray_Complex)},
+	{ BINOP_LOOP_FUN(CMD, double, NaWideInt), 
+	  BINOP_LOOP_FUN(CMD, double, double), 
+	  BINOP_LOOP_FUN(CMD, double, NumArray_Complex),},
+	{ BINOP_LOOP_FUN(CMD, NumArray_Complex, NaWideInt), 
+	  BINOP_LOOP_FUN(CMD, NumArray_Complex, double), 
+	  BINOP_LOOP_FUN(CMD, NumArray_Complex, NumArray_Complex),
+	}	
 };
 
 
@@ -73,14 +79,14 @@ int CMD(
 /* Implement the inner loop for the binary operators 
  * for all datatypes */
 
-/* (int,int) -> int */
+/* (NaWideInt,NaWideInt) -> NaWideInt */
 #ifdef INTRES
 	#define TRES INTRES
 #else
-	#define TRES int
+	#define TRES NaWideInt
 #endif
-#define T1 int
-#define T2 int
+#define T1 NaWideInt
+#define T2 NaWideInt
 
 #ifdef OPINT
 #define OP OPINT
@@ -89,27 +95,27 @@ int CMD(
 #include "binop_loop.h"
 
 
-/* (int,double) -> double */
+/* (NaWideInt,double) -> double */
 #ifdef DBLRES
 	#define TRES DBLRES
 #else
 	#define TRES double
 #endif
-#define T1 int
+#define T1 NaWideInt
 #define T2 double
 #ifdef OPDBL
 	#define OP OPDBL
 #endif
 #include "binop_loop.h"
 
-/* (double, int) -> double */
+/* (double, NaWideInt) -> double */
 #ifdef DBLRES
 	#define TRES DBLRES
 #else
 	#define TRES double
 #endif
 #define T1 double
-#define T2 int
+#define T2 NaWideInt
 #ifdef OPDBL
 #define OP OPDBL
 #endif
@@ -128,13 +134,13 @@ int CMD(
 #endif
 #include "binop_loop.h"
 
-/* (int, complex) -> complex */
+/* (NaWideInt, complex) -> complex */
 #ifdef CPLXRES
 	#define TRES CPLXRES
 #else
 	#define TRES NumArray_Complex
 #endif
-#define T1 int
+#define T1 NaWideInt
 #define T2 NumArray_Complex
 #ifdef OPCPLX
 #define OP OPCPLX
@@ -154,14 +160,14 @@ int CMD(
 #endif
 #include "binop_loop.h"
 
-/* (int, complex) -> complex */
+/* (NaWideInt, complex) -> complex */
 #ifdef CPLXRES
 	#define TRES CPLXRES
 #else
 	#define TRES NumArray_Complex
 #endif
 #define T1 NumArray_Complex
-#define T2 int
+#define T2 NaWideInt
 #ifdef OPCPLX
 #define OP OPCPLX
 #endif

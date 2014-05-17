@@ -20,11 +20,11 @@ extern const char * NumArray_typename[NumArray_SentinelType];
 /* Macros for preprocessor magic
  * Convert between C type and numeric array type */
 
-#define C_FROM_NATYPE_NumArray_Int64 int
+#define C_FROM_NATYPE_NumArray_Int NaWideInt;
 #define C_FROM_NATYPE_NumArray_Float64 double
 #define C_FROM_NATYPE_NumArray_Complex128 NumArray_Complex
 
-#define NATYPE_FROM_C_int	NumArray_Int64
+#define NATYPE_FROM_C_NaWideInt NumArray_Int
 #define NATYPE_FROM_C_double NumArray_Float64
 #define NATYPE_FROM_C_NumArray_Complex NumArray_Complex128
 
@@ -34,20 +34,20 @@ extern const char * NumArray_typename[NumArray_SentinelType];
 /* Macro to handle upcasting */
 #define UPCAST(TFROM, TTO, X) NUMARRAYTPASTER4(UPCAST_, TFROM, _, TTO)(X)
 
-#define UPCAST_int_int(X) X
-#define UPCAST_int_double(X) X
+#define UPCAST_NaWideInt_NaWideInt(X) X
+#define UPCAST_NaWideInt_double(X) X
 #define UPCAST_double_double(X) X
-#define UPCAST_int_NumArray_Complex(X) NumArray_mkComplex(X, 0.0)
+#define UPCAST_NaWideInt_NumArray_Complex(X) NumArray_mkComplex(X, 0.0)
 #define UPCAST_double_NumArray_Complex(X) NumArray_mkComplex(X, 0.0)
 #define UPCAST_NumArray_Complex_NumArray_Complex(X) X
 
 #define UPCAST_COMMON(T1, T2) NUMARRAYTPASTER4(UPCAST_COMMON_, T1, _, T2)
-#define UPCAST_COMMON_int_int int
-#define UPCAST_COMMON_int_double double
-#define UPCAST_COMMON_double_int double
+#define UPCAST_COMMON_NaWideInt_NaWideInt NaWideInt
+#define UPCAST_COMMON_NaWideInt_double double
+#define UPCAST_COMMON_double_NaWideInt double
 #define UPCAST_COMMON_double_double double
-#define UPCAST_COMMON_int_NumArray_Complex NumArray_Complex
-#define UPCAST_COMMON_NumArray_Complex_int NumArray_Complex
+#define UPCAST_COMMON_NaWideInt_NumArray_Complex NumArray_Complex
+#define UPCAST_COMMON_NumArray_Complex_NaWideInt NumArray_Complex
 #define UPCAST_COMMON_double_NumArray_Complex NumArray_Complex
 #define UPCAST_COMMON_NumArray_Complex_double NumArray_Complex
 #define UPCAST_COMMON_NumArray_Complex_NumArray_Complex NumArray_Complex

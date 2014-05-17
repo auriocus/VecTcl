@@ -40,18 +40,18 @@ int NumArrayDotCmd(ClientData dummy, Tcl_Interp *interp,
 	}
 */
 	
-	#define T1 int
-	#define T2 int
-	#define TRES int
+	#define T1 NaWideInt
+	#define T2 NaWideInt
+	#define TRES NaWideInt
 	#include "dotproductloop.h"	
 	
-	#define T1 int
+	#define T1 NaWideInt
 	#define T2 double
 	#define TRES double
 	#include "dotproductloop.h"	
 	
 	#define T1 double
-	#define T2 int
+	#define T2 NaWideInt
 	#define TRES double
 	#include "dotproductloop.h"	
 	
@@ -60,13 +60,13 @@ int NumArrayDotCmd(ClientData dummy, Tcl_Interp *interp,
 	#define TRES double
 	#include "dotproductloop.h"	
 
-	#define T1 int
+	#define T1 NaWideInt
 	#define T2 NumArray_Complex
 	#define TRES NumArray_Complex
 	#include "dotproductloop.h"	
 	
 	#define T1 NumArray_Complex
-	#define T2 int
+	#define T2 NaWideInt
 	#define TRES NumArray_Complex
 	#include "dotproductloop.h"	
 	

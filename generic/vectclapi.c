@@ -41,8 +41,8 @@ NumArrayType NumArray_UpcastCommonType(NumArrayType type1, NumArrayType type2) {
 
 int NumArrayType_SizeOf(NumArrayType type) {
 	switch (type) {
-		case NumArray_Int64:
-			return sizeof(int);
+		case NumArray_Int:
+			return sizeof(NaWideInt);
 		case NumArray_Float64:
 			return sizeof(double);
 		case NumArray_Complex128:
@@ -84,7 +84,7 @@ int NumArrayConvertToType(Tcl_Interp *interp, Tcl_Obj *naObj, NumArrayType type,
 	NumArrayIteratorInit(convinfo, convbuf, &convit);
 	/* The new buffer is in canonical form, 
 	 * therefore simply advance the pointer at every element */
-	if (type == NumArray_Float64 && info -> type == NumArray_Int64) {
+	if (type == NumArray_Float64 && info -> type == NumArray_Int) {
 		double *bufptr = NumArrayIteratorDeRefPtr(&convit);
 		for (; ! NumArrayIteratorFinished(&it); NumArrayIteratorAdvance(&it)) {
 				* bufptr++ = NumArrayIteratorDeRefInt(&it);
@@ -97,7 +97,7 @@ int NumArrayConvertToType(Tcl_Interp *interp, Tcl_Obj *naObj, NumArrayType type,
 				value.im = 0.0;
 				* bufptr++ = value;
 		}
-	} else if (type == NumArray_Complex128 && info -> type == NumArray_Int64) {
+	} else if (type == NumArray_Complex128 && info -> type == NumArray_Int) {
 		NumArray_Complex *bufptr = NumArrayIteratorDeRefPtr(&convit);
 		for (; ! NumArrayIteratorFinished(&it); NumArrayIteratorAdvance(&it)) {
 				NumArray_Complex value; 
@@ -788,7 +788,7 @@ void *NumArrayIteratorDeRefPtr(NumArrayIterator *it) {
 }
 
 /* single dataype */
-int NumArrayIteratorDeRefInt(NumArrayIterator *it) {
+NaWideInt NumArrayIteratorDeRefInt(NumArrayIterator *it) {
 	return *((int*) (it->ptr));
 }
 
@@ -805,8 +805,8 @@ NumArray_ValueType NumArrayIteratorDeRefValue(NumArrayIterator *it) {
 	NumArray_ValueType value;
 	value.type = it->type;
 	switch (value.type) {
-		case NumArray_Int64:
-			value.value.Int = *((int*) (it->ptr));
+		case NumArray_Int:
+			value.value.Int = *((NaWideInt*) (it->ptr));
 			return value;
 		case NumArray_Float64:
 			value.value.Float64 = *((double*) (it->ptr));
@@ -853,10 +853,10 @@ int NumArrayCopy(NumArrayInfo *srcinfo, NumArraySharedBuffer *srcbuf,
 			} \
 		} else 
 		
-	COPYLOOP(int, int)
-	COPYLOOP(double, int)
+	COPYLOOP(NaWideInt, NaWideInt)
+	COPYLOOP(double, NaWideInt)
 	COPYLOOP(double, double)
-	COPYLOOP(NumArray_Complex, int)
+	COPYLOOP(NumArray_Complex, NaWideInt)
 	COPYLOOP(NumArray_Complex, double)
 	COPYLOOP(NumArray_Complex, NumArray_Complex) {
 		goto cleanit;
@@ -908,10 +908,10 @@ int NumArraySetValue(NumArrayInfo *destinfo, NumArraySharedBuffer *destbuf, NumA
 	
 	/* copy/conversion code for upcasting */
 	
-	if (destinfo -> type == NumArray_Int64) {
+	if (destinfo -> type == NumArray_Int) {
 		
-		int intvalue;
-		if (value.type == NumArray_Int64) {
+		NaWideInt intvalue;
+		if (value.type == NumArray_Int) {
 			intvalue = value.value.Int;
 		} else {
 			goto cleanit;
@@ -919,12 +919,12 @@ int NumArraySetValue(NumArrayInfo *destinfo, NumArraySharedBuffer *destbuf, NumA
 
 		for (; ! NumArrayIteratorFinished(&destit); 
 			NumArrayIteratorAdvance(&destit)) {
-				*(int *) NumArrayIteratorDeRefPtr(&destit) = intvalue;
+				*(NaWideInt *) NumArrayIteratorDeRefPtr(&destit) = intvalue;
 		}
 	
 	} else if (destinfo -> type == NumArray_Float64) {
 		double dblvalue;
-		if (value.type == NumArray_Int64) {
+		if (value.type == NumArray_Int) {
 			dblvalue = value.value.Int;
 		} else if (value.type == NumArray_Float64) {
 			dblvalue = value.value.Float64;
@@ -940,7 +940,7 @@ int NumArraySetValue(NumArrayInfo *destinfo, NumArraySharedBuffer *destbuf, NumA
 
 	} else if (destinfo -> type == NumArray_Complex128) {
 		NumArray_Complex cplxvalue;
-		if (value.type == NumArray_Int64) {
+		if (value.type == NumArray_Int) {
 			cplxvalue.re = value.value.Int;
 			cplxvalue.im = 0.0;
 		} else if (value.type == NumArray_Float64) {
@@ -985,8 +985,8 @@ int NumArrayGetScalarValueFromObj(Tcl_Interp *interp, Tcl_Obj* naObj, NumArray_V
 
 		value -> type = info -> type;
 		switch (value -> type) {
-			case NumArray_Int64:
-				value->value.Int = *((int*) bufptr);
+			case NumArray_Int:
+				value->value.Int = *((NaWideInt*) bufptr);
 				break;
 			case NumArray_Float64:
 				value->value.Float64 = *((double*) bufptr);

@@ -60,7 +60,7 @@ int CMD(
 		#endif
 		
 		#ifdef INTOP
-		case NumArray_Int64: {
+		case NumArray_Int: {
 			resultinfo = CreateNumArrayInfo(info -> nDim, info -> dims, NATYPE_FROM_C(INTRES));
 
 			/* allocate buffer for result */
@@ -69,11 +69,11 @@ int CMD(
 
 			const int srcpitch=NumArrayIteratorRowPitchTyped(&it);
 			const int length = NumArrayIteratorRowLength(&it);
-			int* opptr = NumArrayIteratorDeRefPtr(&it);
+			NaWideInt* opptr = NumArrayIteratorDeRefPtr(&it);
 			while (opptr) {
 				int i;
 				for (i=0; i<length; i++) {
-					int op = *opptr;
+					NaWideInt op = *opptr;
 					INTOP;
 					opptr+=srcpitch;
 					result++;

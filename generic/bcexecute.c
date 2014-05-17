@@ -33,7 +33,7 @@ SUBCOMMAND(NumArrayBCExecuteCmd) {
 
 	/* Check that all operands have compatible dimensions */
 	NumArrayInfo *baseinfo=NULL;
-	NumArrayType resulttype=NumArray_Int64;
+	NumArrayType resulttype=NumArray_Int;
 	int i;
 	for (i=0; i<noperands; i++) {
 		NumArrayInfo *info=NumArrayGetInfoFromObj(interp, operands[i]);

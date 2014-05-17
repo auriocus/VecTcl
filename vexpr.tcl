@@ -1,5 +1,4 @@
-lappend auto_path [file dirname [info script]]
-#package require pt::pgen
+package require TclOO
 
 namespace eval vectcl {
 	variable ns [namespace current]

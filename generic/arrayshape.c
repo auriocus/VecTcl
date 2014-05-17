@@ -323,9 +323,9 @@ int NumArrayDiagMatrix(Tcl_Interp *interp, Tcl_Obj *din, int diag, Tcl_Obj **dou
 		NumArrayIteratorInitObj(NULL, din, &it);
 
 		switch (info->type) {
-			case NumArray_Int64: {
+			case NumArray_Int: {
 				int i, j;
-				int *cpyPtr = NumArrayGetPtrFromObj(NULL, *dout); /* can't fail */
+				NaWideInt *cpyPtr = NumArrayGetPtrFromObj(NULL, *dout); /* can't fail */
 
 				for (i=0; i<nsize; i++) {
 					for (j=0; j<nsize; j++) {

@@ -15,17 +15,17 @@ typedef int (assignop_loop_fun) (Tcl_Interp *interp, NumArraySharedBuffer *share
 #define LOOPTABLE_IMP1(C) LOOPTABLE_IMP2(C)
 #define LOOPTABLE_IMP2(C) C##_table
 
-DECLARE_ASSIGNOP(int, int);
-DECLARE_ASSIGNOP(double, int);
+DECLARE_ASSIGNOP(NaWideInt, NaWideInt);
+DECLARE_ASSIGNOP(double, NaWideInt);
 DECLARE_ASSIGNOP(double, double);
-DECLARE_ASSIGNOP(NumArray_Complex, int);
+DECLARE_ASSIGNOP(NumArray_Complex, NaWideInt);
 DECLARE_ASSIGNOP(NumArray_Complex, double);
 DECLARE_ASSIGNOP(NumArray_Complex, NumArray_Complex);
 
 static assignop_loop_fun * LOOPTBL[3][3] = {
-	{ ASSIGNOP_LOOP_FUN(CMD, int, int), NULL, NULL},
-	{ ASSIGNOP_LOOP_FUN(CMD, double, int), ASSIGNOP_LOOP_FUN(CMD, double, double), NULL},
-	{ ASSIGNOP_LOOP_FUN(CMD, NumArray_Complex, int), ASSIGNOP_LOOP_FUN(CMD, NumArray_Complex, double), ASSIGNOP_LOOP_FUN(CMD, NumArray_Complex, NumArray_Complex)}
+	{ ASSIGNOP_LOOP_FUN(CMD, NaWideInt, NaWideInt), NULL, NULL},
+	{ ASSIGNOP_LOOP_FUN(CMD, double, NaWideInt), ASSIGNOP_LOOP_FUN(CMD, double, double), NULL},
+	{ ASSIGNOP_LOOP_FUN(CMD, NumArray_Complex, NaWideInt), ASSIGNOP_LOOP_FUN(CMD, NumArray_Complex, double), ASSIGNOP_LOOP_FUN(CMD, NumArray_Complex, NumArray_Complex)}
 };
 
 
@@ -134,7 +134,7 @@ cleanobj:
 }
 
 
-#define DEREFIT_int NumArrayIteratorDeRefInt
+#define DEREFIT_NaWideInt NumArrayIteratorDeRefInt
 #define DEREFIT_double NumArrayIteratorDeRefDouble
 #define DEREFIT_NumArray_Complex NumArrayIteratorDeRefComplex
 
@@ -144,8 +144,8 @@ cleanobj:
 #define GETOP UPCAST(T, TRES, GETOP_IMP(T)(&srcit))
 
 
-#define TRES int
-#define T int
+#define TRES NaWideInt
+#define T NaWideInt
 #ifdef OPINT
 #define OP OPINT
 #endif
@@ -153,7 +153,7 @@ cleanobj:
 
 
 #define TRES double
-#define T int
+#define T NaWideInt
 #ifdef OPDBL
 #define OP OPDBL
 #endif
@@ -167,7 +167,7 @@ cleanobj:
 #include "assignop_loop.h"
 
 #define TRES NumArray_Complex
-#define T int
+#define T NaWideInt
 #ifdef OPCPLX
 #define OP OPCPLX
 #endif

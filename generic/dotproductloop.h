@@ -1,14 +1,14 @@
 /* dot product for input types T1, T2 and output TRES */
 /* helper macros to deal with different types */
 
-#define INIT_int int sum=0;
+#define INIT_NaWideInt NaWideInt sum=0;
 #define INIT_double double sum=0;
 #define INIT_NumArray_Complex NumArray_Complex sum=NumArray_mkComplex(0.0, 0.0);
 
-#define PRODUCT_int(X, Y) X*Y
+#define PRODUCT_NaWideInt(X, Y) X*Y
 #define PRODUCT_double(X, Y) X*Y
 #define PRODUCT_NumArray_Complex(X, Y) NumArray_ComplexMultiply(X, Y)
-#define ADDTO_int(var, expr) var += expr
+#define ADDTO_NaWideInt(var, expr) var += expr
 #define ADDTO_double(var, expr) var += expr
 #define ADDTO_NumArray_Complex(var, expr) var = NumArray_ComplexAdd(var, expr)
 

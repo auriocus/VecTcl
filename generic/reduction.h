@@ -49,7 +49,7 @@
 #endif
 
 #ifndef INTRES
-#define INTRES int
+#define INTRES NaWideInt
 #endif
 
 #ifndef CPLXRES
@@ -134,7 +134,7 @@ int CMD(
 		#endif
 		
 		#ifdef INTOP
-		case NumArray_Int64:
+		case NumArray_Int:
 			resultinfo = CreateNumArrayInfo(resultnDim, resultdims, NATYPE_FROM_C(INTRES));
 			break;
 		#endif
@@ -200,19 +200,19 @@ int CMD(
 		#endif
 		
 		#ifdef INTOP
-		case NumArray_Int64: {
+		case NumArray_Int: {
 			INTRES *resultptr = bufptr;
 			for (; ! NumArrayIteratorFinished(&it); 
 				NumArrayIteratorAdvance(&it)) {
 				char *opptr = NumArrayIteratorDeRefPtr(&it);
 				INTINIT;
 				INTRES accum;
-				const int op = *((int *) opptr);
+				const NaWideInt op = *((NaWideInt *) opptr);
 				INTFIRST; 
 				opptr += increment;
 				int i;
 				for (i=0; i<nlength-1; i++) {
-					const int op = *((int *) opptr);
+					const NaWideInt op = *((NaWideInt *) opptr);
 					INTOP;
 					/* increment along the selected axis */
 					opptr += increment;

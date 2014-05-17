@@ -640,9 +640,9 @@ NumArrayGetCmd(
 			Tcl_SetObjResult(interp, Tcl_NewDoubleObj(value));
 			break;
 		}
-		case NumArray_Int64: {
-			int value = *((int *) bufptr);
-			Tcl_SetObjResult(interp, Tcl_NewIntObj(value));
+		case NumArray_Int: {
+			NaWideInt value = *((NaWideInt *) bufptr);
+			Tcl_SetObjResult(interp, Tcl_NewLongObj(value));
 			break;
 		}
 		case NumArray_Complex128: {
@@ -735,14 +735,14 @@ NumArraySetCmd(
 			*((double*)bufptr) = value;
 			break;
 		}
-		case NumArray_Int64: {
-			int value;
-			if (Tcl_GetIntFromObj(interp, objv[objc-1], &value) != TCL_OK) {
+		case NumArray_Int: {
+			long temp;
+			if (Tcl_GetLongFromObj(interp, objv[objc-1], &temp) != TCL_OK) {
 				goto cleanobj;
 			}
 
 			/* set value */
-			*((int*)bufptr) = value;
+			*((NaWideInt*)bufptr) = temp;
 			break;
 		}
 		case NumArray_Complex128: {
@@ -1218,7 +1218,7 @@ ScanNumArrayDimensionsFromValue(Tcl_Interp *interp, Tcl_Obj* valobj, Tcl_Obj **r
 	if (firstdim == 0) {
 		Tcl_ListObjAppendElement(interp, dimlist, Tcl_NewIntObj(0));
 		*result=dimlist;
-		*dtype=NumArray_Int64;
+		*dtype=NumArray_Int;
 		return TCL_OK;
 	}
 
@@ -1246,7 +1246,7 @@ ScanNumArrayDimensionsFromValue(Tcl_Interp *interp, Tcl_Obj* valobj, Tcl_Obj **r
 				*dtype = NumArray_Float64;
 			}
 			if (itobj -> typePtr == tclIntType) {
-				*dtype = NumArray_Int64;
+				*dtype = NumArray_Int;
 			}
 			/* complex doesn't have a Tcl type
 			 */
@@ -1278,10 +1278,10 @@ ScanNumArrayDimensionsFromValue(Tcl_Interp *interp, Tcl_Obj* valobj, Tcl_Obj **r
 		} else {
 			/* treat everything else as a string */
 			double dummy_float64;
-			int dummy_int64;
+			long dummy_long;
 			NumArray_Complex dummy_complex128;
 			/* try to convert to int, then double, then complex */
-			if (Tcl_GetIntFromObj(interp, itobj, &dummy_int64) == TCL_OK) {
+			if (Tcl_GetLongFromObj(interp, itobj, &dummy_long) == TCL_OK) {
 				/* 1st: Try to convert to int. If succeeds, we are at the leaf
 				 * Handle case of a single number, 
 				 * else just break out of the loop */
@@ -1289,7 +1289,7 @@ ScanNumArrayDimensionsFromValue(Tcl_Interp *interp, Tcl_Obj* valobj, Tcl_Obj **r
 					nDim=1;
 					Tcl_ListObjAppendElement(interp, dimlist, Tcl_NewIntObj(1));
 				}
-				*dtype = NumArray_Int64;
+				*dtype = NumArray_Int;
 				break;
 			}
 
@@ -1683,12 +1683,15 @@ static int createNumArraySharedBufferFromTypedList(Tcl_Interp *interp, Tcl_Obj *
 	while (info->dims[0] != 0) {
 		/* store the current element to shared buffer */
 		switch (info->type) {
-			case NumArray_Int64:
-				if (Tcl_GetIntFromObj(interp, matroska[nDim], (int *)bufptr) != TCL_OK) {
+			case NumArray_Int: {
+				long temp;
+				if (Tcl_GetLongFromObj(interp, matroska[nDim], &temp) != TCL_OK) {
 					goto cleanbuffer;
 				}
+				*(NaWideInt *) bufptr = temp;
 				bufptr += pitch;
 				break;
+			}
 			case NumArray_Float64:
 				if (myTcl_GetDoubleFromObj(interp, matroska[nDim], (double *)bufptr) != TCL_OK) {
 					goto cleanbuffer;
@@ -1842,11 +1845,11 @@ static void UpdateStringOfNumArray(Tcl_Obj *naPtr) {
 
 		/* Print this element */
 		switch (info -> type) {
-			case NumArray_Int64:
+			case NumArray_Int:
 				{
 					char intbuf[TCL_INTEGER_SPACE];
-					int *elptr = (int *) (baseptr[nDim-1]);
-					snprintf(intbuf, TCL_INTEGER_SPACE, "%d", *elptr);
+					long el = *((NaWideInt *) (baseptr[nDim-1]));
+					snprintf(intbuf, TCL_INTEGER_SPACE, "%ld", el);
 					Tcl_DStringAppendElement(&srep, intbuf);
 					break;
 				}
@@ -1937,10 +1940,10 @@ static int SetListFromNumArray(Tcl_Interp *interp, Tcl_Obj *objPtr) {
 		NumArrayIterator it;
 		NumArrayIteratorInit(info, sharedbuf, &it);
 		switch (info->type) {
-			case NumArray_Int64:
+			case NumArray_Int:
 				for (; !NumArrayIteratorFinished(&it); NumArrayIteratorAdvance(&it)) {
-					int value = NumArrayIteratorDeRefInt(&it);
-					Tcl_ListObjAppendElement(interp, result, Tcl_NewIntObj(value));
+					long value = NumArrayIteratorDeRefInt(&it);
+					Tcl_ListObjAppendElement(interp, result, Tcl_NewLongObj(value));
 				}
 				break;
 			case NumArray_Float64:
@@ -2080,47 +2083,47 @@ static inline double fsign(double x) {
 #define CMD NumArrayGreaterCmd
 #define OPINT *result = (op1>op2);
 #define OPDBL *result = (op1>op2);
-#define DBLRES int
+#define DBLRES NaWideInt
 #include "binop.h"
 
 #define CMD NumArrayLesserCmd
 #define OPINT *result = (op1<op2);
 #define OPDBL *result = (op1<op2);
-#define DBLRES int
+#define DBLRES NaWideInt
 #include "binop.h"
 
 #define CMD NumArrayGreaterEqualCmd
 #define OPINT *result = (op1>=op2);
 #define OPDBL *result = (op1<=op2);
-#define DBLRES int
+#define DBLRES NaWideInt
 #include "binop.h"
 
 #define CMD NumArrayLesserEqualCmd
 #define OPINT *result = (op1<=op2);
 #define OPDBL *result = (op1<=op2);
-#define DBLRES int
+#define DBLRES NaWideInt
 #include "binop.h"
 
 #define CMD NumArrayEqualCmd
 #define OPINT *result = (op1==op2);
 #define OPDBL *result = (op1==op2);
-#define DBLRES int
+#define DBLRES NaWideInt
 #define OPCPLX *result = ((op1.re==op2.re) && (op1.im==op2.im))
-#define CPLXRES int
+#define CPLXRES NaWideInt
 #include "binop.h"
 
 #define CMD NumArrayUnequalCmd
 #define OPINT *result = (op1!=op2);
 #define OPDBL *result = (op1!=op2);
-#define DBLRES int
+#define DBLRES NaWideInt
 #define OPCPLX *result = ((op1.re!=op2.re) || (op1.im!=op2.im))
-#define CPLXRES int
+#define CPLXRES NaWideInt
 #include "binop.h"
 
 /* boolean operators */
 #define CMD NumArrayNotCmd
 #define INTOP *result = !op;
-#define INTRES int
+#define INTRES NaWideInt
 #include "uniop.h"
 
 #define CMD NumArrayAndCmd
@@ -2220,7 +2223,7 @@ static inline double fsign(double x) {
 #include "uniop.h"
 
 #define CMD NumArrayAbsCmd
-#define INTRES int
+#define INTRES NaWideInt
 #define INTOP *result = abs(op);
 #define DBLRES double
 #define DBLOP *result = fabs(op);
@@ -2229,7 +2232,7 @@ static inline double fsign(double x) {
 #include "uniop.h"
 
 #define CMD NumArraySignCmd
-#define INTRES int
+#define INTRES NaWideInt
 #define INTOP *result = isign(op);
 #define DBLRES double
 #define DBLOP *result = fsign(op);
@@ -2238,7 +2241,7 @@ static inline double fsign(double x) {
 #include "uniop.h"
 
 #define CMD NumArrayArgCmd
-#define INTRES int
+#define INTRES NaWideInt
 #define INTOP *result = 0;
 #define DBLRES double
 #define DBLOP *result = 0.0;
@@ -2247,7 +2250,7 @@ static inline double fsign(double x) {
 #include "uniop.h"
 
 #define CMD NumArrayConjCmd
-#define INTRES int
+#define INTRES NaWideInt
 #define INTOP *result = op;
 #define DBLRES double
 #define DBLOP *result = op;
@@ -2256,7 +2259,7 @@ static inline double fsign(double x) {
 #include "uniop.h"
 
 #define CMD NumArrayRealCmd
-#define INTRES int
+#define INTRES NaWideInt
 #define INTOP *result = op;
 #define DBLRES double
 #define DBLOP *result = op;
@@ -2265,7 +2268,7 @@ static inline double fsign(double x) {
 #include "uniop.h"
 
 #define CMD NumArrayImagCmd
-#define INTRES int
+#define INTRES NaWideInt
 #define INTOP *result = 0;
 #define DBLRES double
 #define DBLOP *result = 0.0;
@@ -2275,7 +2278,7 @@ static inline double fsign(double x) {
 
 
 #define CMD NumArrayNegCmd
-#define INTRES int
+#define INTRES NaWideInt
 #define INTOP *result = -op;
 #define DBLRES double
 #define DBLOP *result = -op;

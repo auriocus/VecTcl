@@ -12,21 +12,23 @@ extern const Tcl_ObjType* VecTclNumArrayObjType;
  * etc. should be identical. TODO: Replace later with real stubs */
 char* Vectcl_InitStubs(Tcl_Interp *interp, const char *version, int exact);
 
+typedef long int NaWideInt;
 
 /* Possible datatypes */
 typedef enum {
 	NumArray_NoType=-1,
-	NumArray_Int64=0,
+	NumArray_Int=0,
 	NumArray_Float64=1,
 	NumArray_Complex128=2,
 	NumArray_SentinelType=3
+	/* NumArray_BigInt=4 ?*/
 } NumArrayType;
 
 /* struct for storing a single polymorphic value */
 typedef struct {
 	NumArrayType type;
 	union {
-		int Int;
+		NaWideInt Int;
 		double Float64;
 		NumArray_Complex Complex;
 	} value;
@@ -129,7 +131,7 @@ int NumArrayIteratorRowLength(NumArrayIterator *it);
 /* Pointer */
 void *NumArrayIteratorDeRefPtr(NumArrayIterator *it);
 /* single dataype */
-int NumArrayIteratorDeRefInt(NumArrayIterator *it);
+NaWideInt NumArrayIteratorDeRefInt(NumArrayIterator *it);
 double NumArrayIteratorDeRefDouble(NumArrayIterator *it);
 NumArray_Complex NumArrayIteratorDeRefComplex(NumArrayIterator *it);
 /* polymorph value */
