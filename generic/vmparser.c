@@ -76,12 +76,12 @@ typedef struct RDE_TC_* RDE_TC;
 typedef struct RDE_PARAM_* RDE_PARAM;
 typedef struct ERROR_STATE {
 	int       refCount;
-	long int  loc;
+	intptr_t  loc;
 	RDE_STACK msg; 
 } ERROR_STATE;
 typedef struct NC_STATE {
-	long int     CL;
-	long int     ST;
+	intptr_t     CL;
+	intptr_t     ST;
 	Tcl_Obj*     SV;
 	ERROR_STATE* ER;
 } NC_STATE;
@@ -188,8 +188,8 @@ trace_printf0 (const char *pat, ...)
 /*#line 1 "rde_critcl/stack.c"*/
 
 typedef struct RDE_STACK_ {
-	long int            max;   
-	long int            top;   
+	intptr_t            max;   
+	intptr_t            top;   
 	RDE_STACK_CELL_FREE freeCellProc; 
 	void**              cell;  
 } RDE_STACK_;
@@ -208,7 +208,7 @@ rde_stack_new (RDE_STACK_CELL_FREE freeCellProc)
 rde_stack_del (RDE_STACK s)
 {
 	if (s->freeCellProc && s->top) {
-		long int i;
+		intptr_t i;
 		for (i=0; i < s->top; i++) {
 			ASSERT_BOUNDS(i,s->max);
 			s->freeCellProc ( s->cell [i] );
@@ -221,7 +221,7 @@ rde_stack_del (RDE_STACK s)
 rde_stack_push (RDE_STACK s, void* item)
 {
 	if (s->top >= s->max) {
-		long int new  = s->max ? (2 * s->max) : RDE_STACK_INITIAL_SIZE;
+		intptr_t new  = s->max ? (2 * s->max) : RDE_STACK_INITIAL_SIZE;
 		void**   cell = (void**) ckrealloc ((char*) s->cell, new * sizeof(void*));
 		ASSERT (cell,"Memory allocation failure for RDE stack");
 		s->max  = new;
@@ -238,7 +238,7 @@ rde_stack_top (RDE_STACK s)
 	return s->cell [s->top - 1];
 }
 	SCOPE void
-rde_stack_pop (RDE_STACK s, long int n)
+rde_stack_pop (RDE_STACK s, intptr_t n)
 {
 	ASSERT (n >= 0, "Bad pop count");
 	if (n == 0) return;
@@ -254,7 +254,7 @@ rde_stack_pop (RDE_STACK s, long int n)
 	}
 }
 	SCOPE void
-rde_stack_trim (RDE_STACK s, long int n)
+rde_stack_trim (RDE_STACK s, intptr_t n)
 {
 	ASSERT (n >= 0, "Bad trimsize");
 	if (s->freeCellProc) {
@@ -268,7 +268,7 @@ rde_stack_trim (RDE_STACK s, long int n)
 	}
 }
 	SCOPE void
-rde_stack_drop (RDE_STACK s, long int n)
+rde_stack_drop (RDE_STACK s, intptr_t n)
 {
 	ASSERT (n >= 0, "Bad pop count");
 	if (n == 0) return;
@@ -286,12 +286,12 @@ rde_stack_move (RDE_STACK dst, RDE_STACK src)
 	}
 }
 	SCOPE void
-rde_stack_get (RDE_STACK s, long int* cn, void*** cc)
+rde_stack_get (RDE_STACK s, intptr_t* cn, void*** cc)
 {
 	*cn = s->top;
 	*cc = s->cell;
 }
-	SCOPE long int
+	SCOPE intptr_t
 rde_stack_size (RDE_STACK s)
 {
 	return s->top;
@@ -324,7 +324,7 @@ rde_tc_del (RDE_TC tc)
 	ckfree (tc->str);
 	ckfree ((char*) tc);
 }
-	SCOPE long int
+	SCOPE intptr_t
 rde_tc_size (RDE_TC tc)
 {
 	return rde_stack_size (tc->off);
@@ -336,10 +336,10 @@ rde_tc_clear (RDE_TC tc)
 	rde_stack_trim (tc->off,  0);
 }
 	SCOPE char*
-rde_tc_append (RDE_TC tc, char* string, long int len)
+rde_tc_append (RDE_TC tc, char* string, intptr_t len)
 {
-	long int base = tc->num;
-	long int off  = tc->num;
+	intptr_t base = tc->num;
+	intptr_t off  = tc->num;
 	char* ch;
 	int clen;
 	Tcl_UniChar uni;
@@ -372,10 +372,10 @@ rde_tc_append (RDE_TC tc, char* string, long int len)
 	return tc->str + base;
 }
 	SCOPE void
-rde_tc_get (RDE_TC tc, int at, char** ch, long int* len)
+rde_tc_get (RDE_TC tc, int at, char** ch, intptr_t* len)
 {
-	long int  oc, off, end;
-	long int* ov;
+	intptr_t  oc, off, end;
+	intptr_t* ov;
 	rde_stack_get (tc->off, &oc, (void***) &ov);
 	ASSERT_BOUNDS(at,oc);
 	off = ov [at];
@@ -391,10 +391,10 @@ rde_tc_get (RDE_TC tc, int at, char** ch, long int* len)
 	*len = end - off;
 }
 	SCOPE void
-rde_tc_get_s (RDE_TC tc, int at, int last, char** ch, long int* len)
+rde_tc_get_s (RDE_TC tc, int at, int last, char** ch, intptr_t* len)
 {
-	long int  oc, off, end;
-	long int* ov;
+	intptr_t  oc, off, end;
+	intptr_t* ov;
 	rde_stack_get (tc->off, &oc, (void***) &ov);
 	ASSERT_BOUNDS(at,oc);
 	ASSERT_BOUNDS(last,oc);
@@ -418,20 +418,20 @@ typedef struct RDE_PARAM_ {
 	Tcl_Channel   IN;
 	Tcl_Obj*      readbuf;
 	char*         CC; 
-	long int      CC_len;
+	intptr_t      CC_len;
 	RDE_TC        TC;
-	long int      CL;
+	intptr_t      CL;
 	RDE_STACK     LS; 
 	ERROR_STATE*  ER;
 	RDE_STACK     ES; 
-	long int      ST;
+	intptr_t      ST;
 	Tcl_Obj*      SV;
 	Tcl_HashTable NC;
 
 	RDE_STACK    ast  ; 
 	RDE_STACK    mark ; 
 
-	long int numstr; 
+	intptr_t numstr; 
 	char**  string;
 
 	ClientData clientData;
@@ -489,7 +489,7 @@ TRACE (("ER_INIT (%p => %p)", (p), (p)->ER))
 	error_state_free ((p)->ER);	\
 (p)->ER = NULL
 	SCOPE RDE_PARAM
-rde_param_new (long int nstr, char** strings)
+rde_param_new (intptr_t nstr, char** strings)
 {
 	RDE_PARAM p;
 	ENTER ("rde_param_new");
@@ -557,7 +557,7 @@ rde_param_reset (RDE_PARAM p, Tcl_Channel chan)
 	RETURNVOID;
 }
 	SCOPE void
-rde_param_update_strings (RDE_PARAM p, long int nstr, char** strings)
+rde_param_update_strings (RDE_PARAM p, intptr_t nstr, char** strings)
 {
 	ENTER ("rde_param_update_strings");
 	TRACE (("RDE_PARAM %p", p));
@@ -567,7 +567,7 @@ rde_param_update_strings (RDE_PARAM p, long int nstr, char** strings)
 	RETURNVOID;
 }
 	SCOPE void
-rde_param_data (RDE_PARAM p, char* buf, long int len)
+rde_param_data (RDE_PARAM p, char* buf, intptr_t len)
 {
 	(void) rde_tc_append (p->TC, buf, len);
 }
@@ -607,12 +607,12 @@ rde_param_query_clientdata (RDE_PARAM p)
 	return p->clientData;
 }
 	SCOPE void
-rde_param_query_amark (RDE_PARAM p, long int* mc, long int** mv)
+rde_param_query_amark (RDE_PARAM p, intptr_t* mc, intptr_t** mv)
 {
 	rde_stack_get (p->mark, mc, (void***) mv);
 }
 	SCOPE void
-rde_param_query_ast (RDE_PARAM p, long int* ac, Tcl_Obj*** av)
+rde_param_query_ast (RDE_PARAM p, intptr_t* ac, Tcl_Obj*** av)
 {
 	rde_stack_get (p->ast, ac, (void***) av);
 }
@@ -624,7 +624,7 @@ rde_param_query_in (RDE_PARAM p)
 		: "";
 }
 	SCOPE const char*
-rde_param_query_cc (RDE_PARAM p, long int* len)
+rde_param_query_cc (RDE_PARAM p, intptr_t* len)
 {
 	*len = p->CC_len;
 	return p->CC;
@@ -649,13 +649,13 @@ rde_param_query_er_tcl (RDE_PARAM p, const ERROR_STATE* er)
 	} else {
 		Tcl_Obj* ov [2];
 		Tcl_Obj** mov;
-		long int  mc, i, j;
-		long int* mv;
+		intptr_t  mc, i, j;
+		intptr_t* mv;
 		int lastid;
 		const char* msg;
 		rde_stack_get (er->msg, &mc, (void***) &mv);
 
-		qsort (mv, mc, sizeof (long int), er_int_compare);
+		qsort (mv, mc, sizeof (intptr_t), er_int_compare);
 
 		mov = NALLOC (mc, Tcl_Obj*);
 		lastid = -1;
@@ -678,12 +678,12 @@ rde_param_query_er_tcl (RDE_PARAM p, const ERROR_STATE* er)
 	return res;
 }
 	SCOPE void
-rde_param_query_es (RDE_PARAM p, long int* ec, ERROR_STATE*** ev)
+rde_param_query_es (RDE_PARAM p, intptr_t* ec, ERROR_STATE*** ev)
 {
 	rde_stack_get (p->ES, ec, (void***) ev);
 }
 	SCOPE void
-rde_param_query_ls (RDE_PARAM p, long int* lc, long int** lv)
+rde_param_query_ls (RDE_PARAM p, intptr_t* lc, intptr_t** lv)
 {
 	rde_stack_get (p->LS, lc, (void***) lv);
 }
@@ -703,18 +703,18 @@ rde_param_query_sv (RDE_PARAM p)
 	TRACE (("SV_QUERY %p => (%p)", (p), (p)->SV)); \
 		return p->SV;
 }
-	SCOPE long int
+	SCOPE intptr_t
 rde_param_query_tc_size (RDE_PARAM p)
 {
 	return rde_tc_size (p->TC);
 }
 	SCOPE void
-rde_param_query_tc_get_s (RDE_PARAM p, long int at, long int last, char** ch, long int* len)
+rde_param_query_tc_get_s (RDE_PARAM p, intptr_t at, intptr_t last, char** ch, intptr_t* len)
 {
 	rde_tc_get_s (p->TC, at, last, ch, len);
 }
 	SCOPE const char*
-rde_param_query_string (RDE_PARAM p, long int id)
+rde_param_query_string (RDE_PARAM p, intptr_t id)
 {
 	TRACE (("rde_param_query_string (RDE_PARAM %p, %d/%d)", p, id, p->numstr));
 	ASSERT_BOUNDS(id,p->numstr);
@@ -728,7 +728,7 @@ rde_param_i_ast_pop_discard (RDE_PARAM p)
 	SCOPE void
 rde_param_i_ast_pop_rewind (RDE_PARAM p)
 {
-	long int trim = (long int) rde_stack_top (p->mark);
+	intptr_t trim = (intptr_t) rde_stack_top (p->mark);
 	ENTER ("rde_param_i_ast_pop_rewind");
 	TRACE (("RDE_PARAM %p",p));
 	rde_stack_pop  (p->mark, 1);
@@ -742,7 +742,7 @@ rde_param_i_ast_pop_rewind (RDE_PARAM p)
 	SCOPE void
 rde_param_i_ast_rewind (RDE_PARAM p)
 {
-	long int trim = (long int) rde_stack_top (p->mark);
+	intptr_t trim = (intptr_t) rde_stack_top (p->mark);
 	ENTER ("rde_param_i_ast_rewind");
 	TRACE (("RDE_PARAM %p",p));
 	rde_stack_trim (p->ast, (int) trim);
@@ -782,9 +782,9 @@ rde_param_i_error_clear (RDE_PARAM p)
 	SCOPE void
 rde_param_i_error_nonterminal (RDE_PARAM p, int s)
 {
-	long int pos;
+	intptr_t pos;
 	if (!p->ER) return;
-	pos = 1 + (long int) rde_stack_top (p->LS);
+	pos = 1 + (intptr_t) rde_stack_top (p->LS);
 	if (p->ER->loc != pos) return;
 	error_set (p, s);
 	p->ER->loc = pos;
@@ -862,7 +862,7 @@ rde_param_i_loc_pop_discard (RDE_PARAM p)
 	SCOPE void
 rde_param_i_loc_pop_rewind (RDE_PARAM p)
 {
-	p->CL = (long int) rde_stack_top (p->LS);
+	p->CL = (intptr_t) rde_stack_top (p->LS);
 	rde_stack_pop (p->LS, 1);
 }
 	SCOPE void
@@ -873,7 +873,7 @@ rde_param_i_loc_push (RDE_PARAM p)
 	SCOPE void
 rde_param_i_loc_rewind (RDE_PARAM p)
 {
-	p->CL = (long int) rde_stack_top (p->LS);
+	p->CL = (intptr_t) rde_stack_top (p->LS);
 }
 	SCOPE void
 rde_param_i_input_next (RDE_PARAM p, int m)
@@ -947,7 +947,7 @@ rde_param_i_symbol_restore (RDE_PARAM p, int s)
 	SCOPE void
 rde_param_i_symbol_save (RDE_PARAM p, int s)
 {
-	long int       at = (long int) rde_stack_top (p->LS);
+	intptr_t       at = (intptr_t) rde_stack_top (p->LS);
 	NC_STATE*      scs;
 	Tcl_HashEntry* hPtr;
 	Tcl_HashTable* tablePtr;
@@ -1126,7 +1126,7 @@ rde_param_i_value_leaf (RDE_PARAM p, int s)
 {
 	Tcl_Obj* newsv;
 	Tcl_Obj* ov [3];
-	long int pos = 1 + (long int) rde_stack_top (p->LS);
+	intptr_t pos = 1 + (intptr_t) rde_stack_top (p->LS);
 	ASSERT_BOUNDS(s,p->numstr);
 	ov [0] = Tcl_NewStringObj (p->string[s], -1);
 	ov [1] = Tcl_NewIntObj (pos);
@@ -1141,12 +1141,12 @@ rde_param_i_value_reduce (RDE_PARAM p, int s)
 	Tcl_Obj*  newsv;
 	int       i, j;
 	Tcl_Obj** ov;
-	long int  ac;
+	intptr_t  ac;
 	Tcl_Obj** av;
-	long int pos   = 1 + (long int) rde_stack_top (p->LS);
-	long int mark  = (long int) rde_stack_top (p->mark);
-	long int asize = rde_stack_size (p->ast);
-	long int new   = asize - mark;
+	intptr_t pos   = 1 + (intptr_t) rde_stack_top (p->LS);
+	intptr_t mark  = (intptr_t) rde_stack_top (p->mark);
+	intptr_t asize = rde_stack_size (p->ast);
+	intptr_t new   = asize - mark;
 	ASSERT (new >= 0, "Bad number of elements to reduce");
 	ov = NALLOC (3+new, Tcl_Obj*);
 	ASSERT_BOUNDS(s,p->numstr);
@@ -1168,8 +1168,8 @@ rde_param_i_value_reduce (RDE_PARAM p, int s)
 	static int
 er_int_compare (const void* a, const void* b)
 {
-	long int ai = *((long int*) a);
-	long int bi = *((long int*) b);
+	intptr_t ai = *((intptr_t*) a);
+	intptr_t bi = *((intptr_t*) b);
 	if (ai < bi) { return -1; }
 	if (ai > bi) { return  1; }
 	return 0;
@@ -1402,14 +1402,14 @@ rde_param_i_notahead_exit_d (RDE_PARAM p)
 	} else {
 		rde_stack_pop (p->mark, 1);
 	}
-	p->CL = (long int) rde_stack_top (p->LS);
+	p->CL = (intptr_t) rde_stack_top (p->LS);
 	rde_stack_pop (p->LS, 1);
 	p->ST = !p->ST;
 }
 	SCOPE void
 rde_param_i_notahead_exit (RDE_PARAM p)
 {
-	p->CL = (long int) rde_stack_top (p->LS);
+	p->CL = (intptr_t) rde_stack_top (p->LS);
 	rde_stack_pop (p->LS, 1);
 	p->ST = !p->ST;
 }
@@ -1444,7 +1444,7 @@ rde_param_i_state_merge_ok (RDE_PARAM p)
 	rde_param_i_error_pop_merge (p);
 	if (!p->ST) {
 		p->ST = 1;
-		p->CL = (long int) rde_stack_top (p->LS);
+		p->CL = (intptr_t) rde_stack_top (p->LS);
 	}
 	rde_stack_pop (p->LS, 1);
 }
@@ -1453,7 +1453,7 @@ rde_param_i_state_merge_void (RDE_PARAM p)
 {
 	rde_param_i_error_pop_merge (p);
 	if (!p->ST) {
-		p->CL = (long int) rde_stack_top (p->LS);
+		p->CL = (intptr_t) rde_stack_top (p->LS);
 	}
 	rde_stack_pop (p->LS, 1);
 }
@@ -1462,9 +1462,9 @@ rde_param_i_state_merge_value (RDE_PARAM p)
 {
 	rde_param_i_error_pop_merge (p);
 	if (!p->ST) {
-		long int trim = (long int) rde_stack_top (p->mark);
+		intptr_t trim = (intptr_t) rde_stack_top (p->mark);
 		rde_stack_trim (p->ast, (int) trim);
-		p->CL = (long int) rde_stack_top (p->LS);
+		p->CL = (intptr_t) rde_stack_top (p->LS);
 	}
 	rde_stack_pop (p->mark, 1);
 	rde_stack_pop (p->LS, 1);
@@ -1476,7 +1476,7 @@ rde_param_i_kleene_close (RDE_PARAM p)
 	rde_param_i_error_pop_merge (p);
 	if (stop) {
 		p->ST = 1;
-		p->CL = (long int) rde_stack_top (p->LS);
+		p->CL = (intptr_t) rde_stack_top (p->LS);
 	}
 	rde_stack_pop (p->LS, 1);
 	return stop;
@@ -1486,7 +1486,7 @@ rde_param_i_kleene_abort (RDE_PARAM p)
 {
 	int stop = !p->ST;
 	if (stop) {
-		p->CL = (long int) rde_stack_top (p->LS);
+		p->CL = (intptr_t) rde_stack_top (p->LS);
 	}
 	rde_stack_pop (p->LS, 1);
 	return stop;
@@ -1500,7 +1500,7 @@ rde_param_i_seq_void2void (RDE_PARAM p)
 		if (p->ER) { p->ER->refCount ++; }
 		return 0;
 	} else {
-		p->CL = (long int) rde_stack_top (p->LS);
+		p->CL = (intptr_t) rde_stack_top (p->LS);
 		rde_stack_pop (p->LS, 1);
 		return 1;
 	}
@@ -1515,7 +1515,7 @@ rde_param_i_seq_void2value (RDE_PARAM p)
 		if (p->ER) { p->ER->refCount ++; }
 		return 0;
 	} else {
-		p->CL = (long int) rde_stack_top (p->LS);
+		p->CL = (intptr_t) rde_stack_top (p->LS);
 		rde_stack_pop (p->LS, 1);
 		return 1;
 	}
@@ -1529,10 +1529,10 @@ rde_param_i_seq_value2value (RDE_PARAM p)
 		if (p->ER) { p->ER->refCount ++; }
 		return 0;
 	} else {
-		long int trim = (long int) rde_stack_top (p->mark);
+		intptr_t trim = (intptr_t) rde_stack_top (p->mark);
 		rde_stack_pop  (p->mark, 1);
 		rde_stack_trim (p->ast, (int) trim);
-		p->CL = (long int) rde_stack_top (p->LS);
+		p->CL = (intptr_t) rde_stack_top (p->LS);
 		rde_stack_pop (p->LS, 1);
 		return 1;
 	}
@@ -1544,7 +1544,7 @@ rde_param_i_bra_void2void (RDE_PARAM p)
 	if (p->ST) {
 		rde_stack_pop (p->LS, 1);
 	} else {
-		p->CL = (long int) rde_stack_top (p->LS);
+		p->CL = (intptr_t) rde_stack_top (p->LS);
 		rde_stack_push (p->ES, p->ER);
 		if (p->ER) { p->ER->refCount ++; }
 	}
@@ -1558,7 +1558,7 @@ rde_param_i_bra_void2value (RDE_PARAM p)
 		rde_stack_pop (p->LS, 1);
 	} else {
 		rde_stack_push (p->mark, (void*) rde_stack_size (p->ast));
-		p->CL = (long int) rde_stack_top (p->LS);
+		p->CL = (intptr_t) rde_stack_top (p->LS);
 		rde_stack_push (p->ES, p->ER);
 		if (p->ER) { p->ER->refCount ++; }
 	}
@@ -1572,10 +1572,10 @@ rde_param_i_bra_value2void (RDE_PARAM p)
 		rde_stack_pop (p->mark, 1);
 		rde_stack_pop (p->LS, 1);
 	} else {
-		long int trim = (long int) rde_stack_top (p->mark);
+		intptr_t trim = (intptr_t) rde_stack_top (p->mark);
 		rde_stack_pop  (p->mark, 1);
 		rde_stack_trim (p->ast, (int) trim);
-		p->CL = (long int) rde_stack_top (p->LS);
+		p->CL = (intptr_t) rde_stack_top (p->LS);
 		rde_stack_push (p->ES, p->ER);
 		if (p->ER) { p->ER->refCount ++; }
 	}
@@ -1589,9 +1589,9 @@ rde_param_i_bra_value2value (RDE_PARAM p)
 		rde_stack_pop (p->mark, 1);
 		rde_stack_pop (p->LS, 1);
 	} else {
-		long int trim = (long int) rde_stack_top (p->mark);
+		intptr_t trim = (intptr_t) rde_stack_top (p->mark);
 		rde_stack_trim (p->ast, (int) trim);
-		p->CL = (long int) rde_stack_top (p->LS);
+		p->CL = (intptr_t) rde_stack_top (p->LS);
 		rde_stack_push (p->ES, p->ER);
 		if (p->ER) { p->ER->refCount ++; }
 	}
@@ -1728,14 +1728,14 @@ static int parser_PARSET (RDE_PARAM p, Tcl_Interp* interp, int objc, Tcl_Obj* CO
 static int COMPLETE (RDE_PARAM p, Tcl_Interp* interp)
 {
 	if (rde_param_query_st (p)) {
-		long int  ac;
+		intptr_t  ac;
 		Tcl_Obj** av;
 
 		rde_param_query_ast (p, &ac, &av);
 
 		if (ac > 1) {
-			long int  lsc;
-			long int* lsv;
+			intptr_t  lsc;
+			intptr_t* lsv;
 			Tcl_Obj** lv = NALLOC (3+ac, Tcl_Obj*);
 
 			rde_param_query_ls (p, &lsc, &lsv);
