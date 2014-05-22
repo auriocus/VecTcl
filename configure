@@ -1828,6 +1828,60 @@ fi
   eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
 
 } # ac_fn_c_check_header_mongrel
+
+# ac_fn_c_check_type LINENO TYPE VAR INCLUDES
+# -------------------------------------------
+# Tests whether TYPE exists after having included INCLUDES, setting cache
+# variable VAR accordingly.
+ac_fn_c_check_type ()
+{
+  as_lineno=${as_lineno-"$1"} as_lineno_stack=as_lineno_stack=$as_lineno_stack
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $2" >&5
+$as_echo_n "checking for $2... " >&6; }
+if eval \${$3+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  eval "$3=no"
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+$4
+int
+main ()
+{
+if (sizeof ($2))
+	 return 0;
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+$4
+int
+main ()
+{
+if (sizeof (($2)))
+	    return 0;
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+
+else
+  eval "$3=yes"
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+fi
+eval ac_res=\$$3
+	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+  eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
+
+} # ac_fn_c_check_type
 cat >config.log <<_ACEOF
 This file contains any messages produced by compilers while
 running configure, to aid debugging if configure makes a mistake.
@@ -5284,6 +5338,44 @@ done
     fi
 
 
+# figure out a type for intptr_t
+
+  ac_fn_c_check_type "$LINENO" "intptr_t" "ac_cv_type_intptr_t" "$ac_includes_default"
+if test "x$ac_cv_type_intptr_t" = xyes; then :
+
+$as_echo "#define HAVE_INTPTR_T 1" >>confdefs.h
+
+else
+  for ac_type in 'int' 'long int' 'long long int'; do
+       cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+$ac_includes_default
+int
+main ()
+{
+static int test_array [1 - 2 * !(sizeof (void *) <= sizeof ($ac_type))];
+test_array [0] = 0;
+return test_array [0];
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+
+cat >>confdefs.h <<_ACEOF
+#define intptr_t $ac_type
+_ACEOF
+
+	  ac_type=
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+       test -z "$ac_type" && break
+     done
+fi
+
+
+
 #-----------------------------------------------------------------------
 # __CHANGE__
 # Specify the C source files to compile in TEA_ADD_SOURCES,
@@ -5296,7 +5388,9 @@ done
 
 
     vars="vectclapi.c vectcl.c linalg.c arrayshape.c nacomplex.c hsfft.c fft.c svd.c
-				bcexecute.c vmparser.c"
+				bcexecute.c vmparser.c
+				blas_lite.c dlapack_lite.c zlapack_lite.c
+				f2c_lite.c dlamch.c tcl_xerbla.c"
     for i in $vars; do
 	case $i in
 	    \$*)

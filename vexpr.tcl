@@ -627,7 +627,17 @@ namespace eval vectcl {
 			}
 		}
 	}
-	
+
+	proc mformat {m} {
+	    # pretty print a matrix 
+	    set d [numarray dimensions $m]
+	    switch $d {
+		1 { return "{$m}" }
+		2 { return "{{[join $m "}\n {"]}}" }
+		default { return -code error "Can't format $d-dimensional array"}
+	    }
+	}
+
 	Init
 }
 

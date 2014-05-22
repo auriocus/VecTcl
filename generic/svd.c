@@ -2,8 +2,12 @@
 #include "math.h"
 #include "arrayshape.h"
 
+#define HAVE_LAPACK
+
 #define min(X, Y) ((X)<(Y) ? X : Y)
+#define MIN(X, Y) ((X)<(Y) ? X : Y)
 #define max(X, Y) ((X)>(Y) ? X : Y)
+#define MAX(X, Y) ((X)>(Y) ? X : Y)
 
  /* Compute SVD  of real matrix object
   * store singular values in sv and singular vectors in U,V 
@@ -612,6 +616,146 @@ int NumArraySVD1Cmd(ClientData dummy, Tcl_Interp *interp, int objc, Tcl_Obj *con
 	return TCL_OK;
 }
 
+#ifdef HAVE_LAPACK
+#include "lapack_lite.h"
+int NumArraySVDCmd(ClientData dummy, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv) {
+	if (objc != 2) {
+		Tcl_WrongNumArgs(interp, 1, objv, "matrix");
+		return TCL_ERROR;
+	}
+	
+	Tcl_Obj *matrix = objv[1];
+
+	/* Convert the 1st argument to VecTcl object */
+	NumArrayInfo *info = NumArrayGetInfoFromObj(interp, matrix);
+	if (!info) { return TCL_ERROR; }
+
+	/* Check that it is a matrix */
+	if (info->nDim != 2) {
+		Tcl_SetResult(interp, "SVD only defined for 2D matrix", NULL);
+		return TCL_ERROR;
+	}
+
+	long int m = info->dims[0];
+	long int n = info->dims[1];
+
+	if (info->type != NumArray_Complex128) {
+		/* Real-valued matrix, prepare for dgesdd */
+		/* create a column-major copy of matrix 
+		 * This also converts an integer matrix to double */
+		Tcl_Obj *A = NumArrayNewMatrixColMaj(NumArray_Float64, m, n);
+		NumArrayObjCopy(interp, matrix, A);
+		/* create a real matrix for U and V */
+		Tcl_Obj *U = NumArrayNewMatrixColMaj(NumArray_Float64, m, m);
+		Tcl_Obj *V = NumArrayNewMatrixColMaj(NumArray_Float64, n, n);
+		/* create a real vector for the singular values */
+		Tcl_Obj *s = NumArrayNewVector(NumArray_Float64, MIN(m,n));
+
+		/* Extract the raw pointers from the VecTcl objects */
+		double *Aptr = NumArrayGetPtrFromObj(interp, A);
+		double *Uptr = NumArrayGetPtrFromObj(interp, U);
+		double *Vptr = NumArrayGetPtrFromObj(interp, V);
+		double *sptr = NumArrayGetPtrFromObj(interp, s);
+		
+		/* setup workspace arrays */
+		long int lwork = 3*min(m,n)*min(m,n) +
+                       max(max(m,n),4*min(m,n)*min(m,n)+4*min(m,n));
+		double* work=ckalloc(sizeof(double)*lwork);
+		long int iworksize=(8*min(m,n));
+		integer *iwork=ckalloc(sizeof(integer)*iworksize);
+
+		long int lda = m; 
+		/* Leading dimensions. We made a fresh copy for A and
+		 * new matrices U, V, therefore we have the full matrices */
+		long int ldu = m;
+		long int ldvt = n;
+		long int info;
+
+
+/* Subroutine  int dgesdd_(char *jobz, integer *m, integer *n, doublereal *
+	a, integer *lda, doublereal *s, doublereal *u, integer *ldu,
+	doublereal *vt, integer *ldvt, doublereal *work, integer *lwork,
+	integer *iwork, integer *info) */
+
+		/* call out to dgesdd */
+		dgesdd_("A", &m, &n, 
+			Aptr, &lda, sptr, Uptr, 
+			&ldu, Vptr, &ldvt, work,
+			&lwork, iwork, &info);
+		
+		/* free workspace */
+		ckfree(work);
+		ckfree(iwork);
+		/* A is also overwritten with junk */
+		Tcl_DecrRefCount(A);
+
+		/* join U, s, V into a list*/
+		Tcl_Obj *result = Tcl_NewObj();
+		Tcl_ListObjAppendElement(NULL, result, s);
+		Tcl_ListObjAppendElement(NULL, result, U);
+		Tcl_ListObjAppendElement(NULL, result, V);
+		Tcl_SetObjResult(interp, result);
+		return TCL_OK;
+
+
+	} else {
+		/* For complex values, prepare for ZGESDD */
+		/* create a column-major copy of matrix */
+		Tcl_Obj *A = NumArrayNewMatrixColMaj(NumArray_Complex128, m, n);
+		NumArrayObjCopy(interp, matrix, A);
+		/* create a complex matrix for U and V */
+		Tcl_Obj *U = NumArrayNewMatrixColMaj(NumArray_Complex128, m, m);
+		Tcl_Obj *V = NumArrayNewMatrixColMaj(NumArray_Complex128, n, n);
+		/* create a real vector for the singular values */
+		Tcl_Obj *s = NumArrayNewVector(NumArray_Float64, MIN(m,n));
+
+		/* Extract the raw pointers from the VecTcl objects */
+		NumArray_Complex *Aptr = NumArrayGetPtrFromObj(interp, A);
+		NumArray_Complex *Uptr = NumArrayGetPtrFromObj(interp, U);
+		NumArray_Complex *Vptr = NumArrayGetPtrFromObj(interp, V);
+		double *sptr = NumArrayGetPtrFromObj(interp, s);
+		
+		/* setup workspace arrays */
+		long int lwork=min(m,n)*min(m,n)+2*min(m,n)+max(m,n);
+		NumArray_Complex* work=ckalloc(sizeof(NumArray_Complex)*lwork);
+		long int lrwork=5*min(m,n)*min(m,n) + 5*min(m,n);
+		double *rwork = ckalloc(sizeof(double)*lrwork);
+		long int iworksize=(8*min(m,n));
+		integer *iwork=ckalloc(sizeof(integer)*iworksize);
+		long int lda = m;
+		long int ldu = m;
+		long int ldvt = n;
+		long int info;
+
+		/* int zgesdd_(char *jobz, integer *m, integer *n,
+	doublecomplex *a, integer *lda, doublereal *s, doublecomplex *u,
+	integer *ldu, doublecomplex *vt, integer *ldvt, doublecomplex *work,
+	integer *lwork, doublereal *rwork, integer *iwork, integer *info)
+*/
+		/* call out to zgesdd */
+		zgesdd_("A",  &m, &n, 
+			Aptr, &lda, sptr, Uptr, 
+			&ldu, Vptr, &ldvt, work, 
+			&lwork, rwork, iwork, &info);
+		
+		/* free workspace */
+		ckfree(rwork);
+		ckfree(iwork);
+		ckfree(work);
+		/* A is also overwritten with junk */
+		Tcl_DecrRefCount(A);
+
+		/* join U, s, V into a list*/
+		Tcl_Obj *result = Tcl_NewObj();
+		Tcl_ListObjAppendElement(NULL, result, s);
+		Tcl_ListObjAppendElement(NULL, result, U);
+		Tcl_ListObjAppendElement(NULL, result, V);
+		Tcl_SetObjResult(interp, result);
+		return TCL_OK;
+	}
+}
+
+#else 
 int NumArraySVDCmd(ClientData dummy, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv) {
 	if (objc != 2) {
 		Tcl_WrongNumArgs(interp, 1, objv, "matrix");
@@ -641,3 +785,4 @@ int NumArraySVDCmd(ClientData dummy, Tcl_Interp *interp, int objc, Tcl_Obj *cons
 	Tcl_SetObjResult(interp, result);
 	return TCL_OK;
 }
+#endif
