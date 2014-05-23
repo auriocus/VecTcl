@@ -43,7 +43,7 @@ x=linspace(1,10,100); y=sin(x); 1
 s=figure()
 # a plot window appears
 $s plot $x $y with linespoints pointtype squares
-# the sine wave is plottedt with connected squares
+# the sine wave is plottet with connected squares
 {% endraw %}
 {% endhighlight %}
 The plot should look like this:
@@ -61,13 +61,13 @@ $s set grid on
 # display a regular grid of lines
 y2=y.^2
 $s plot $x $y2 with lines color blue title "Squared"
-# plot another curve on top, with blue lines
-# and a legend
+# plot another curve on top, as a blue line
+# and with a legend
 $s set key bottom 
 # move the legend to the bottom
 $s update 0 title "Sine wave"
-# add a legend to the first dataset. The 0 is the dataset identifier, 
-# as returned from the plot command
+# add a legend to the first dataset. The 0 is the 
+# dataset identifier, as returned from the plot command
 $s saveAsPDF sinesqur.pdf
 # write the current plot in PDF format to disk
 {% endraw %}
