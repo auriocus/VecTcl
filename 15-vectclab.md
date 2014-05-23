@@ -43,7 +43,7 @@ x=linspace(1,10,100); y=sin(x); 1
 s=figure()
 # a plot window appears
 $s plot $x $y with linespoints pointtype squares
-# the sine wave is plottet with connected squares
+# the sine wave is plotted with connected squares
 {% endraw %}
 {% endhighlight %}
 The plot should look like this:
