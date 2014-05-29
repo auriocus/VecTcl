@@ -546,7 +546,7 @@ proc ::tkcon::InitSlave {slave {slaveargs {}} {slaveargv0 {}}} {
 	namespace import vectcl::*
 	proc pretty_vexpr {e} {
 	    # execute expression and nicely format result
-	    set vres [uplevel 1 {vexpr $e}]
+	    set vres [uplevel 1 [list vexpr $e]]
 	    if {![catch {vectcl::mformat $vres} result]} {
 		# mformat succeeded
 		# return pretty printed array
@@ -1022,7 +1022,7 @@ proc ::tkcon::EvalCmd {w cmd} {
 		    regsub -all -- $old $cmd $new cmd
 		    $w insert output $cmd\n stdin
 		}
-	    } elseif {$OPT(calcmode) && ![catch {EvalSlave vexpr $cmd} err]} {
+	    } elseif {$OPT(calcmode) && ![catch {EvalSlave pretty_vexpr $cmd} err]} {
 		AddSlaveHistory $cmd
 		set cmd $err
 		set code -1
