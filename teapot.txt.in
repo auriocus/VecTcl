@@ -1,0 +1,28 @@
+Package @PACKAGE_NAME@ @PACKAGE_VERSION@
+Meta platform        @PLATFORM@
+Meta require         {Tcl @TCL_VERSION@}
+Meta require         {TclOO 1}
+Meta entrykeep       .
+Meta excluded        *.a *.tap *.lib
+Meta included        @PKG_LIB_FILE@ *.tcl
+
+Meta as::author      {Christian Gollwitzer}
+Meta as::origin      http://auriocus.github.io/VecTcl/
+Meta category        Math and Numerics
+
+Meta description     A numeric array extension for Tcl with support for vectors,
+Meta description     matrices and higher-rank tensors of integers, floating point
+Meta description     and complex numbers. VecTcl has builtin support for array
+Meta description     shaping, slicing and common linear algebra subroutines.
+Meta description     Arrays are represented as nested lists with an optimized
+Meta description     internal data storage. Therefore, seamless integration with
+Meta description     Tcl and other packages like math::linearalgebra is ensured
+Meta description     while good performance is provided. The user interface
+Meta description     consists of a single command, vexpr, which acts as an
+Meta description     expression evaluator similar to expr. The language supported
+Meta description     by vexpr is closely modelled after commercial linear algebra
+Meta description     packages and the syntax used by textbooks.
+
+Meta license         BSD
+Meta subject         math numeric vector matrix complex {linear algebra}
+Meta summary         Vector and matrix math

@@ -206,7 +206,8 @@ doc:
 	@echo "        xml2nroff sample.xml > sample.n"
 	@echo "        xml2html sample.xml > sample.html"
 
-install: all install-binaries install-libraries install-doc
+install: all install-binaries install-libraries
+# install-doc - no docs - target not usable, errors out
 
 install-binaries: binaries install-lib-binaries install-bin-binaries
 
@@ -414,6 +415,8 @@ install-lib-binaries: binaries
 	    echo " Install pkgIndex.tcl $(DESTDIR)$(pkglibdir)"; \
 	    $(INSTALL_DATA) pkgIndex.tcl $(DESTDIR)$(pkglibdir); \
 	    $(INSTALL_DATA) vectclConfig.sh $(DESTDIR)$(pkglibdir); \
+	    echo " Install teapot.txt $(DESTDIR)$(pkglibdir)"; \
+	    $(INSTALL_DATA) teapot.txt $(DESTDIR)$(pkglibdir); \
 	fi
 
 #========================================================================

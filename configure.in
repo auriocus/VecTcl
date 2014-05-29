@@ -196,6 +196,17 @@ AC_SUBST(vectcl_LIB_FILE)
 TEA_PROG_TCLSH
 #TEA_PROG_WISH
 
+#------------------------------------------------------------------------
+# Define the PLATFORM variable in a very tcl-ish way for teapot.txt
+#------------------------------------------------------------------------
+PTL=`echo ${TCL_SRC_DIR}/library`
+PLATFORM=`echo "catch { package require platform ; puts [[platform::identify]] } ; exit" | TCL_LIBRARY="$PTL" ${TCLSH_PROG}`
+if test X"$PLATFORM" = X
+then
+    PLATFORM=unknown
+fi
+AC_SUBST(PLATFORM)
+
 #----------------------------------------------
 # Check for options in this package
 #------------------------------------------------
@@ -215,4 +226,4 @@ TEA_EXPORT_CONFIG([vectcl])
 # which require substituting th AC variables in.  Include these here.
 #--------------------------------------------------------------------
 
-AC_OUTPUT([Makefile pkgIndex.tcl vectclConfig.sh])
+AC_OUTPUT([Makefile teapot.txt pkgIndex.tcl vectclConfig.sh])

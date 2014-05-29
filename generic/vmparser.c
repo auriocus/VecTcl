@@ -2,6 +2,12 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
+#ifdef HAVE_STDINT_H
+#include <stdint.h>
+#endif
+#ifdef HAVE_INTTYPES_H
+#include <inttypes.h>
+#endif
 #define SCOPE static
 
 /*#line 1 "rde_critcl/util.h"*/

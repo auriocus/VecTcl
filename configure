@@ -629,6 +629,7 @@ vectcl_STUB_LIB_SPEC
 vectcl_BUILD_STUB_LIB_SPEC
 vectcl_LIB_SPEC
 vectcl_BUILD_LIB_SPEC
+PLATFORM
 TCLSH_PROG
 vectcl_LIB_FILE
 vectcl_STUB_LIB_FILE
@@ -8694,6 +8695,17 @@ $as_echo "${TCLSH_PROG}" >&6; }
 
 #TEA_PROG_WISH
 
+#------------------------------------------------------------------------
+# Define the PLATFORM variable in a very tcl-ish way for teapot.txt
+#------------------------------------------------------------------------
+PTL=`echo ${TCL_SRC_DIR}/library`
+PLATFORM=`echo "catch { package require platform ; puts [platform::identify] } ; exit" | TCL_LIBRARY="$PTL" ${TCLSH_PROG}`
+if test X"$PLATFORM" = X
+then
+    PLATFORM=unknown
+fi
+
+
 #----------------------------------------------
 # Check for options in this package
 #------------------------------------------------
@@ -8750,7 +8762,7 @@ fi
 # which require substituting th AC variables in.  Include these here.
 #--------------------------------------------------------------------
 
-ac_config_files="$ac_config_files Makefile pkgIndex.tcl vectclConfig.sh"
+ac_config_files="$ac_config_files Makefile teapot.txt pkgIndex.tcl vectclConfig.sh"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -9460,6 +9472,7 @@ for ac_config_target in $ac_config_targets
 do
   case $ac_config_target in
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
+    "teapot.txt") CONFIG_FILES="$CONFIG_FILES teapot.txt" ;;
     "pkgIndex.tcl") CONFIG_FILES="$CONFIG_FILES pkgIndex.tcl" ;;
     "vectclConfig.sh") CONFIG_FILES="$CONFIG_FILES vectclConfig.sh" ;;
 
