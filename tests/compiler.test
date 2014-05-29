@@ -103,3 +103,22 @@ test compiler boolif-5 -body {
 	
 } -result {1 2}
 
+test compiler namespace-1 -body {
+	
+	set ::A {1 2 3}
+	vexpr ::A
+	
+} -result {1 2 3}
+
+
+test compiler namespace-2 -body {
+	
+	namespace eval a {
+	  namespace eval b { variable f 7 }
+	  proc t {} { vexpr b::f }
+	}
+	
+	a::t
+	
+} -result 7
+

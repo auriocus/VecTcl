@@ -110,12 +110,40 @@ namespace eval vectcl {
 
 		# reference variables
 		method varref {var} {
-			dict set varrefs $var 1
+			if {[dict exists $varrefs $var]} {
+				return [dict get $varrefs $var]
+			}
+
+			# check for qualified names
+			if {[regexp  {^[^:]+::} $var]} {
+				# it contains ::, but doesn't start with ::
+				# i.e. a relative namespace varref like a::b
+				set name [my alloctemp]
+			} else {
+				# either global ::var, or local var
+				# use it as is
+				set name $var
+			}
+			dict set varrefs $var $name
+			return $name
 		}
 
 		method getvarrefs {} {
 			dict keys $varrefs
 		}
+
+		method mkupvars {} {
+			set upvars {}
+			dict for {var ref} $varrefs {
+				# pull in via upvar all non-global names
+				# globals need not/may not be upvarred
+				if {![string match ::* $var]} {
+					append upvars [list upvar 1 $var $ref ]\n
+				}
+			}
+			return $upvars
+		}
+
 
 		
 		method constantfold {v} {
@@ -239,12 +267,12 @@ namespace eval vectcl {
 
 			
 			# create upvars and prepend to body
-			set upvars {}
 			if {![dict get $opt -novarrefs]} {
-			    foreach ref [my getvarrefs] {
-				    append upvars [list upvar 1 $ref $ref ]\n
-			    }
+			    set upvars [my mkupvars]
+			} else {
+				set upvars {}
 			}
+			
 			return $upvars$body
 
 		}
@@ -282,7 +310,7 @@ namespace eval vectcl {
 			# VarSlice1 VarSlice2 ... Expression
 			
 			lassign [my analyseslice $varslice] var slice
-			my varref $var
+			set var [my varref $var]
 			
 			set op [my {*}$assignop]
 			set value [my bracket [my {*}$expression]]
@@ -310,7 +338,7 @@ namespace eval vectcl {
 				# single assignment
 				set varslice [lindex $args 0 ]
 				lassign [my analyseslice $varslice] var slice
-				my varref $var
+				set var [my varref $var]
 				if {$slice=={}} {
 					# simple assignment
 					set resultvar {}
@@ -326,7 +354,7 @@ namespace eval vectcl {
 				set slicevars {}
 				foreach varslice [lrange $args 0 end-1] {	
 					lassign [my analyseslice $varslice] var slice
-					my varref $var
+					set var [my varref $var]
 					if {$slice=={}} {
 						# simple assignment
 						lappend assignvars $var
@@ -519,7 +547,7 @@ namespace eval vectcl {
 				[my analyseslice [list VarSlice $from $to {*}$args]] \
 				var slices
 
-			my varref $var
+			set var [my varref $var]
 			if {$slices eq {}} {
 				return [list set $var]
 				# alternative:
