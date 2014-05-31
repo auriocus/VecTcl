@@ -39,6 +39,7 @@ proc parsef2csource {f} {
 	# combined in a singe source file
 
 	variable functions
+	variable constantdefs
 
 	# a regexp matching any of f2c's return types /* Subroutine */ int 
 	set rdtypes {(\minteger|\mlogical|\mreal|\mdoublereal|\mcomplex|\mdoublecomplex|/\* Subroutine \*/ int)\M}
@@ -52,7 +53,7 @@ proc parsef2csource {f} {
 	set rexternfunc "extern $rfuncdecl"
 	set rarglist "(\\(\[^)\]+\\))"
 	set rpartfuncdecl "$rident${rarglist}"
-	set rfullfuncdecl "${rdtypes}\\s+$rident${rarglist}"
+	set rfullfuncdecl ".*${rdtypes}\\s+$rident${rarglist}"
 	set rmainfuncdecl "^${rfuncdecl}(.*)"
 	set rconstant "^static\\s+$rdtypes\\s+$rident\\s*=\\s*(.*);"
 	
@@ -93,8 +94,9 @@ proc parsef2csource {f} {
 				lassign $match -> type id value
 				set prefid "$prefix$id"
 				dict set constantmap $id $prefid
-				append constants "static $type $prefid = $value;\n"
-				puts "Renaming $id -> $prefid"
+				dict set constantdefs $prefid "static $type $prefid = $value;"
+				lappend constants $prefid
+				#puts "Renaming $id -> $prefid"
 
 			} \
 			$rmainfuncdecl {
@@ -128,6 +130,7 @@ proc parsef2csource {f} {
 				dict set externals $ename type $etype
 				dict set externals $ename args $eargs 
 				
+				#puts $all 
 				set start [string length $all]
 				set matches [regexp -all -inline -start $start $rpartfuncdecl $extrn]
 				#puts "$matches"
@@ -142,8 +145,8 @@ proc parsef2csource {f} {
 				# is the end of a toplevel subroutine
 
 				print
-				puts "Function $name, returns $rtype"
-				puts "Depending on [dict keys $externals]"
+				#puts "Function $name, returns $rtype"
+				#puts "Depending on [dict keys $externals]"
 				# put into global function list
 				dict set functions $name type $rtype
 				dict set functions $name args $arglist
@@ -158,10 +161,10 @@ proc parsef2csource {f} {
 						# declarations must agree
 						dict set functions $name $def
 					} else {
-						# check for redefinition - false alarms
+						# check for redefinition - lots of false alarms
 						set previous [dict get $functions $name]
 						if {$previous != $def} {
-							puts stderr "Warning, declarations differ for $name"
+							#puts stderr "Warning, declarations differ for $name"
 						}
 					}
 				}
@@ -181,6 +184,8 @@ proc parsef2csource {f} {
 
 proc do_linkage {args} {
 	variable functions
+	variable constantdefs
+
 	set linktable {}
 	foreach fun $args {
 		dict set linktable $fun undefined
@@ -219,32 +224,48 @@ proc do_linkage {args} {
 proc generate_code {f linktable} {
 	# write out code as an amalgamated big C file
 	variable functions
+	variable constantdefs
 
 	set fh [file rootname $f].h
 	
 	set declarations {}
-	set constantdefs {}
 	set funcdefinitions {}
+	set constantdecls {}
 
 	set header {}
 
 	dict for {name ltype} $linktable {
 		set def [dict get $functions $name]
-		if {$ltype eq "extern"} {
-			# it's not defined here. Just write a declaration
-			dict with def {
-				append declarations "extern $type $name $args;\n"
-			}
-		} else {
-			puts "Yes"
-			dict with def {
-				set defline  "$ltype $type $name $args"
+		dict with def {
+			set defline  "$ltype $type $name $args"
+		}
+		switch $ltype {
+
+			extern {
+				# it's not defined here. Just write a declaration
+				append declarations "$defline;\n"
+			} 
+			
+			static {
 				append declarations "$defline;\n"
 
 				append funcdefinitions "$defline\n"
 				append funcdefinitions $body
+				
+				foreach c $constants {
+					dict set constantdecls $c [dict get $constantdefs $c]
+				}
+			}
 
-				append constantdefs $constants
+			MODULE_SCOPE {
+				append header "$defline;\n"
+
+				append funcdefinitions "$defline\n"
+				append funcdefinitions $body
+
+				foreach c $constants {
+					dict set constantdecls $c [dict get $constantdefs $c]
+				}
 			}
 		}
 	}
@@ -260,7 +281,7 @@ proc generate_code {f linktable} {
 	puts $fdc $declarations
 
 	puts $fdc "/* defined constants */"
-	puts $fdc $constantdefs
+	puts $fdc [join [dict values $constantdecls] \n]
 
 	puts $fdc "/* defined functions */"
 	puts $fdc $funcdefinitions
