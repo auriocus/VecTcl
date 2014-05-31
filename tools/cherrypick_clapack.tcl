@@ -7,7 +7,7 @@ set CLAPACK_DIR /Users/chris/Sources/CLAPACK-3.2.1/
 set tooldir [file dirname [info script]]
 set destdir [file join [file dirname $tooldir] clackap_cutdown]
 
-catch {file mkdir $destdir}
+# catch {file mkdir $destdir}
 
 # helper procs for parsing
 proc shift {} {
@@ -130,7 +130,7 @@ proc parsef2csource {f} {
 				
 				set start [string length $all]
 				set matches [regexp -all -inline -start $start $rpartfuncdecl $extrn]
-				puts "$matches"
+				#puts "$matches"
 				foreach {-> ename eargs} $matches {
 					dict set externals $ename type $etype
 					dict set externals $ename args $eargs
@@ -142,7 +142,7 @@ proc parsef2csource {f} {
 				# is the end of a toplevel subroutine
 
 				print
-				puts "Function $name, returns $rtype, args $arglist"
+				puts "Function $name, returns $rtype"
 				puts "Depending on [dict keys $externals]"
 				# put into global function list
 				dict set functions $name type $rtype
@@ -150,6 +150,21 @@ proc parsef2csource {f} {
 				dict set functions $name depends [dict keys $externals]
 				dict set functions $name constants $constants
 				dict set functions $name body $body
+
+				# now put the external declarations into the functions table,
+				dict for {name def} $externals {
+					if {![dict exists $functions $name]} {
+						# careful not to overwrite previous definitions
+						# declarations must agree
+						dict set functions $name $def
+					} else {
+						# check for redefinition - false alarms
+						set previous [dict get $functions $name]
+						if {$previous != $def} {
+							puts stderr "Warning, declarations differ for $name"
+						}
+					}
+				}
 				set infunction false
 				set externals {}
 				set body {}
@@ -176,9 +191,10 @@ proc do_linkage {args} {
 		dict for {fun included} $linktable {
 			if {$included ne "undefined"} continue
 			puts "Linking $fun"
-			if {[catch {dict get $functions $fun} def]} {
-				puts stderr "Warning: $fun not found"
-				dict set linktable $fun external
+			set def [dict get $functions $fun]
+			if {![dict exists $def body]} {
+				puts stderr "Warning: $fun undefined"
+				dict set linktable $fun extern
 				continue
 			}
 			set depends [dict get $def depends]
@@ -195,8 +211,77 @@ proc do_linkage {args} {
 	}
 	
 	foreach fun $args {
-		dict set linktable $fun exported
+		dict set linktable $fun MODULE_SCOPE
 	}
 	return $linktable
 }
+
+proc generate_code {f linktable} {
+	# write out code as an amalgamated big C file
+	variable functions
+
+	set fh [file rootname $f].h
+	
+	set declarations {}
+	set constantdefs {}
+	set funcdefinitions {}
+
+	set header {}
+
+	dict for {name ltype} $linktable {
+		set def [dict get $functions $name]
+		if {$ltype eq "extern"} {
+			# it's not defined here. Just write a declaration
+			dict with def {
+				append declarations "extern $type $name $args;\n"
+			}
+		} else {
+			puts "Yes"
+			dict with def {
+				set defline  "$ltype $type $name $args"
+				append declarations "$defline;\n"
+
+				append funcdefinitions "$defline\n"
+				append funcdefinitions $body
+
+				append constantdefs $constants
+			}
+		}
+	}
+		
+	
+	set fdc [open $f w]
+	set fdh [open $fh w]
+
+	puts $fdc {/* Generated code. Do not edit. See cherrypick_lapack.tcl */}
+	puts $fdc "#include \"$fh\""
+	
+	puts $fdc "/* declared functions */"
+	puts $fdc $declarations
+
+	puts $fdc "/* defined constants */"
+	puts $fdc $constantdefs
+
+	puts $fdc "/* defined functions */"
+	puts $fdc $funcdefinitions
+	puts $fdc
+
+	puts $fdh {#include "f2c.h"}
+	puts $fdh $header
+	close $fdc
+	close $fdh
+}
+
+proc read_lapack {} {
+	variable CLAPACK_DIR
+	# read in LAPACK
+	foreach f [glob -directory $CLAPACK_DIR SRC/*.c] {
+		parsef2csource $f
+	}
+	# read BLAS
+	foreach f [glob -directory $CLAPACK_DIR BLAS/SRC/*.c] {
+		parsef2csource $f
+	}
+}
+
 
