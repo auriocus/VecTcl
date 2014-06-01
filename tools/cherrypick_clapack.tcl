@@ -42,7 +42,7 @@ proc parsef2csource {f} {
 	variable constantdefs
 
 	# a regexp matching any of f2c's return types /* Subroutine */ int 
-	set rdtypes {(\minteger|\mlogical|\mreal|\mdoublereal|\mcomplex|\mdoublecomplex|/\* Subroutine \*/ int)\M}
+	set rdtypes {(\minteger|\mlogical|\mreal|\mdoublereal|\mcomplex|\mdoublecomplex|/\* Subroutine \*/ int|/\* Double Complex \*/ VOID|/\* Complex \*/ VOID)\M}
 	# regexp matching an identifier
 	set rident  {\m([a-zA-Z0-9_]+)\M}
 	# regexes for f2c's markers
@@ -276,6 +276,7 @@ proc generate_code {f linktable} {
 
 	puts $fdc {/* Generated code. Do not edit. See cherrypick_lapack.tcl */}
 	puts $fdc "#include \"$fh\""
+	puts $fdc "#include \"f2c_mathlib.h\""
 	
 	puts $fdc "/* declared functions */"
 	puts $fdc $declarations

@@ -76,8 +76,7 @@ AC_TYPE_INTPTR_T
 
 TEA_ADD_SOURCES([vectclapi.c vectcl.c linalg.c arrayshape.c nacomplex.c hsfft.c fft.c svd.c 
 				bcexecute.c vmparser.c 
-				blas_lite.c dlapack_lite.c zlapack_lite.c 
-				f2c_lite.c dlamch.c tcl_xerbla.c])
+				clapack_cutdown.c dlamch.c tcl_xerbla.c])
 TEA_ADD_HEADERS([generic/vectcl.h generic/nacomplex.h generic/hsfft.h])
 TEA_ADD_INCLUDES([])
 TEA_ADD_LIBS([-lm])

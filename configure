@@ -5390,8 +5390,7 @@ fi
 
     vars="vectclapi.c vectcl.c linalg.c arrayshape.c nacomplex.c hsfft.c fft.c svd.c
 				bcexecute.c vmparser.c
-				blas_lite.c dlapack_lite.c zlapack_lite.c
-				f2c_lite.c dlamch.c tcl_xerbla.c"
+				clapack_cutdown.c dlamch.c tcl_xerbla.c"
     for i in $vars; do
 	case $i in
 	    \$*)

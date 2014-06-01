@@ -617,7 +617,7 @@ int NumArraySVD1Cmd(ClientData dummy, Tcl_Interp *interp, int objc, Tcl_Obj *con
 }
 
 #ifdef HAVE_LAPACK
-#include "lapack_lite.h"
+#include "clapack_cutdown.h"
 int NumArraySVDCmd(ClientData dummy, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv) {
 	if (objc != 2) {
 		Tcl_WrongNumArgs(interp, 1, objv, "matrix");

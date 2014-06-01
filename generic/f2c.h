@@ -8,16 +8,23 @@
 #define F2C_INCLUDE
 
 typedef long int integer;
+typedef unsigned long int uinteger;
 typedef char *address;
 typedef short int shortint;
 typedef float real;
 typedef double doublereal;
 typedef struct { real r, i; } complex;
 typedef struct { doublereal r, i; } doublecomplex;
-typedef int logical;
+typedef long int logical;
 typedef short int shortlogical;
 typedef char logical1;
 typedef char integer1;
+#ifdef INTEGER_STAR_8	/* Adjust for integer*8. */
+typedef long long longint;		/* system-dependent */
+typedef unsigned long long ulongint;	/* system-dependent */
+#define qbit_clear(a,b)	((a) & ~((ulongint)1 << (b)))
+#define qbit_set(a,b)	((a) |  ((ulongint)1 << (b)))
+#endif
 
 #define TRUE_ (1)
 #define FALSE_ (0)
@@ -35,9 +42,9 @@ typedef short flag;
 typedef short ftnlen;
 typedef short ftnint;
 #else
-typedef int flag;
-typedef int ftnlen;
-typedef int ftnint;
+typedef long int flag;
+typedef long int ftnlen;
+typedef long int ftnint;
 #endif
 
 /*external read, write*/
@@ -118,8 +125,10 @@ typedef struct
 #define VOID void
 
 union Multitype {	/* for multiple entry points */
+	integer1 g;
 	shortint h;
 	integer i;
+	/* longint j; */
 	real r;
 	doublereal d;
 	complex c;
@@ -128,7 +137,7 @@ union Multitype {	/* for multiple entry points */
 
 typedef union Multitype Multitype;
 
-typedef long Long;	/* No longer used; formerly in Namelist */
+/*typedef long int Long;*/	/* No longer used; formerly in Namelist */
 
 struct Vardesc {	/* for Namelist */
 	char *name;
@@ -145,18 +154,15 @@ struct Namelist {
 	};
 typedef struct Namelist Namelist;
 
-#ifndef abs
 #define abs(x) ((x) >= 0 ? (x) : -(x))
-#endif
 #define dabs(x) (doublereal)abs(x)
-#ifndef min
 #define min(a,b) ((a) <= (b) ? (a) : (b))
-#endif
-#ifndef max
 #define max(a,b) ((a) >= (b) ? (a) : (b))
-#endif
 #define dmin(a,b) (doublereal)min(a,b)
 #define dmax(a,b) (doublereal)max(a,b)
+#define bit_test(a,b)	((a) >> (b) & 1)
+#define bit_clear(a,b)	((a) & ~((uinteger)1 << (b)))
+#define bit_set(a,b)	((a) |  ((uinteger)1 << (b)))
 
 /* procedure parameter types for -A and -C++ */
 
@@ -174,17 +180,17 @@ typedef shortlogical (*K_fp)(...);
 typedef /* Character */ VOID (*H_fp)(...);
 typedef /* Subroutine */ int (*S_fp)(...);
 #else
-typedef int /* Unknown procedure type */ (*U_fp)(void);
-typedef shortint (*J_fp)(void);
-typedef integer (*I_fp)(void);
-typedef real (*R_fp)(void);
-typedef doublereal (*D_fp)(void), (*E_fp)(void);
-typedef /* Complex */ VOID (*C_fp)(void);
-typedef /* Double Complex */ VOID (*Z_fp)(void);
-typedef logical (*L_fp)(void);
-typedef shortlogical (*K_fp)(void);
-typedef /* Character */ VOID (*H_fp)(void);
-typedef /* Subroutine */ int (*S_fp)(void);
+typedef int /* Unknown procedure type */ (*U_fp)();
+typedef shortint (*J_fp)();
+typedef integer (*I_fp)();
+typedef real (*R_fp)();
+typedef doublereal (*D_fp)(), (*E_fp)();
+typedef /* Complex */ VOID (*C_fp)();
+typedef /* Double Complex */ VOID (*Z_fp)();
+typedef logical (*L_fp)();
+typedef shortlogical (*K_fp)();
+typedef /* Character */ VOID (*H_fp)();
+typedef /* Subroutine */ int (*S_fp)();
 #endif
 /* E_fp is for real functions when -R is not specified */
 typedef VOID C_f;	/* complex function */
@@ -215,3 +221,4 @@ typedef doublereal E_f;	/* real function with -R not specified */
 #undef vax
 #endif
 #endif
+
