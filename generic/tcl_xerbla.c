@@ -19,24 +19,14 @@
   info: Number of the invalid parameter.
 */
 
-/* Grmbl: need to pass on Tcl_Interp in a thread-safe way.
- * and return codes. Currently unable to do it until I munge on he lapack sources
- * myself */
+/* The Tcl_Interp in a thread-safe way in a call chain from all subroutines
+ * and return codes are used. Thus we can really just report an error
+ * as usual within Tcl */
 
-int xerbla_(char *srname, integer *info)
+int vectcl_xerbla(Tcl_Interp *interp, char *srname, integer *info)
 {
-        const char* format = "On entry to %.*s" \
-                " parameter number %d had an illegal value";
-        char buf[57 + 6 + 4]; /* 57 for strlen(format),
-                                 6 for name, 4 for param. num. */
+        const char* format = "%s: parameter number %d is invalid";
 
-        int len = 0; /* length of subroutine name*/
-
-        while( len<6 && srname[len]!='\0' )
-                len++;
-        while( len && srname[len-1]==' ' )
-                len--;
-		/* just print out the message to stderr */
-		fprintf(stderr, format, len, srname, *info);
-        return 0;
+        Tcl_SetObjResult(interp, Tcl_ObjPrintf(format, srname, (int)*info));
+	return TCL_ERROR;
 }

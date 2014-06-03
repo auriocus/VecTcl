@@ -19,7 +19,7 @@ dnl	to configure the system for the local environment.
 # so that we create the export library with the dll.
 #-----------------------------------------------------------------------
 
-AC_INIT([vectcl], [0.1])
+AC_INIT([vectcl], [0.1.6])
 
 #--------------------------------------------------------------------
 # Call TEA_INIT as the first TEA_ macro to set up initial vars.
@@ -76,7 +76,7 @@ AC_TYPE_INTPTR_T
 
 TEA_ADD_SOURCES([vectclapi.c vectcl.c linalg.c arrayshape.c nacomplex.c hsfft.c fft.c svd.c 
 				bcexecute.c vmparser.c 
-				clapack_cutdown.c dlamch.c tcl_xerbla.c])
+				clapack_cutdown.c tcl_xerbla.c])
 TEA_ADD_HEADERS([generic/vectcl.h generic/nacomplex.h generic/hsfft.h])
 TEA_ADD_INCLUDES([])
 TEA_ADD_LIBS([-lm])

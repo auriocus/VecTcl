@@ -678,7 +678,7 @@ int NumArraySVDCmd(ClientData dummy, Tcl_Interp *interp, int objc, Tcl_Obj *cons
 	integer *iwork, integer *info) */
 
 		/* call out to dgesdd */
-		dgesdd_("A", &m, &n, 
+		int result=dgesdd_(interp, "A", &m, &n, 
 			Aptr, &lda, sptr, Uptr, 
 			&ldu, Vptr, &ldvt, work,
 			&lwork, iwork, &info);
@@ -689,13 +689,20 @@ int NumArraySVDCmd(ClientData dummy, Tcl_Interp *interp, int objc, Tcl_Obj *cons
 		/* A is also overwritten with junk */
 		Tcl_DecrRefCount(A);
 
-		/* join U, s, V into a list*/
-		Tcl_Obj *result = Tcl_NewObj();
-		Tcl_ListObjAppendElement(NULL, result, s);
-		Tcl_ListObjAppendElement(NULL, result, U);
-		Tcl_ListObjAppendElement(NULL, result, V);
-		Tcl_SetObjResult(interp, result);
-		return TCL_OK;
+		if (result == TCL_OK) {
+			/* join U, s, V into a list*/
+			Tcl_Obj *result = Tcl_NewObj();
+			Tcl_ListObjAppendElement(NULL, result, s);
+			Tcl_ListObjAppendElement(NULL, result, U);
+			Tcl_ListObjAppendElement(NULL, result, V);
+			Tcl_SetObjResult(interp, result);
+			return TCL_OK;
+		} else {
+			Tcl_DecrRefCount(s);
+			Tcl_DecrRefCount(U);
+			Tcl_DecrRefCount(V);
+			return TCL_ERROR;
+		}
 
 
 	} else {
@@ -733,7 +740,7 @@ int NumArraySVDCmd(ClientData dummy, Tcl_Interp *interp, int objc, Tcl_Obj *cons
 	integer *lwork, doublereal *rwork, integer *iwork, integer *info)
 */
 		/* call out to zgesdd */
-		zgesdd_("A",  &m, &n, 
+		int result=zgesdd_(interp, "A",  &m, &n, 
 			Aptr, &lda, sptr, Uptr, 
 			&ldu, Vptr, &ldvt, work, 
 			&lwork, rwork, iwork, &info);
@@ -745,13 +752,19 @@ int NumArraySVDCmd(ClientData dummy, Tcl_Interp *interp, int objc, Tcl_Obj *cons
 		/* A is also overwritten with junk */
 		Tcl_DecrRefCount(A);
 
-		/* join U, s, V into a list*/
-		Tcl_Obj *result = Tcl_NewObj();
-		Tcl_ListObjAppendElement(NULL, result, s);
-		Tcl_ListObjAppendElement(NULL, result, U);
-		Tcl_ListObjAppendElement(NULL, result, V);
-		Tcl_SetObjResult(interp, result);
-		return TCL_OK;
+		if (result==TCL_OK) {
+			/* join U, s, V into a list*/
+			Tcl_Obj *result = Tcl_NewObj();
+			Tcl_ListObjAppendElement(NULL, result, s);
+			Tcl_ListObjAppendElement(NULL, result, U);
+			Tcl_ListObjAppendElement(NULL, result, V);
+			Tcl_SetObjResult(interp, result);
+			return TCL_OK;
+		} else {
+			Tcl_DecrRefCount(s);
+			Tcl_DecrRefCount(U);
+			Tcl_DecrRefCount(V);
+		}
 	}
 }
 

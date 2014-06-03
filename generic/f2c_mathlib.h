@@ -3,6 +3,9 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
+#include <math.h>
+#include <float.h>
 
 /* #include "arith.h" */
 #define IEEE_8087
@@ -14,6 +17,18 @@
 #define NANCHECK
 #define QNaN0 0x0
 #define QNaN1 0xfff80000
+
+/* math macros from f2c.h */
+#define abs(x) ((x) >= 0 ? (x) : -(x))
+#define dabs(x) (doublereal)abs(x)
+#define min(a,b) ((a) <= (b) ? (a) : (b))
+#define max(a,b) ((a) >= (b) ? (a) : (b))
+#define dmin(a,b) (doublereal)min(a,b)
+#define dmax(a,b) (doublereal)max(a,b)
+#define bit_test(a,b)	((a) >> (b) & 1)
+#define bit_clear(a,b)	((a) & ~((uinteger)1 << (b)))
+#define bit_set(a,b)	((a) |  ((uinteger)1 << (b)))
+
 
 static inline int abort_(void);
 static inline double c_abs(complex *z);
@@ -105,6 +120,56 @@ static inline void z_log(doublecomplex *r, doublecomplex *z);
 static inline void z_sin(doublecomplex *r, doublecomplex *z);
 static inline void z_sqrt(doublecomplex *r, doublecomplex *z);
 
+/* Routine for reading machine parameters */
+static inline double dlamch_(char *request) {
+	/* Try to retrieve the floating point characteristic
+	 * at compile time */
+	const double NaN = 0.0/0.0;
+	switch (*request) {
+		case 'E':
+		case 'e': { return DBL_EPSILON; }
+		case 'B':
+		case 'b': { return 2.0; }
+		case 'S':
+		case 's': { return DBL_MIN;}
+		case 'P':
+		case 'p': { return 2.0*DBL_EPSILON; }
+		case 'N':
+		case 'n': { return DBL_MANT_DIG; }
+		case 'r':
+		case 'R': { return FLT_ROUNDS==1; }
+		case 'M':
+		case 'm': { return DBL_MIN_EXP; }
+		case 'L': 
+		case 'l': { return DBL_MAX_EXP; }
+		case 'u':
+		case 'U': { return DBL_MIN; }
+		case 'O':
+		case 'o': { return DBL_MAX; }
+		default: { return NaN; }
+	}
+}
+
+
+/* *********************************************************************** */
+
+static inline doublereal dlamc3_(doublereal *a, doublereal *b)
+{
+    /* System generated locals */
+    doublereal ret_val;
+
+/*     .. Executable Statements .. */
+
+    ret_val = *a + *b;
+
+    return ret_val;
+
+/*     End of DLAMC3 */
+
+} /* dlamc3_ */
+
+
+/* *********************************************************************** */
 /* abort_.c */
 
 
@@ -1186,6 +1251,7 @@ static inline int s_cat(char *lp, char *rpp[], ftnint rnp[], ftnint *np, ftnlen 
 		free(lp1);
 		}
 #endif
+	return 0;
 	}
 
 /* s_cmp.c */

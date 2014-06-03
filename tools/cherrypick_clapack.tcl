@@ -19,6 +19,11 @@ proc shift {} {
 	return $line
 }
 
+proc putback {} {
+    upvar 1 i i
+    incr i -1
+}
+
 proc print {} {
 	upvar 1 line line
 	upvar 1 body body
@@ -31,6 +36,19 @@ proc print {} {
 	append body "$mline\n"
 }
 
+proc issubroutine {type} {
+    expr {
+	$type eq "/* Subroutine */ int"
+    }
+}
+
+proc insinterp {arglist if} {
+    if {$if} {
+	regsub {\(} {(Tcl_Interp *interp, } $arglist
+    } else {
+	return $arglist
+    }
+}
 
 proc parsef2csource {f} {
 	# read a CLAPACK source file
@@ -40,6 +58,7 @@ proc parsef2csource {f} {
 
 	variable functions
 	variable constantdefs
+	variable ignore
 
 	# a regexp matching any of f2c's return types /* Subroutine */ int 
 	set rdtypes {(\minteger|\mlogical|\mreal|\mdoublereal|\mcomplex|\mdoublecomplex|/\* Subroutine \*/ int|/\* Double Complex \*/ VOID|/\* Complex \*/ VOID)\M}
@@ -56,6 +75,9 @@ proc parsef2csource {f} {
 	set rfullfuncdecl ".*${rdtypes}\\s+$rident${rarglist}"
 	set rmainfuncdecl "^${rfuncdecl}(.*)"
 	set rconstant "^static\\s+$rdtypes\\s+$rident\\s*=\\s*(.*);"
+	set rcommentonly {^\s*/\*.*\*/\s*$}
+	set rfuncall "^\\s*$rident\\("
+	set rreturnok "return\\s+0;"
 	
 	# read in the file
 	set fd [open $f r]
@@ -110,7 +132,12 @@ proc parsef2csource {f} {
 					shift
 				}
 				print
-				set arglist "($arglist"
+				set mainsubroutine [issubroutine $rtype]
+				if {$mainsubroutine} {
+				    set arglist "(Tcl_Interp *interp, $arglist"
+				} else {
+				    set arglist "($arglist"
+				}
 				# the leading parenthesis was gobbled up
 				# by rmainfuncdecl
 			} \
@@ -121,22 +148,28 @@ proc parsef2csource {f} {
 					shift
 					append extrn $line
 				}
-
+				
+				# puts "Found $extrn\n\n"
 				# now we must parse the extern declarations. 
 				# There can be more than one function on the same
 				# extern line
 				regexp  $rfullfuncdecl $extrn all etype ename eargs
 				
-				dict set externals $ename type $etype
-				dict set externals $ename args $eargs 
-				
+				set ip [issubroutine $etype]
+
+				if {![dict exists $ignore $ename]} {
+					dict set externals $ename type $etype
+					dict set externals $ename args [insinterp $eargs $ip]
+				}
 				#puts $all 
 				set start [string length $all]
 				set matches [regexp -all -inline -start $start $rpartfuncdecl $extrn]
 				#puts "$matches"
 				foreach {-> ename eargs} $matches {
-					dict set externals $ename type $etype
-					dict set externals $ename args $eargs
+					if {![dict exists $ignore $ename]} {
+						dict set externals $ename type $etype
+						dict set externals $ename args [insinterp $eargs $ip]
+					}
 				}
 
 			} \
@@ -172,6 +205,64 @@ proc parsef2csource {f} {
 				set externals {}
 				set body {}
 				set arglist {}
+			} \
+			$rcommentonly { 
+				# strip the extensive comments to save space
+				#puts $line
+			} \
+			$rfuncall {
+			    # it is a void call to a function. Check that it was declared
+			    # as subroutine int, then insert the Tcl_Interp as the first 
+			    # parameter.
+			    
+			    lassign $match -> fname
+			    
+			    if {$fname eq "xerbla_"} {
+				# replace call to xerbla by tcl_xerbla
+				# and report error
+				set call [regsub {xerbla_\s*\(} $line {vectcl_xerbla(interp, }]
+				set line "$call\n"
+				append line "return TCL_ERROR;\n"
+				print
+				continue
+			    }
+
+			    if {[dict exists $externals $fname] && 
+				[issubroutine [dict get $externals $fname type]] } {
+				# gobble up until ;
+				set call $line
+				while {[string first ";" $line]<0} {
+					shift
+					append call "$line\n"
+				}
+				
+				if {$mainsubroutine} {
+				    # we have the interp available
+				    # insert Tcl_Interp, check for return value 
+				    set call [regsub {\(} $call {(interp, }]
+				    set call [regsub {;} $call {!=TCL_OK) { return TCL_ERROR; }}]
+				    set call [regsub {^(\s*)} $call {\1if (}]
+				    set line "$call\n"
+				} else {
+				    # Oh. we don't have the interp available, 
+				    # but call a subroutine (which needs it)
+				    # pass NULL and hope it works. It will error out
+				    # at compile time in the dependent subroutine, if the interp 
+				    # is really needed.
+
+				    set line [regsub {\(} $call {(NULL, }]
+				}
+			    }
+			    print
+			    
+			} \
+			$rreturnok {
+			    # replace by returning TCL_OK
+			    if {$infunction && [issubroutine $rtype]} {
+				append body "return TCL_OK;\n"
+			    } else {
+				print
+			    }
 			} \
 			default {
 				if {$infunction} {
@@ -221,10 +312,14 @@ proc do_linkage {args} {
 	return $linktable
 }
 
-proc generate_code {f linktable} {
+proc generate_code {f args} {
 	# write out code as an amalgamated big C file
 	variable functions
 	variable constantdefs
+
+	# link the functions
+	set subroutines $args
+	set linktable [do_linkage {*}$subroutines]
 
 	set fh [file rootname $f].h
 	
@@ -275,9 +370,20 @@ proc generate_code {f linktable} {
 	set fdh [open $fh w]
 
 	puts $fdc {/* Generated code. Do not edit. See cherrypick_lapack.tcl */}
+	puts $fdc {/* This file contains a subset of LAPACK for use with Tcl/VecTcl */}
+	puts $fdc "/* available subroutines: [join $subroutines ", "] */"
 	puts $fdc "#include \"$fh\""
 	puts $fdc "#include \"f2c_mathlib.h\""
+	puts $fdc "/* Declaring the Tcl replacement for xerbla */"
 	
+	puts $fdc { \
+MODULE_SCOPE int vectcl_xerbla(Tcl_Interp *interp, char* func, integer *info);
+#pragma clang diagnostic ignored "-Wshift-op-parentheses"
+#pragma clang diagnostic ignored "-Wlogical-op-parentheses"
+#pragma clang diagnostic ignored "-Wsometimes-uninitialized"}
+	# shut up compiler with operator precedence warnings. 
+	# f2c really DOES know the operator precedence in C
+
 	puts $fdc "/* declared functions */"
 	puts $fdc $declarations
 
@@ -289,6 +395,7 @@ proc generate_code {f linktable} {
 	puts $fdc
 
 	puts $fdh {#include "f2c.h"}
+	puts $fdh {#include <tcl.h>}
 	puts $fdh $header
 	close $fdc
 	close $fdh
@@ -296,6 +403,9 @@ proc generate_code {f linktable} {
 
 proc read_lapack {} {
 	variable CLAPACK_DIR
+	# these functions should be ignored everywhere
+	variable ignore {xerbla_ 1 dlamch_ 1 dlamc3_ 1}
+	
 	# read in LAPACK
 	foreach f [glob -directory $CLAPACK_DIR SRC/*.c] {
 		parsef2csource $f
@@ -304,6 +414,7 @@ proc read_lapack {} {
 	foreach f [glob -directory $CLAPACK_DIR BLAS/SRC/*.c] {
 		parsef2csource $f
 	}
+
 }
 
 
