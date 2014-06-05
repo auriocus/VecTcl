@@ -1,5 +1,9 @@
+#include <float.h>
 #include "linalg.h"
 #include "math.h"
+#include "clapack_cutdown.h"
+
+#define MAX(X, Y) ((X)>(Y) ? (X) : (Y))
 
 int NumArrayDotCmd(ClientData dummy, Tcl_Interp *interp,
     int objc, Tcl_Obj *const *objv) 
@@ -55,10 +59,12 @@ int NumArrayDotCmd(ClientData dummy, Tcl_Interp *interp,
 	#define TRES double
 	#include "dotproductloop.h"	
 	
+	/* Here we should specialize for BLAS dgemm */
 	#define T1 double
 	#define T2 double
 	#define TRES double
-	#include "dotproductloop.h"	
+	#include "dotproductloop.h"
+	
 
 	#define T1 NaWideInt
 	#define T2 NumArray_Complex
@@ -80,6 +86,7 @@ int NumArrayDotCmd(ClientData dummy, Tcl_Interp *interp,
 	#define TRES NumArray_Complex
 	#include "dotproductloop.h"	
 	
+	/* Here we could specialize for zgemm */
 	#define T1 NumArray_Complex
 	#define T2 NumArray_Complex
 	#define TRES NumArray_Complex
@@ -537,51 +544,252 @@ int NumArrayQRecoCmd(ClientData dummy, Tcl_Interp *interp,
 	return TCL_OK;
 }
 
+MODULE_SCOPE int solvedQRP(Tcl_Interp *interp, Tcl_Obj *A, Tcl_Obj *y, Tcl_Obj **b) {
+    /* Solve the system A b = y, store result in b
+     * Use a complete orthogonal factorization to be able
+     * to deal with least squares and singular systems.*/
+    
+    NumArrayInfo *Ainfo=NumArrayGetInfoFromObj(interp, A);
+    if (! Ainfo) {
+	return TCL_ERROR;
+    }
+
+    NumArrayInfo *yinfo=NumArrayGetInfoFromObj(interp, y);
+    if (! yinfo) {
+	return TCL_ERROR;
+    }
+
+    /* get dimensions of A */
+    if (Ainfo->nDim > 2) {
+	Tcl_SetResult(interp, "Matrix ldivide only defined for 2D matrix", NULL);
+	return TCL_ERROR;
+    }
+
+    integer m = Ainfo -> dims[0];
+    integer n = (Ainfo->nDim ==1) ? 1: Ainfo -> dims[1];
+
+    /* get dimensions of y*/
+    if (yinfo->nDim > 2) {
+	Tcl_SetResult(interp, "Matrix ldivide only defined for 2D right hand side", NULL);
+	return TCL_ERROR;
+    }
+
+    integer ym   = yinfo -> dims[0];
+    integer nrhs = (yinfo->nDim ==1) ? 1: yinfo -> dims[1];
+
+    if (ym != m) {
+	Tcl_SetResult(interp, "Matrix and right-hand-side must have equal number of rows", NULL);
+	return TCL_ERROR;
+    }
+
+    
+    /* Subroutine int dgelsy_ (Tcl_Interp *interp, integer *m, integer *n, integer *nrhs, 	
+     * doublereal *a, integer *lda, doublereal *b, integer *ldb, integer *jpvt, 
+     * doublereal *rcond, integer *rank, doublereal *work, integer *lwork, integer *info); */
+    
+    Tcl_Obj * QR = NumArrayNewMatrixColMaj(NumArray_Float64, m, n);
+    double *QRptr = NumArrayGetPtrFromObj(NULL, QR);
+    
+    integer ldb = MAX(m, n);
+    *b = NumArrayNewMatrixColMaj(NumArray_Float64, ldb, nrhs);
+    
+    NumArrayInfo *binfo = NumArrayGetInfoFromObj(NULL, *b);
+    if (m > n) {
+	/* tall matrix. b must be a n x nrhs view into the m x nrhs matrix */
+	NumArrayInfoSlice1Axis(NULL, binfo, 0, 0, n-1, 1);
+    }
+
+    if (nrhs == 1) {
+	/* In case of a vector, strip the extra dimension.
+	 * Need a cleaner way to do this */
+	binfo -> nDim = 1;
+    }
+     
+    double *bptr = NumArrayGetPtrFromObj(NULL, *b);
+
+    NumArrayObjCopy(interp, A, QR);
+    NumArrayObjCopy(interp, y, *b);
+
+    integer *jpiv = ckalloc(sizeof(integer)*n);
+
+    double rcond=DBL_EPSILON*2;
+
+    integer rank;
+    int mn=MAX(m, n);
+    integer lwork = MAX( mn+3*n+1, 2*mn+nrhs );
+    doublereal *work = ckalloc(sizeof(doublereal)*lwork);
+    integer info;
+    integer lda = m;
+
+    int result= dgelsy_(interp, &m, &n, &nrhs,
+	QRptr, &lda, bptr, &ldb, jpiv,
+	&rcond, &rank, work, &lwork, &info);
+
+    ckfree(work);
+    ckfree(jpiv);
+    
+    Tcl_DecrRefCount(QR);
+
+    if (result != TCL_OK) {
+	Tcl_DecrRefCount(*b);
+	return TCL_ERROR;
+    }
+    
+    if (m >= n && rank < n) {
+	/* Issue a warning */
+	fprintf(stderr, "Warning: Matrix is rank deficient, ncol = %ld, rank = %ld\n", n, rank);
+    }
+    
+    return TCL_OK;
+}
+
+MODULE_SCOPE int solvezQRP(Tcl_Interp *interp, Tcl_Obj *A, Tcl_Obj *y, Tcl_Obj **b) {
+    /* Solve the system A b = y, store result in b
+     * Use a complete orthogonal factorization to be able
+     * to deal with least squares and singular systems.*/
+    
+    NumArrayInfo *Ainfo=NumArrayGetInfoFromObj(interp, A);
+    if (! Ainfo) {
+	return TCL_ERROR;
+    }
+
+    NumArrayInfo *yinfo=NumArrayGetInfoFromObj(interp, y);
+    if (! yinfo) {
+	return TCL_ERROR;
+    }
+
+    /* get dimensions of A */
+    if (Ainfo->nDim > 2) {
+	Tcl_SetResult(interp, "Matrix ldivide only defined for 2D matrix", NULL);
+	return TCL_ERROR;
+    }
+
+    integer m = Ainfo -> dims[0];
+    integer n = (Ainfo->nDim ==1) ? 1: Ainfo -> dims[1];
+
+    /* get dimensions of y*/
+    if (yinfo->nDim > 2) {
+	Tcl_SetResult(interp, "Matrix ldivide only defined for 2D right hand side", NULL);
+	return TCL_ERROR;
+    }
+
+    integer ym   = yinfo -> dims[0];
+    integer nrhs = (yinfo->nDim ==1) ? 1: yinfo -> dims[1];
+
+    if (ym != m) {
+	Tcl_SetResult(interp, "Matrix and right-hand-side must have equal number of rows", NULL);
+	return TCL_ERROR;
+    }
+
+    
+    /* Subroutine int zgelsy_ (Tcl_Interp *interp, integer *m, integer *n, integer *nrhs,
+     * doublecomplex *a, integer *lda, doublecomplex *b, integer *ldb, integer *jpvt,
+     * doublereal *rcond, integer *rank, doublecomplex *work, integer *lwork, 
+     * doublereal *rwork, integer *info); */
+
+    Tcl_Obj * QR = NumArrayNewMatrixColMaj(NumArray_Complex128, m, n);
+    double *QRptr = NumArrayGetPtrFromObj(NULL, QR);
+    
+    integer ldb = MAX(m, n);
+    *b = NumArrayNewMatrixColMaj(NumArray_Complex128, ldb, nrhs);
+    
+    NumArrayInfo *binfo = NumArrayGetInfoFromObj(NULL, *b);
+    if (m > n) {
+	/* tall matrix. b must be a n x nrhs view into the m x nrhs matrix */
+	NumArrayInfoSlice1Axis(NULL, binfo, 0, 0, n-1, 1);
+    }
+
+    if (nrhs == 1) {
+	/* In case of a vector, strip the extra dimension.
+	 * Need a cleaner way to do this */
+	binfo -> nDim = 1;
+    }
+     
+    doublecomplex *bptr = NumArrayGetPtrFromObj(NULL, *b);
+
+    NumArrayObjCopy(interp, A, QR);
+    NumArrayObjCopy(interp, y, *b);
+
+    integer *jpiv = ckalloc(sizeof(integer)*n);
+
+    double rcond=DBL_EPSILON*2;
+
+    integer rank;
+    int mn=MAX(m, n);
+    integer lwork = mn + MAX( 2*mn, MAX(n+1, mn+nrhs) );
+    doublecomplex *work = ckalloc(sizeof(doublecomplex)*lwork);
+    doublereal *rwork = ckalloc(sizeof(doublereal)*2*n);
+    
+    integer info;
+    integer lda = m;
+
+    int result= zgelsy_(interp, &m, &n, &nrhs,
+	QRptr, &lda, bptr, &ldb, jpiv,
+	&rcond, &rank, work, &lwork, rwork, &info);
+
+    ckfree(work);
+    ckfree(rwork);
+    ckfree(jpiv);
+    
+    Tcl_DecrRefCount(QR);
+
+    if (result != TCL_OK) {
+	Tcl_DecrRefCount(*b);
+	return TCL_ERROR;
+    }
+    
+    if (m >= n && rank < n) {
+	/* Issue a warning */
+	fprintf(stderr, "Warning: Matrix is rank deficient, ncol = %ld, rank = %ld\n", n, rank);
+    }
+    
+    return TCL_OK;
+}
+
 int NumArrayBackslashCmd(ClientData dummy, Tcl_Interp *interp,
-    int objc, Tcl_Obj *const *objv) 
+	int objc, Tcl_Obj *const *objv) 
 {
-	Tcl_Obj *qr, *rdiag, *A, *y;
-	if (objc != 3) {
-		Tcl_WrongNumArgs(interp, 1, objv, "matrix rhs");
-		return TCL_ERROR;
-	}
-	
-	A=objv[1]; y=objv[2];
+    Tcl_Obj *qr, *rdiag, *A, *y;
+    if (objc != 3) {
+	Tcl_WrongNumArgs(interp, 1, objv, "matrix rhs");
+	return TCL_ERROR;
+    }
 
-	/* test if we must solve a real or complex system. */
-	if (Tcl_ConvertToType(interp, A, &NumArrayTclType) != TCL_OK) {
-		return TCL_ERROR;
-	}
+    A=objv[1]; y=objv[2];
 
-	if (Tcl_ConvertToType(interp, y, &NumArrayTclType) != TCL_OK) {
-		return TCL_ERROR;
-	}
+    /* test if we must solve a real or complex system. */
+    if (Tcl_ConvertToType(interp, A, &NumArrayTclType) != TCL_OK) {
+	return TCL_ERROR;
+    }
 
-	NumArrayInfo *Ainfo = A->internalRep.twoPtrValue.ptr2;
-	NumArrayInfo *yinfo = y->internalRep.twoPtrValue.ptr2;
+    if (Tcl_ConvertToType(interp, y, &NumArrayTclType) != TCL_OK) {
+	return TCL_ERROR;
+    }
 
-	if (Ainfo->type == NumArray_Complex128 || yinfo->type == NumArray_Complex128) {
-		/* perform complex decomposition */
-		if (QRDecompositionColMajC(interp, A, &qr, &rdiag) != TCL_OK) {
-			return TCL_ERROR;
-		}
+    NumArrayInfo *Ainfo = A->internalRep.twoPtrValue.ptr2;
+    NumArrayInfo *yinfo = y->internalRep.twoPtrValue.ptr2;
 
-		/* Solve the system */
-		if (QRsolveColMajC(interp, qr, rdiag, y) != TCL_OK) {
-			return TCL_ERROR;
-		}
+    if (Ainfo->type == NumArray_Complex128 || yinfo->type == NumArray_Complex128) {
+	/* perform complex solution */
+	Tcl_Obj *x=NULL;
+	if (solvezQRP(interp, A, y, &x) != TCL_OK) {
+	    return TCL_ERROR;
 	} else {
-		/* perform real decomposition */
-		if (QRDecompositionColMaj(interp, A, &qr, &rdiag) != TCL_OK) {
-			return TCL_ERROR;
-		}
-
-		/* Solve the system */
-		if (QRsolveColMaj(interp, qr, rdiag, y) != TCL_OK) {
-			return TCL_ERROR;
-		}
+	    Tcl_SetObjResult(interp, x);
+	    return TCL_OK;
 	}
-	return TCL_OK;
+    } else {
+	/* perform real solution */
+	Tcl_Obj *x=NULL;
+	if (solvedQRP(interp, A, y, &x) != TCL_OK) {
+	    return TCL_ERROR;
+	} else {
+	    Tcl_SetObjResult(interp, x);
+	    return TCL_OK;
+	}
+    }
+
+    return TCL_ERROR;
 }
 
 int NumArraySlashCmd(ClientData dummy, Tcl_Interp *interp,

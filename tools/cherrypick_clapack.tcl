@@ -5,9 +5,7 @@
 set CLAPACK_DIR /Users/chris/Sources/CLAPACK-3.2.1/
 
 set tooldir [file dirname [info script]]
-set destdir [file join [file dirname $tooldir] clackap_cutdown]
-
-# catch {file mkdir $destdir}
+set destfile [file join $tooldir ../../generic/clackap_cutdown.c]
 
 # helper procs for parsing
 proc shift {} {
@@ -301,7 +299,6 @@ proc do_linkage {args} {
 				}
 			}
 			dict set linktable $fun static
-			#file copy -force $src $destdir
 		}
 		if {$final} break
 	}
@@ -371,7 +368,7 @@ proc generate_code {f args} {
 
 	puts $fdc {/* Generated code. Do not edit. See cherrypick_lapack.tcl */}
 	puts $fdc {/* This file contains a subset of LAPACK for use with Tcl/VecTcl */}
-	puts $fdc "/* available subroutines: [join $subroutines ", "] */"
+	puts $fdc "/* available subroutines: $subroutines  */"
 	puts $fdc "#include \"$fh\""
 	puts $fdc "#include \"f2c_mathlib.h\""
 	puts $fdc "/* Declaring the Tcl replacement for xerbla */"
@@ -417,4 +414,13 @@ proc read_lapack {} {
 
 }
 
-
+proc run_generator {} {
+    #
+    variable destfile
+    read_lapack
+    generate_code $destfile  \
+	dgesdd_ zgesdd_ dgemm_ zgemm_ \
+	dsyevr_ zheevr_ dgeev_ zgeev_ \
+	dgelss_ zgelss_ dgelsy_ zgelsy_ \
+	dgesv_ zgesv_ dgesvx_ zgesvx_
+}
