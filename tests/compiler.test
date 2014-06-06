@@ -122,3 +122,94 @@ test compiler namespace-2 -body {
 	
 } -result 7
 
+test compiler whitespace-1 -body {
+	
+	set a 2
+	set b 3
+	vexpr {min(a,b)}
+	
+} -result 2
+
+test compiler whitespace-2 -body {
+	
+	set a 2
+	set b 3
+	vexpr { min(a,b)}
+	
+} -result 2
+
+test compiler whitespace-3 -body {
+	
+	set a 2
+	set b 3
+	vexpr { min(a,b) }
+	
+} -result 2
+
+test compiler whitespace-4 -body {
+	
+	set a 2
+	set b 3
+	vexpr { min(a,b ) }
+	
+} -result 2
+
+test compiler whitespace-5 -body {
+	
+	set a 2
+	set b 3
+	vexpr { min( a,b ) }
+	
+} -result 2
+
+test compiler whitespace-6 -body {
+	
+	set a 2
+	set b 3
+	vexpr { min( a ,b ) }
+	
+} -result 2
+
+test compiler whitespace-7 -body {
+	
+	set a 2
+	set b 3
+	vexpr { min( a , b ) }
+	
+} -result 2
+
+test compiler whitespace-8 -body {
+	
+	proc fun {} {}
+	vexpr {fun()}
+	
+} -result {}
+
+test compiler whitespace-9 -body {
+	
+	proc fun {} {}
+	vexpr { fun()}
+	
+} -result {}
+
+test compiler whitespace-10 -body {
+	
+	proc fun {} {}
+	vexpr { fun() }
+	
+} -result {}
+
+test compiler whitespace-11 -body {
+	
+	proc fun {} {}
+	vexpr {fun ()}
+	
+} -result {Parse error near  ()} -returnCodes 1
+
+test compiler whitespace-12 -body {
+	
+	proc fun {} {}
+	vexpr {fun(  )}
+	
+} -result {Parse error near n(  } -returnCodes 1
+

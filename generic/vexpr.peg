@@ -36,7 +36,7 @@ PEG VMath (Program)
 		Transpose    <- Fragment TransposeOp / Fragment;
 		Fragment     <- Number / '(' WS Expression WS  ')' / Function / VarSlice/Literal;
 
-		Function     <- FunctionName '(' ( Expression (',' WS Expression)* )? ')';
+		Function     <- FunctionName '(' ( WS Expression WS (',' WS Expression WS)* )? ')';
 		
 		VarSlice     <- Var ( WS '[' WS SliceExpr ( ',' WS SliceExpr )* WS ']' )?;
 		SliceExpr    <- Expression  WS (':' WS Expression WS ( ':' WS Expression )? )? / ':';
@@ -67,7 +67,7 @@ void:   WS			 <- (('\\' EOL) / (!EOL <space>))*;
 # obligatory whitespace
 void:   WSob			 <- (('\\' EOL) / (!EOL <space>))+;
 void:   Separator    <- Comment? EOL / ';';
-void:   Comment      <- '#' (!EOL .)* ;
+void:   Comment      <- '#' (!EOL .)*;
 void:   EOL          <- '\n';
 
 END;
