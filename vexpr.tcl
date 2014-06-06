@@ -59,6 +59,7 @@ namespace eval vectcl {
 	oo::class create ${ns}::CompileVMath {
 		variable tokens script varrefs tempcount parser
 		variable purefunctions
+		variable errpos
 
 		constructor {p} {
 			set parser $p
@@ -92,8 +93,10 @@ namespace eval vectcl {
 			set script $script_
 			set varrefs {}
 			set tempcount 0
-
-			return [my {*}[$parser parset $script] {*}$args]
+			
+			set ast [$parser parset $script]
+			set errpos [$parser errpos]
+			return [my {*}$ast {*}$args]
 		}
 
 		# get name for temp var
@@ -249,7 +252,26 @@ namespace eval vectcl {
 			# first check if we parsed the full program
 			# if not, there was an error...
 			if {$to+1 < [string length $script]} {
-				return -code error "Parse error near [string range $script $to [expr {$to+3}]]"
+				# Parser error. Most probably near to 
+				# errpos. Convert that into line:char number
+				set lines [split $script \n]
+				set lpos 0
+				set linenr 1
+				set errchar $errpos
+				foreach line $lines {
+				    set len [expr {[string length $line]+1}]
+				    # length including the terminating \n
+				    if {$errchar < $len} {
+					set errline $linenr
+					break
+				    }
+				    set errchar [expr {$errchar-$len}]
+				    incr linenr
+				}
+				set errmsg "Error: Parse error in line $linenr:$errchar\n"
+				append errmsg $line\n
+				append errmsg "[string repeat " " $errchar]^"
+				return -code error $errmsg
 			}
 		    
 			# the single arg represents a sequence. 

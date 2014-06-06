@@ -427,6 +427,7 @@ typedef struct RDE_PARAM_ {
 	intptr_t      CC_len;
 	RDE_TC        TC;
 	intptr_t      CL;
+	intptr_t      farthest_parse;
 	RDE_STACK     LS; 
 	ERROR_STATE*  ER;
 	RDE_STACK     ES; 
@@ -548,6 +549,7 @@ rde_param_reset (RDE_PARAM p, Tcl_Channel chan)
 	TRACE (("Tcl_Channel %p",chan));
 	p->IN  = chan;
 	p->CL  = -1;
+	p->farthest_parse = 0;
 	p->ST  = 0;
 	p->CC  = NULL;
 	p->CC_len = 0;
@@ -888,6 +890,14 @@ rde_param_i_input_next (RDE_PARAM p, int m)
 	char* ch;
 	ASSERT_BOUNDS(m,p->numstr);
 	p->CL ++;
+	
+	if (p->CL > p->farthest_parse) {
+	    /* Store this input string position as the farthest position
+	     * achieved */
+	    p->farthest_parse = p->CL;
+	}
+	
+	
 	if (p->CL < rde_tc_size (p->TC)) {
 
 		rde_tc_get (p->TC, p->CL, &p->CC, &p->CC_len);
@@ -1737,6 +1747,18 @@ static int parser_PARSET (RDE_PARAM p, Tcl_Interp* interp, int objc, Tcl_Obj* CO
 	return COMPLETE (p, interp);
 }
 
+static int parser_ERRPOS (RDE_PARAM p, Tcl_Interp* interp, int objc, Tcl_Obj* CONST* objv)
+{
+	if (objc != 2) {
+		Tcl_WrongNumArgs (interp, 2, objv, "");
+		return TCL_ERROR;
+	}
+
+	Tcl_SetObjResult(interp, Tcl_NewLongObj(p->farthest_parse));
+	return TCL_OK;
+	
+}
+
 static int COMPLETE (RDE_PARAM p, Tcl_Interp* interp)
 {
 	if (rde_param_query_st (p)) {
@@ -1783,10 +1805,10 @@ static int parser_objcmd (ClientData cd, Tcl_Interp* interp, int objc, Tcl_Obj* 
 	int m, res=TCL_OK;
 
 	static CONST char* methods [] = {
-		"destroy", "parse", "parset", NULL
+		"destroy", "parse", "parset", "errpos", NULL
 	};
 	enum methods {
-		M_DESTROY, M_PARSE, M_PARSET
+		M_DESTROY, M_PARSE, M_PARSET, M_ERRPOS
 	};
 
 	if (objc < 2) {
@@ -1814,6 +1836,7 @@ static int parser_objcmd (ClientData cd, Tcl_Interp* interp, int objc, Tcl_Obj* 
 
 		case M_PARSE:	res = parser_PARSE  (p, interp, objc, objv); break;
 		case M_PARSET:	res = parser_PARSET (p, interp, objc, objv); break;
+		case M_ERRPOS:  res = parser_ERRPOS (p, interp, objc, objv); break;
 		default:
 						/* Not coming to this place */
 						ASSERT (0,"Reached unreachable location");

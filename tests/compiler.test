@@ -199,17 +199,21 @@ test compiler whitespace-10 -body {
 	
 } -result {}
 
-test compiler whitespace-11 -body {
-	
-	proc fun {} {}
-	vexpr {fun ()}
-	
-} -result {Parse error near  ()} -returnCodes 1
-
-test compiler whitespace-12 -body {
+test compiler whitespace-13 -body {
 	
 	proc fun {} {}
 	vexpr {fun(  )}
 	
-} -result {Parse error near n(  } -returnCodes 1
+} -result {Error: Parse error in line 1:6
+fun(  )
+      ^} -returnCodes 1
+
+test compiler whitespace-14 -body {
+	
+	proc fun {} {}
+	vexpr {fun ()}
+	
+} -result {Error: Parse error in line 1:4
+fun ()
+    ^} -returnCodes 1
 
