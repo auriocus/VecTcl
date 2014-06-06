@@ -1724,6 +1724,12 @@ static int parser_PARSET (RDE_PARAM p, Tcl_Interp* interp, int objc, Tcl_Obj* CO
 	}
 
 	buf = Tcl_GetStringFromObj (objv[2], &len);
+	
+	if (len<=0) {
+	    /* The empty string does crash the parser. Reject */
+	    Tcl_SetResult(interp, "Invalid expression (empty string)", NULL);
+	    return TCL_ERROR;
+	}
 
 	rde_param_reset (p, NULL);
 	rde_param_data  (p, buf, len);
