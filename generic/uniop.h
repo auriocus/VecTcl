@@ -46,7 +46,7 @@ int CMD(
 			while (opptr) {
 				int i;
 				for (i=0; i<length; i++) {
-					double op = *opptr;
+					double qop = *opptr;
 					DBLOP;
 					opptr+=srcpitch;
 					result++;

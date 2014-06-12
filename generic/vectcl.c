@@ -7,6 +7,7 @@
 #include "linalg.h"
 #include "fft.h"
 #include "svd.h"
+#include "eig.h"
 #include "bcexecute.h"
 #include "vmparser.h"
 
@@ -239,6 +240,8 @@ static const EnsembleMap implementationMap[] = {
 	{"atanh", NumArrayAtanhCmd, NULL},
 	/* Matrix decompositions */
 	{"qreco", NumArrayQRecoCmd, NULL},
+	{"eigv", NumArrayEigVCmd, NULL},
+	{"eig", NumArrayEigCmd, NULL},
 	{"svd1", NumArraySVD1Cmd, NULL},
 	{"svd", NumArraySVDCmd, NULL},
 	/* Reductions */
