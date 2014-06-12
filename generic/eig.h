@@ -3,7 +3,7 @@
 
 #ifndef EIG_H
 #define EIG_H
-#include "vectcl.h"
+#include "vectclInt.h"
 
 /* Compute the singular values */
 int NumArrayEigVCmd(ClientData dummy, Tcl_Interp *interp,

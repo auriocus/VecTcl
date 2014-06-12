@@ -105,6 +105,9 @@ static int doEig(Tcl_Interp *interp, Tcl_Obj *matrix, Tcl_Obj **ev,  Tcl_Obj **V
 				Tcl_DecrRefCount(Vr);
 			}
 			ckfree(wr); ckfree(wi);
+			if (errcode > 0) {
+				RESULTPRINTF(("DGEEV failed to converge at eigenvector %d ", info));
+			}
 			return TCL_ERROR;
 		}
 		
@@ -129,7 +132,9 @@ static int doEig(Tcl_Interp *interp, Tcl_Obj *matrix, Tcl_Obj **ev,  Tcl_Obj **V
 			}
 			
 			/* Eigenvectors are contained in Vr */
-			*V = Vr;
+			if (wantvectors) {
+				*V = Vr;
+			}
 		} else {
 			/* create a complex vector for the eigenvalues */
 			*ev = NumArrayNewVector(NumArray_Complex128, n);
@@ -177,12 +182,75 @@ static int doEig(Tcl_Interp *interp, Tcl_Obj *matrix, Tcl_Obj **ev,  Tcl_Obj **V
 
 
 	} else {
-		/* Complex matrix, prepare for ZGESDD */
+		/* Complex matrix, prepare for zgeev */
 		/* create a column-major copy of matrix */
 		Tcl_Obj *A = NumArrayNewMatrixColMaj(NumArray_Complex128, m, n);
 		NumArrayObjCopy(interp, matrix, A);
-		Tcl_SetResult(interp, "Eigendecomposition for complex not implemented", NULL);
-		return TCL_ERROR;
+
+		if (wantvectors) {
+			/* create a real matrix for the eigenvectors Vr */
+			*V = NumArrayNewMatrixColMaj(NumArray_Complex128, m, m);
+		}
+		
+		
+		/* Extract the raw pointers from the VecTcl objects */
+		doublecomplex *Aptr = NumArrayGetPtrFromObj(interp, A);
+		doublecomplex *Vrptr=NULL;
+		if (wantvectors) {
+			Vrptr = NumArrayGetPtrFromObj(interp, *V);
+		}
+
+		/* Space to store the eigenvalues */
+		*ev = NumArrayNewVector(NumArray_Complex128, n);
+		doublecomplex *w = NumArrayGetPtrFromObj(NULL, *ev);
+
+		/* setup workspace arrays */
+		integer lwork = 2*n;
+		doublecomplex *work=ckalloc(sizeof(doublecomplex)*lwork);
+		doublereal *rwork=ckalloc(sizeof(doublereal)*lwork);
+
+		/* Leading dimensions of A and Vr 
+		 * Don't compute left vectors. */
+		integer lda = n;
+		integer ldvr = n;
+		
+		integer ldvl = n;
+		
+		integer info;
+
+
+/* Subroutine  int zgeev_(Tcl_Interp *interp, char *jobvl, char *jobvr,
+ * integer *n, doublecomplex *a, integer *lda, doublecomplex *w, 
+ * doublecomplex *vl, integer *ldvl, doublecomplex *vr, integer *ldvr, 
+ * doublecomplex *work, integer *lwork, doublereal *rwork, integer *info) */
+		
+		/* call out to zgeev */
+		int errcode=zgeev_(interp, jobvl, jobvr, 
+				&n, Aptr, &lda, w, 
+				NULL, &ldvl, Vrptr, &ldvr,
+				work, &lwork, rwork, &info);
+
+		/* free workspace */
+		ckfree(work);
+		ckfree(rwork);
+
+		/* A is overwritten with junk */
+		Tcl_DecrRefCount(A);
+
+		if (errcode != TCL_OK) {
+			/* release temporary storage for result */
+			if (wantvectors) {
+				Tcl_DecrRefCount(*V);
+			}
+			Tcl_DecrRefCount(*ev);
+
+			if (errcode > 0) {
+				RESULTPRINTF(("ZGEEV failed to converge at eigenvector %d ", info));
+			}
+			return TCL_ERROR;
+		}
+		
+		return TCL_OK;
 
 	}
 
