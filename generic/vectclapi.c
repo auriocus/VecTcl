@@ -578,6 +578,7 @@ void NumArrayUnshareBuffer(Tcl_Obj *naObj) {
 		naObj -> internalRep.twoPtrValue.ptr2 = copyinfo;
 		NumArraySharedBufferIncrRefcount(copysharedbuf);
 		NumArraySharedBufferDecrRefcount(sharedbuf);
+		DeleteNumArrayInfo(info);
 	}
 }
 

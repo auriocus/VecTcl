@@ -1788,6 +1788,8 @@ static int  SetNumArrayFromAny(Tcl_Interp *interp, Tcl_Obj *objPtr) {
 			objPtr -> internalRep.twoPtrValue.ptr1 = sharedbuf;
 			objPtr -> internalRep.twoPtrValue.ptr2 = info;
 			objPtr -> typePtr = &NumArrayTclType;
+			
+			Tcl_DecrRefCount(dimlist);
 			return TCL_OK;
 		}
 
