@@ -1907,7 +1907,7 @@ static void UpdateStringOfNumArray(Tcl_Obj *naPtr) {
 	/* there should be a way to move */
 	/* the pointer from DString to Tcl_Obj, here use memcpy */
 	naPtr -> length = Tcl_DStringLength(&srep);
-	naPtr -> bytes = ckalloc(naPtr->length+1);
+	naPtr -> bytes = Tcl_Alloc(naPtr->length+1);
 	memcpy(naPtr -> bytes, Tcl_DStringValue(&srep), naPtr -> length);
 	naPtr -> bytes[naPtr->length] = '\0';
 
