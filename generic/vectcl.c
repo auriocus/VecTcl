@@ -108,6 +108,7 @@ static int CreateNumArrayInfoFromList(Tcl_Interp *interp, Tcl_Obj* dimlist, NumA
 	}
 
 	*infoptr = CreateNumArrayInfo(nDim, dims, dtype);
+	ckfree(dims);
 	return TCL_OK;
 cleandims:
 	if (dims) ckfree(dims);
@@ -1361,6 +1362,7 @@ ScanNumArrayDimensionsFromValue(Tcl_Interp *interp, Tcl_Obj* valobj, Tcl_Obj **r
 	return TCL_OK;
 cleanobj:
 	if (allocobj) Tcl_DecrRefCount(valobj);
+	Tcl_DecrRefCount(dimlist);
 	return TCL_ERROR;
 }
 

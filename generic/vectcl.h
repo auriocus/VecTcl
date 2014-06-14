@@ -3,6 +3,14 @@
 #include <tcl.h>
 #include "nacomplex.h"
 
+#ifdef VALGRIND
+#include <stdlib.h>
+#undef ckalloc
+#undef ckfree
+#define ckalloc malloc
+#define ckfree free
+#endif
+
 /* data type for VecTcl objects */
 
 extern const Tcl_ObjType* VecTclNumArrayObjType;
