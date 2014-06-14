@@ -148,8 +148,9 @@ int CMD(
 
 		default:
 			
-			RESULTPRINTF(("Undefined function for datatype %s", NumArray_typename[info->type]));
-            return TCL_ERROR;
+		    RESULTPRINTF(("Undefined function for datatype %s", NumArray_typename[info->type]));
+		    ckfree(resultdims);
+		    return TCL_ERROR;
 	}
 
 	ckfree(resultdims);
