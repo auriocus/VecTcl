@@ -2,8 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* TODO: These are just stubs to test the different types */
-
 /*
  * Functions hndling the Tcl_ObjType Complex
  */

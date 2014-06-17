@@ -4,8 +4,8 @@
 
 set CLAPACK_DIR /Users/chris/Sources/CLAPACK-3.2.1/
 
-set tooldir [file dirname [info script]]
-set destfile [file join $tooldir ../../generic/clackap_cutdown.c]
+set tooldir [file normalize [file dirname [info script]]]
+set destfile [file normalize [file join $tooldir ../generic/clapack_cutdown.c]]
 
 # helper procs for parsing
 proc shift {} {
@@ -422,5 +422,6 @@ proc run_generator {} {
 	dgesdd_ zgesdd_ dgemm_ zgemm_ \
 	dsyevr_ zheevr_ dgeev_ zgeev_ \
 	dgelss_ zgelss_ dgelsy_ zgelsy_ \
-	dgesv_ zgesv_ dgesvx_ zgesvx_
+	dgesv_ zgesv_ dgesvx_ zgesvx_ \
+	dgees_ zgees_ 
 }

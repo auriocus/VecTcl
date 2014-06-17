@@ -8,6 +8,7 @@
 #include "fft.h"
 #include "svd.h"
 #include "eig.h"
+#include "schur.h"
 #include "bcexecute.h"
 #include "vmparser.h"
 
@@ -245,6 +246,7 @@ static const EnsembleMap implementationMap[] = {
 	{"eig", NumArrayEigCmd, NULL},
 	{"svd1", NumArraySVD1Cmd, NULL},
 	{"svd", NumArraySVDCmd, NULL},
+	{"schur", NumArraySchurCmd, NULL},
 	/* Reductions */
 	{"sum", NumArraySumCmd, NULL},
 	{"axismin", NumArrayAxisMinCmd, NULL},
