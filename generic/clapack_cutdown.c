@@ -1,7 +1,7 @@
 /* Generated code. Do not edit. See cherrypick_lapack.tcl */
 /* This file contains a subset of LAPACK for use with Tcl/VecTcl */
 /* available subroutines: dgesdd_ zgesdd_ dgemm_ zgemm_ dsyevr_ zheevr_ dgeev_ zgeev_ dgelss_ zgelss_ dgelsy_ zgelsy_ dgesv_ zgesv_ dgesvx_ zgesvx_ dgees_ zgees_  */
-#include "/Users/chris/Programmieren/VecTcl/generic/clapack_cutdown.h"
+#include "clapack_cutdown.h"
 #include "f2c_mathlib.h"
 /* Declaring the Tcl replacement for xerbla */
   MODULE_SCOPE int vectcl_xerbla(Tcl_Interp *interp, char* func, integer *info);

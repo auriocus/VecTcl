@@ -369,7 +369,7 @@ proc generate_code {f args} {
 	puts $fdc {/* Generated code. Do not edit. See cherrypick_lapack.tcl */}
 	puts $fdc {/* This file contains a subset of LAPACK for use with Tcl/VecTcl */}
 	puts $fdc "/* available subroutines: $subroutines  */"
-	puts $fdc "#include \"$fh\""
+	puts $fdc "#include \"[file tail $fh]\""
 	puts $fdc "#include \"f2c_mathlib.h\""
 	puts $fdc "/* Declaring the Tcl replacement for xerbla */"
 	
