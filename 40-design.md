@@ -15,6 +15,7 @@ possible. VecTcl was defined to adhere to these general objectives:
 1. _Ease of use_ 
 2. _Interoperability_
 3. _Generality_
+4. _No external dependencies_
 5. _Performance_
 
 These terms are interpreted within VecTcl in the following sense:
@@ -224,6 +225,26 @@ performance improvement,`vproc` allows to create a Tcl proc entirely defined by 
 only difference is that the compiler doesn't emit upvar instructions for the local variables, and
 that the `vexpr` call itself is circumvented. 
 
+### Comparison to expr
+
+Since `vexpr` is a functional superset of `expr`, most expressions which are executed by `expr` should
+run within `vexpr` and produce the same results. Apart from the obvious differences, that vexpr
+handles complex numbers and multi-component values, there are a few syntactic differences, which
+should briefly by explained in the following paragraphs.
+
+#### The case with $
+`expr` requires variable references to be prefixed with $, while `vexpr` expects that variable names
+appear bare. This choice is mostly due to the belief of the VecTcl author, that the $ in `expr` is
+largely a historic relict from the times when `expr` was used with unbraced expressions and the Tcl
+intepreter substituted the string value for a variable. Today, passing more than a single expression
+to `expr` is considered bad style, and the $ is not needed anymore in most cases. Since the $ is
+used to indicate value substitution, it would also be irritating in case of assignments. `$a=$b`
+as an assignment looks odd to the eye of the Tcl programmer (in contrast to, e.g. Perl or PHP). 
+
+#### Command substitution using \[\]
+
+
+#### Strings
 
 Performance considerations
 --------------------------
@@ -328,7 +349,7 @@ x[i+1,:] = x[i,:]+::h*v[i,:]
 {% endhighlight %}
 takes 350 milliseconds to complete 13,000 steps. The main reason for this difference is that the
 time for actually performing this computation is insignificant. Calling a C coded command which
-doesn't do anything in a for loop many times takes 200 ns per iteration, which is almost 1000 times
+doesn't do anything in a for loop many times takes 200 ns per iteration, which is almost 500 times
 slower than the clock speed of the machine. The second variant of the code simply runs faster
 because it eliminates half of the command calls. To make this kind of code run fast, the speed of the
 Tcl bytecode engine will have to be improved, or an alternative backend for the VecTcl compiler must be
@@ -437,3 +458,94 @@ implemented.
 Other implementation issues
 ---------------------------
 
+### Parsing nonfinite and complex numbers
+
+The first version of VecTcl used the official API _Tcl_GetDoubleFromObj()_ to (attempt to) extract a
+double value from a string. This has proven to be insufficient, because of the handling of the IEEE
+not-a-number entity NaN. Therefore, the code for _Tcl\_GetDoubleFromObj()_ was copied from the Tcl core
+and modified to pass an IEEE NaN back to the caller.
+
+The current handling of IEEE
+non-finite floating point entities is inconsistent in Tcl. While +/-Inf is allowed both as the
+result of a computation and as a string format, NaN is not. NaN is correctly translated into a quite
+NaN in IEEE format when shimmering to a double value, but taking a NaN out of a double using
+_Tcl\_GetDoubleFromObj()_ results in an error. This behaviour is mostly undesirable in a vector
+computation. There are different use cases of NaN values. One is to indicate an arithmetically
+undefined value, such as dividing by zero or taking the real logarithm of a negative value.
+Another case is to deliberately
+insert NaNs in a sequence of numbers to indicate missing values. The third is to use it as a debug
+tool when writing the software.
+
+In the first two cases, an exception is not
+desired as soon as a NaN appears, because all other components of a vector might still contain valid
+computation results. A fast function plotter, for instance, could be implemented by an elementwise
+vector computation. If we tried to plot the hyperbola
+{% highlight tcl %}
+{% raw %}
+vexpr {
+	x= linspace(-1,1,1001)
+	y= 1.0/x
+}
+{% endraw %}
+{% endhighlight %}
+and a single invalid value would throw an exception instead of producing NaN, the function plotter
+would be unable to display the correctly computed 1000 values because of the single NaN in the
+cnter. Worse, hitting the exception depends on the exact (bit-for-bit) value of the boundaries of
+the plotting interval and number of datapoints. The second use case arises when data are
+statistically processed. Sometimes it is convenient to just insert a dummy value, if no value can be
+provided, similar to NULL values in relational databases. NaN is an excellent choice, because it is
+does not silently convert to a valid value again, which might happen with ad-hoc dummy
+values like 0, 1e10 or similar. For the backend implementation, it is convenient because no
+additional bits have to be reserved and the execution speed is not impacted by many checks for NULL
+values, because NaNs are handled in hardware on IEEE conforming machines. 
+
+While signalling NaNs are useful as a debug tool to locate the point at which a program goes wrong,
+they make it harder to do write stable software, because the programmer is forced to wrap an
+exception catching block around all expressions, instead of deferring error handling to a later
+place. Therefore VecTcl chooses to not signal, when NaN is encountered. For similar reasons,
+hardware exceptions on NaN are rarely enabled in compiled programs, since an end-user
+program should never crash when an illegal arithmetic value operation is encountered. In order to
+debug a program which produces NaN for no obvious reasons, a global switch can be imagined which
+enables NaNs to signal an exception. For production use, this switch will likely be turned off in
+order to enable exception handling at higher levels, and for each component of a computation
+individually. 
+
+Implementing this choice as an extension is challenging. Tcl's internal number parsing function
+_TclParseNumber()_ is not exposed, but has a few nice properties that make it very suitable for a
+vector extension. Therefore, VecTcl uses the _Tcl\_ConvertToType()_ function to request the value to
+shimmer to double, and then extracts the value using the same code copied from
+_Tcl\_GetDoubleFromObj()_, modified to pass back NaN without throwing an error. This is quite fragile,
+it will break as soon as the NaN handling in the core changes, e.g. if throwing the error migrates
+from _Tcl\_GetDoubleFromObj()_ into the setFromAnyProc of the double. 
+
+Concluding remarks
+------------------
+
+VecTcl was designed to be a linear algebra package for Tcl resembling other concepts of Tcl as much
+as possible. In contrast to most, if not all, other packages it provides value semantics by
+implementing a proper Tcl\_ObjType for the data storage. This has the advantage that other code (Tcl
+or C) knowing nothing of VecTcl can use the data directly, though the exchange is more efficient with
+adapted packages. Since the values are first-class objects using this approach, the data can be 
+passed to and returned from Tcl procs with no additional code involved. Collecting the data in lists
+or dicts, returning multiple values from a proc, automatic memory management by the interpreter,
+extending the mathematical language by writing a Tcl proc, all of this comes naturally along with
+the approach taken by VecTcl.
+
+The overall performance of the current implementation is quite satisfying, especially compared to
+[other competing packages for Tcl](benchmarks/linreg.html). In some cases, there is still a large
+performance gap to bridge to native code. Some limitations in performance can only be resolved by
+compiling to native code. Since the VecTcl language definition is more strict than Tcl itself,
+compiling to native code is a feasible task and some experiments will be performed using tcc4tcl as
+a JIT backend.
+
+Of equal importance for the overall performance is the shimmering itself, i.e. passing the data back
+and forth between VecTcl's internal representation and the Tcl native data types. [The linear
+regression benchmark including the setup time](benchmarks/linreg.html) shows that VecTcl beats the
+competitors with ease in this field. But reaching this performance requires a few tricks to be played, at least
+one of them crossing the border of intruding into the innards of the Tcl core. It would be good, if
+the Tcl core, possibly Tcl 9, could provide a clean way to access the necessary bits without dirty
+hacks. For a fast vector extension in the spirit of VecTcl, especially a method to examine the type
+of the internal representation without causing shimmering would be needed, as well as an analogue to
+the updateStringProc which converts a Tcl\_ObjType to a list. Further on the wishlist could be found
+extended support for NaNs, exposing all functions which parse and print arithmetic types, maybe
+inclusion of the complex number type into the core, and faster command dispatch. 
