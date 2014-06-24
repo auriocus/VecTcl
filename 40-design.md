@@ -39,7 +39,7 @@ the objects. The vector engine should not be limited to 3D vectors and support h
 both with syntax and in the backend as well as matrices and vectors.
 4. _No external dependencies._ Besides what is required to compile Tcl itself, no external libraries
 should be required to compile nor run the code.
-This means that the code must be written in pure C, use TEA and stubs, generated code
+This means that the code must be written in pure C, use TEA and stubs, and generated code
 must be included prebuilt within the package. A few 
 [high-quality BSD compatible libraries](credits.html) have been incorporated into the project.
 Faster alternatives for these libraries exist, but have been ruled out due to incompatible license
@@ -228,23 +228,90 @@ that the `vexpr` call itself is circumvented.
 ### Comparison to expr
 
 Since `vexpr` is a functional superset of `expr`, most expressions which are executed by `expr` should
-run within `vexpr` and produce the same results. Apart from the obvious differences, that vexpr
+run within `vexpr` and produce the same results. Apart from the obvious differences that vexpr
 handles complex numbers and multi-component values, there are a few syntactic differences, which
 should briefly by explained in the following paragraphs.
 
 #### The case with $
-`expr` requires variable references to be prefixed with $, while `vexpr` expects that variable names
-appear bare. This choice is mostly due to the belief of the VecTcl author, that the $ in `expr` is
+`expr` requires variable references to be prefixed with $, while `vexpr` expects the variable names
+are bare words. This choice is mostly due to the belief of the VecTcl author, that the $ in `expr` is
 largely a historic relict from the times when `expr` was used with unbraced expressions and the Tcl
-intepreter substituted the string value for a variable. Today, passing more than a single expression
+interpreter substituted the string value for a variable. Today, passing an unbraced expression or multiple arguments 
 to `expr` is considered bad style, and the $ is not needed anymore in most cases. Since the $ is
 used to indicate value substitution, it would also be irritating in case of assignments. `$a=$b`
-as an assignment looks odd to the eye of the Tcl programmer (in contrast to, e.g. Perl or PHP). 
+as an assignment looks odd to the eye of the Tcl programmer (in contrast to, e.g., Perl or PHP).
+The $ could optionally be supported for the right hand side of expressions. This is currently not
+supported, but will be useful especially to access variables with odd names. Currently, neither variables
+with spaces in it can be referenced in VecTcl nor array elements, since the array syntax collides
+with the syntax for calling a function. These cases could be disambiguated by allowing quoted syntax
+such as ${a(2)} to refer to an array element. The exact substitutio rules inside such a braced
+expression is yet to be defined, such that both odd names containing spaces and metacharacters, as
+well as array elements with variable indices can be referred to. Further it needs to be defined, how
+variables can be accessed using this syntax on the left hand side of an assignment. 
 
 #### Command substitution using \[\]
-
+Inside `expr`, command substitution using the square brackes is used to call out Tcl
+procs. In VecTcl, no special syntax is needed to call a Tcl proc, because VecTcl makes no
+distinction between a math function and a Tcl proc. The special `expr` syntax is likewise believed to be a
+historic relict, coming from the way that command substitution is handled within Tcl. Inside the
+brackets usual Tcl substitution rules apply. That leads to the consequence, that computed arguments
+to such a function itself require another nested `expr` call, leading to verbous and hard to read
+code. For instance, to extract twice the element with index $$2n+1$$ from a list using lindex
+{% highlight tcl %}
+{% raw %}
+set te [expr {2*[lindex $l [expr {2*$n+1}]]}]
+{% endraw %}
+{% endhighlight %}
+whereas using VecTcl, the same code can be compressed to 
+{% highlight tcl %}
+{% raw %}
+vexpr {te=2*lindex(l,2n+1)}
+{% endraw %}
+{% endhighlight %}
+Such code is not uncommon for index calculations. To remedy this issue, an internal treatment of
+simple offsets has been incorporated into `lindex` and similar functions. Allowing for any Tcl
+command to be part of a math expression solves the issue in a more general way. 
 
 #### Strings
+`expr` supports arbitrary string values for operators which have a useful definition for general
+strings. For example, strings are allowed as the result of the ternary operator `?:` or input to the
+comparison operators. Further, additional operators are defined to test if a string is contained 
+within a given list. Inside literal double-quoted strings, again the full range of Tcl
+substitutions (including nested commands substitution) is supported. VecTcl on the othe hand does
+not support strings at the current stage. NumArrays can not be defined on lists of strings as
+elemental values. The reason is that elemental values must be free of whitespace, otherwise the
+dimensionality of the values can't be unambiguously derived from the string representation, which is
+required by EIAS, unless some additional restriction is posed onto the elemental values such as required 
+quoting. Passing literal strings to are general string variables to functions, on the other hand,
+poses no such problems. The current implementation supports string containing variables, as long as
+they are not accessed using NumArray functions or operators. Embedded literal strings are currently
+not supported, but will make a good companion to enable calling non-numerical commands. It is open
+to discussion, how much of Tcls substitution syntax should be enabled in these values, whether just
+literal strings should be allowed, or variable and command substitution as in `expr`
+
+Under the assumption that strings with full substitution are implemented, VecTcl would provide a
+complete alternative syntax to the Tcl interpreter. For instance, this program shows how a
+dictionary could be unfolded into local variable names from within `vexpr`
+{% highlight tcl %}
+{% raw %}
+vproc dict_inflate {d} {
+	for key=dict("keys", d) {
+		upvar("1", key, "var")
+		var = dict("get", d, key)
+	}
+}
+{% endraw %}
+{% endhighlight %}
+
+Of course it is not recommended to program in this style, but such an exercise demonstrates, that
+the drafted language inside `vexpr` is quite complete and scalable. The programming style can vary
+smoothly from a style similar to `expr`, where only a single expression is passed and the result further
+processed by Tcl code, over multiple assignments and expressions with loops into a full-blown
+alternative scripting language, which only shares the runtime execution engine with Tcl. This
+scalability accounts for the fact that some code, notably heavily numerical code, is best
+expressed within an expression-oriented language as provided by VecTcl, whereas other pieces of
+code, most notably string processing, are best performed in a substitution-oriented language such as
+Tcl. 
 
 Performance considerations
 --------------------------
