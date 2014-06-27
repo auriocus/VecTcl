@@ -13,6 +13,8 @@
     	</li>
 		{% assign sorted_pages = site.pages | sort:"name" %}
         {% for p in sorted_pages %}
+        	{% if p.design  %}
+        	{% else %}
         	{% if p.bench  %}
         	{% else %}
 			{% if p.home %}
@@ -22,6 +24,7 @@
             {{ p.subtitle }}
             </a>
         </li>
+        {% endif %}
         {% endif %}
         {% endif %}
         {% endfor %}
