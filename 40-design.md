@@ -19,7 +19,7 @@ possible. VecTcl was defined to adhere to these general objectives:
 5. _Performance_
 
 Read more about
-{% for p in site.pages %} {% if p.design %}
+{% for p in site.pages | sort %} {% if p.design %}
 * [{{ p.subtitle }}]({{ site.baseurl }}{{ p.url }}) {% endif %} {% endfor %}
 
 
