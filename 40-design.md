@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: design
 title: VecTcl
 subtitle: Design and implementation issues
 downloads: false
@@ -17,9 +17,4 @@ possible. VecTcl was defined to adhere to these general objectives:
 3. _Generality_
 4. _No external dependencies_
 5. _Performance_
-
-Read more about
-{% for p in site.pages | sort %} {% if p.design %}
-* [{{ p.subtitle }}]({{ site.baseurl }}{{ p.url }}) {% endif %} {% endfor %}
-
 

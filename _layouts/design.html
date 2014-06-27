@@ -1,0 +1,35 @@
+{% include head.html %}
+    <header>
+	<h1>{{ page.title }}</h1>
+	<h2>{{ page.subtitle }}</h2>
+	</header>
+
+	    <section id="downloads" class="clearfix">
+          <a href="https://github.com/auriocus/VecTcl/archive/v0.1.5-alpha.zip" id="download-zip" class="button"><span>Release .zip</span></a>
+          <a href="https://github.com/auriocus/VecTcl/archive/v0.1.5-alpha.tar.gz" id="download-tar-gz" class="button"><span>Release .tar.gz</span></a>
+          <a href="{{ site.baseurl }}/downloads.html" id="show-downloads" class="button"><span>Other versions</span></a>
+        </section>
+
+	<hr>
+
+	{% include nav.html %}
+	<div id="Inhalt">
+	{% if page.bench %}
+	<h2>{{ page.subtitle }}</h2>
+	{% endif %}
+	{{ content }}
+	Read more about
+	<ul>
+	{% for p in site.pages | sort:"name" %} {% if p.design %}
+	<li> {% if page.url == p.url %} 
+			{{ p.subtitle }} 
+		{% else %} 
+			<a href="{{ site.baseurl }}{{ p.url }}">{{ p.subtitle }}</a>
+		{% endif %} 
+	</li>
+	{% endif %}
+	{% endfor %}
+	</ul>
+
+	</div>
+{% include foot.html %}
