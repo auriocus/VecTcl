@@ -20,7 +20,8 @@
 	{{ content }}
 	Read more about
 	<ul>
-	{% for p in site.pages | sort:"name" %} {% if p.design %}
+	{% assign sorted_designpages = site.pages | sort:"name" %}
+	{% for p in sorted_designpages | sort:"name" %} {% if p.design %}
 	<li> {% if page.url == p.url %} 
 			{{ p.subtitle }} 
 		{% else %} 
