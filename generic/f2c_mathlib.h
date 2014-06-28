@@ -109,7 +109,6 @@ static inline double r_tanh(real *x);
 static inline integer s_cmp(char *a0, char *b0, ftnlen la, ftnlen lb);
 static inline int s_copy(register char *a, register char *b, ftnlen la, ftnlen lb);
 static inline integer s_rnge(char *varn, ftnint offset, char *procn, ftnint line);
-static inline void f_exit(void);;
 static inline int s_stop(char *s, ftnlen n);
 static inline void sig_die(const char *s, int kill);
 static inline double z_abs(doublecomplex *z);
@@ -1367,8 +1366,6 @@ return 0;	/* not reached */
 
 
 
-static inline void f_exit(void);
-
 static inline int s_stop(char *s, ftnlen n)
 {
 int i;
@@ -1463,7 +1460,7 @@ ftnlen f__typesize[] = { 0, 0, sizeof(shortint), sizeof(integer),
 			0}; */
 /* uninit.c */
 
-
+#ifdef IEEE_PATCH_FORTRAN
 #define TYSHORT 2
 #define TYLONG 3
 #define TYREAL 4
@@ -1833,6 +1830,8 @@ ieee0(Void)
  static void
 ieee0(Void) {}
 #endif
+#endif 
+
 /* z_abs.c */
 
 static inline double z_abs(doublecomplex *z)
