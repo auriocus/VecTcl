@@ -131,6 +131,7 @@ SUBCOMMAND(NumArrayCosCmd);
 SUBCOMMAND(NumArrayTanCmd);
 SUBCOMMAND(NumArrayExpCmd);
 SUBCOMMAND(NumArrayLogCmd);
+SUBCOMMAND(NumArrayLog10Cmd);
 SUBCOMMAND(NumArraySqrtCmd);
 SUBCOMMAND(NumArraySinhCmd);
 SUBCOMMAND(NumArrayCoshCmd);

@@ -229,6 +229,7 @@ static const EnsembleMap implementationMap[] = {
 	{"tan", NumArrayTanCmd, NULL},
 	{"exp", NumArrayExpCmd, NULL},
 	{"log", NumArrayLogCmd, NULL},
+	{"log10", NumArrayLog10Cmd, NULL},
 	{"sqrt", NumArraySqrtCmd, NULL},
 	{"sinh", NumArraySinhCmd, NULL},
 	{"cosh", NumArrayCoshCmd, NULL},
@@ -2336,6 +2337,15 @@ static inline double fsign(double x) {
 #define DBLRES double
 #define INTOP DBLOP
 #define DBLOP *result = log(op);
+#define CPLXRES NumArray_Complex
+#define CPLXOP *result = NumArray_ComplexLog(op);
+#include "uniop.h"
+
+#define CMD NumArrayLog10Cmd
+#define INTRES double
+#define DBLRES double
+#define INTOP DBLOP
+#define DBLOP *result = log10(op);
 #define CPLXRES NumArray_Complex
 #define CPLXOP *result = NumArray_ComplexLog(op);
 #include "uniop.h"
