@@ -28,12 +28,7 @@ Prebuilt binaries are available from
 - [Roy Keene's teapot](http://teapot.rkeene.org/entity/name/vectcl/index.html)
 
 [VecTcLab]({{ site.baseurl }}/vectclab.html), a bundled package with Tcl/Tk, a modified tkcon,
-VecTcl and a plotting library in a single file is available for
+VecTcl and a plotting library in a single file is available from 
 
-- [Windows 32 bit]({{ site.baseurl }}/binaries/VecTcLab-Win32.exe)
-- [Windows 64 bit]({{ site.baseurl }}/binaries/VecTcLab-Win64.exe)
-- [Mac OSX 64 bit]({{ site.baseurl }}/binaries/VecTcLab-Darwin)
-- [Linux 32 bit]({{ site.baseurl }}/binaries/VecTcLab-Linux32)
-- [Linux 64 bit]({{ site.baseurl }}/binaries/VecTcLab-Linux64)
-- [generic starkit]({{ site.baseurl }}/binaries/VecTcLab-generic.kit)
+<https://github.com/auriocus/VecTcl/releases/tag/v0.1.7-alpha>
 
