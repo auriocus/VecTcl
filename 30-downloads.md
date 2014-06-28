@@ -14,8 +14,8 @@ Latest development sources
 
 Releases
 --------
-- [v0.1.6-alpha .zip](https://github.com/auriocus/VecTcl/archive/v0.1.6-alpha.zip)
-- [v0.1.6-alpha .tar.gz](https://github.com/auriocus/VecTcl/archive/v0.1.6-alpha.tar.gz)
+- [v0.1.7-alpha .zip](https://github.com/auriocus/VecTcl/archive/v0.1.7-alpha.zip)
+- [v0.1.7-alpha .tar.gz](https://github.com/auriocus/VecTcl/archive/v0.1.7-alpha.tar.gz)
 - [v0.1.5-alpha .zip](https://github.com/auriocus/VecTcl/archive/v0.1.5-alpha.zip)
 - [v0.1.5-alpha .tar.gz](https://github.com/auriocus/VecTcl/archive/v0.1.5-alpha.tar.gz)
 - [v0.1.0-alpha .zip](https://github.com/auriocus/VecTcl/archive/v0.1.0-alpha.zip)
