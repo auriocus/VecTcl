@@ -19,6 +19,7 @@ set c $w.c
 set font default
 label $w.msg -font $font -wraplength 4i -justify left -text "This window displays a canvas widget containing a simple 2-dimensional plot.  You can doctor the data by dragging any of the points with mouse button 1."
 pack $w.msg -side top
+bind $w.msg <1> toggleFit
 
 ## See Code / Dismiss buttons
 
@@ -96,7 +97,7 @@ proc plotMove {w x y} {
 	updateFit
 }
 
-interp alias {} updateFit {} updateFitSqr
+interp alias {} updateFit {} updateFitNop
 
 proc updateFitLin {} {
 	# retrieve current point coordinates from canvas
@@ -112,10 +113,10 @@ proc updateFitLin {} {
 	vexpr {
 		# compute coordinates of center
 		x+=6; y+=6
-		n = llength(x)
-		A = ones(n,2) ;# construct system matrix
+		n = rows(x)
+		A = hstack(1.0, x) ;# construct system matrix
 				       # first col is constant
-		A[:,1]=x      ;# second column x
+					   # second column x
 
 		# solve equations
 		p = A \ y
@@ -133,6 +134,7 @@ proc updateFitLin {} {
 
 	$c coords regression $coords
 }
+
 proc updateFitSqr {} {
 	# retrieve current point coordinates from canvas
 	#
@@ -170,39 +172,20 @@ proc updateFitSqr {} {
 	$c coords regression $coords
 }
 
-proc updateFitSqrSlice {} {
-	# retrieve current point coordinates from canvas
-	#
+proc updateFitNop {} {
 	variable c
-	foreach id [$c find withtag point] {
-		lassign [$c coords $id] xc yc
-		# xc and yc are coordinates of the upper left corner
-		lappend x $xc
-		lappend y $yc
-	}
-	vexpr {
-		# compute coordinates of center
-		x+=6.0; y+=6.0
-		n = llength(x)
-		A = ones(n,3) ;# construct system matrix
-				       # first col is constant
-		A[:,1]=x      ;# second column x
-		A[:,2]=x.^2   ;# third column x²
+	$c coords regression 100 250 100 50
+}
 
-		# solve equations
-		p = A \ y
-	
-		# create coordinates for line
-	
-		xl = linspace(100,400,100)
-		yl = p[0]+p[1]*xl+p[2]*xl.^2
+proc toggleFit {} {
+	set procs {updateFitNop updateFitLin updateFitSqr updateFitNop}
+	set old [interp alias {} updateFit]
+	while {[set procs [lassign $procs new]] ne ""} { 
+		if {$new eq $old} {
+			lassign $procs new
+			break
+		}
 	}
-	
-	# create flat list for canvas
-	set coords {}
-	foreach x $xl y $yl {
-		lappend coords $x $y
-	}
-
-	$c coords regression $coords
+	interp alias {} updateFit {} $new
+	updateFit
 }
