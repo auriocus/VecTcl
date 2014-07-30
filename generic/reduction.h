@@ -112,16 +112,10 @@ int CMD(
 	} else {
 		resultnDim = 0;
 		for (d=0; d < info->nDim; d++) {
-			if (axis==0 || d!=axis) {
-				/* never cut the first axis, otherwise
-				 * row vectors are converted to column vectors */
+			if (d!=axis) {
 				resultdims[resultnDim] = info -> dims[d];
 				resultnDim++;
 			}
-		}
-
-		if (axis==0) {
-			resultdims[axis]=1;
 		}
 	}
 
@@ -167,8 +161,7 @@ int CMD(
 	/* the new shared buffer is in canonical form, 
 	 * thus we can simply iterate over it by pointer
 	 * arithmetics. But the input array may be non-canonical
-	 * TODO optimize for canonical case */
-
+	 */
 	NumArrayIterator it;
 	NumArrayIteratorInit(sliceinfo, sharedbuf, &it);
 

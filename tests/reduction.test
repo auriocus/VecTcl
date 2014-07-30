@@ -19,7 +19,7 @@ test reduction sum-1 -body {
 	set A {{1.0 2.0} {3.0 4.0}}
 	vexpr {sum(A)}
 	
-} -result {{4.0 6.0}}
+} -result {4.0 6.0}
 
 test reduction sum-2 -body {
 	
@@ -34,7 +34,7 @@ test reduction min-1 -body {
 	set A {{1.0 2.0} {3.0 4.0}}
 	vexpr {min(A)}
 	
-} -result {{1.0 2.0}}
+} -result {1.0 2.0}
 
 test reduction min-2 -body {
 	
@@ -69,7 +69,7 @@ test reduction min-6 -body {
 	set A {{1.0 2.0} {3.0 4.0}}
 	vexpr {axismin(A,0)}
 	
-} -result {{1.0 2.0}}
+} -result {1.0 2.0}
 
 test reduction min-7 -body {
 	
@@ -106,7 +106,7 @@ test reduction max-1 -body {
 	set A {{1.0 2.0} {3.0 4.0}}
 	vexpr {max(A)}
 	
-} -result {{3.0 4.0}}
+} -result {3.0 4.0}
 
 test reduction max-2 -body {
 	
@@ -127,7 +127,7 @@ test reduction max-4 -body {
 	set A {{1.0 2.0} {3.0 4.0}}
 	vexpr {axismax(A,0)}
 	
-} -result {{3.0 4.0}}
+} -result {3.0 4.0}
 
 test reduction max-5 -body {
 	
@@ -161,7 +161,7 @@ test reduction sum-5 -body {
 	set A {{{1.0 2.0} {3.0 4.0}} {{5.0 6.0} {7.0 8.0}} {{9.0 10.0} {11.0 12.0}}}
 	vexpr {sum(A)}
 	
-} -result {{{15.0 18.0} {21.0 24.0}}}
+} -result {{15.0 18.0} {21.0 24.0}}
 
 test reduction sum-6 -body {
 	
