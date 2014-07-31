@@ -272,7 +272,11 @@ NumArrayConcatCmd(
 	/* no error so far - replace info in variable */
 	NumArraySetInternalRep(result, resultbuf, resultinfo);
     Tcl_SetObjResult(interp, result);
-    return TCL_OK;
+	
+	if (allocobj1) Tcl_DecrRefCount(naObj1);
+	if (allocobj2) Tcl_DecrRefCount(naObj2);
+    
+	return TCL_OK;
 
 cleanobj:
 	if (allocobj1) Tcl_DecrRefCount(naObj1);
