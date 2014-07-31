@@ -2,5 +2,5 @@
 # Tcl package index file
 #
 package ifneeded @PACKAGE_NAME@ @PACKAGE_VERSION@ \
-    "load [file join $dir @PKG_LIB_FILE@] @PACKAGE_NAME@;
+    "load -global [file join $dir @PKG_LIB_FILE@] @PACKAGE_NAME@;
 	source [file join $dir vexpr.tcl]"

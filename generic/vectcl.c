@@ -2040,25 +2040,25 @@ static inline double fsign(double x) {
 
 
 /* Implement elementwise binary operators */
-#define CMD NumArrayPlusCmd
+#define CMD NumArrayPlus
 #define OPINT *result = op1 + op2;
 #define OPDBL *result = op1 + op2;
 #define OPCPLX *result = NumArray_ComplexAdd(op1, op2);
 #include "binop.h"
 
-#define CMD NumArrayMinusCmd
+#define CMD NumArrayMinus
 #define OPINT *result = op1 - op2;
 #define OPDBL *result = op1 - op2;
 #define OPCPLX *result = NumArray_ComplexSubtract(op1, op2);
 #include "binop.h"
 
-#define CMD NumArrayTimesCmd
+#define CMD NumArrayTimes
 #define OPINT *result = op1 * op2;
 #define OPDBL *result = op1 * op2;
 #define OPCPLX *result = NumArray_ComplexMultiply(op1, op2);
 #include "binop.h"
 
-#define CMD NumArrayLdivideCmd
+#define CMD NumArrayLdivide
 #define OPINT if (op1!=0) { \
 		*result = op2 / op1; \
 	} else { \
@@ -2069,7 +2069,7 @@ static inline double fsign(double x) {
 #define OPCPLX *result = NumArray_ComplexDivide(op2, op1);
 #include "binop.h"
 
-#define CMD NumArrayRdivideCmd
+#define CMD NumArrayRdivide
 #define OPINT if (op2!=0) { \
 		*result = op1 / op2; \
 	} else { \
@@ -2081,7 +2081,7 @@ static inline double fsign(double x) {
 #define OPCPLX *result = NumArray_ComplexDivide(op1, op2);
 #include "binop.h"
 
-#define CMD NumArrayReminderCmd
+#define CMD NumArrayReminder
 #define OPINT if (op2!=0) { \
 		*result = op1 % op2; \
 	} else { \
@@ -2090,31 +2090,31 @@ static inline double fsign(double x) {
 	}
 #include "binop.h"
 
-#define CMD NumArrayGreaterCmd
+#define CMD NumArrayGreater
 #define OPINT *result = (op1>op2);
 #define OPDBL *result = (op1>op2);
 #define DBLRES NaWideInt
 #include "binop.h"
 
-#define CMD NumArrayLesserCmd
+#define CMD NumArrayLesser
 #define OPINT *result = (op1<op2);
 #define OPDBL *result = (op1<op2);
 #define DBLRES NaWideInt
 #include "binop.h"
 
-#define CMD NumArrayGreaterEqualCmd
+#define CMD NumArrayGreaterEqual
 #define OPINT *result = (op1>=op2);
 #define OPDBL *result = (op1<=op2);
 #define DBLRES NaWideInt
 #include "binop.h"
 
-#define CMD NumArrayLesserEqualCmd
+#define CMD NumArrayLesserEqual
 #define OPINT *result = (op1<=op2);
 #define OPDBL *result = (op1<=op2);
 #define DBLRES NaWideInt
 #include "binop.h"
 
-#define CMD NumArrayEqualCmd
+#define CMD NumArrayEqual
 #define OPINT *result = (op1==op2);
 #define OPDBL *result = (op1==op2);
 #define DBLRES NaWideInt
@@ -2122,7 +2122,7 @@ static inline double fsign(double x) {
 #define CPLXRES NaWideInt
 #include "binop.h"
 
-#define CMD NumArrayUnequalCmd
+#define CMD NumArrayUnequal
 #define OPINT *result = (op1!=op2);
 #define OPDBL *result = (op1!=op2);
 #define DBLRES NaWideInt
@@ -2131,32 +2131,32 @@ static inline double fsign(double x) {
 #include "binop.h"
 
 /* boolean operators */
-#define CMD NumArrayNotCmd
+#define CMD NumArrayNot
 #define INTOP *result = !op;
 #define INTRES NaWideInt
 #include "uniop.h"
 
-#define CMD NumArrayAndCmd
+#define CMD NumArrayAnd
 #define OPINT *result = (op1 && op2);
 #include "binop.h"
 
-#define CMD NumArrayOrCmd
+#define CMD NumArrayOr
 #define OPINT *result = (op1 || op2);
 #include "binop.h"
 
-#define CMD NumArrayPowCmd
+#define CMD NumArrayPow
 #define OPINT *result = pow(op1,op2);
 #define INTRES double
 #define OPDBL *result = pow(op1,op2);
 #define OPCPLX *result = NumArray_ComplexPow(op1,op2);
 #include "binop.h"
 
-#define CMD NumArrayMinCmd
+#define CMD NumArrayMin
 #define OPINT *result = op1 < op2 ? op1 : op2;
 #define OPDBL *result = op1 < op2 ? op1 : op2;
 #include "binop.h"
 
-#define CMD NumArrayMaxCmd
+#define CMD NumArrayMax
 #define OPINT *result = op1 > op2 ? op1 : op2;
 #define OPDBL *result = op1 > op2 ? op1 : op2;
 #include "binop.h"
@@ -2216,14 +2216,14 @@ static inline double fsign(double x) {
 /* Implement unary functions/operators */
 
 /* Data type conversion */
-#define CMD NumArrayConvDoubleCmd
+#define CMD NumArrayConvDouble
 #define INTRES double
 #define INTOP *result = op;
 #define DBLRES double
 #define DBLOP *result = op;
 #include "uniop.h"
 
-#define CMD NumArrayConvComplexCmd
+#define CMD NumArrayConvComplex
 #define INTRES NumArray_Complex
 #define INTOP *result = NumArray_mkComplex(op, 0.0);
 #define DBLRES NumArray_Complex
@@ -2232,7 +2232,7 @@ static inline double fsign(double x) {
 #define CPLXOP *result = op;
 #include "uniop.h"
 
-#define CMD NumArrayAbsCmd
+#define CMD NumArrayAbs
 #define INTRES NaWideInt
 #define INTOP *result = abs(op);
 #define DBLRES double
@@ -2241,7 +2241,7 @@ static inline double fsign(double x) {
 #define CPLXOP *result = NumArray_ComplexAbs(op);
 #include "uniop.h"
 
-#define CMD NumArraySignCmd
+#define CMD NumArraySign
 #define INTRES NaWideInt
 #define INTOP *result = isign(op);
 #define DBLRES double
@@ -2250,7 +2250,7 @@ static inline double fsign(double x) {
 #define CPLXOP *result = NumArray_ComplexSign(op);
 #include "uniop.h"
 
-#define CMD NumArrayArgCmd
+#define CMD NumArrayArg
 #define INTRES NaWideInt
 #define INTOP *result = 0;
 #define DBLRES double
@@ -2259,7 +2259,7 @@ static inline double fsign(double x) {
 #define CPLXOP *result = NumArray_ComplexArg(op);
 #include "uniop.h"
 
-#define CMD NumArrayConjCmd
+#define CMD NumArrayConj
 #define INTRES NaWideInt
 #define INTOP *result = op;
 #define DBLRES double
@@ -2268,7 +2268,7 @@ static inline double fsign(double x) {
 #define CPLXOP *result = NumArray_ComplexConj(op);
 #include "uniop.h"
 
-#define CMD NumArrayRealCmd
+#define CMD NumArrayReal
 #define INTRES NaWideInt
 #define INTOP *result = op;
 #define DBLRES double
@@ -2277,7 +2277,7 @@ static inline double fsign(double x) {
 #define CPLXOP *result = op.re;
 #include "uniop.h"
 
-#define CMD NumArrayImagCmd
+#define CMD NumArrayImag
 #define INTRES NaWideInt
 #define INTOP *result = 0;
 #define DBLRES double
@@ -2287,7 +2287,7 @@ static inline double fsign(double x) {
 #include "uniop.h"
 
 
-#define CMD NumArrayNegCmd
+#define CMD NumArrayNeg
 #define INTRES NaWideInt
 #define INTOP *result = -op;
 #define DBLRES double
@@ -2296,7 +2296,7 @@ static inline double fsign(double x) {
 #define CPLXOP *result = NumArray_ComplexNeg(op);
 #include "uniop.h"
 
-#define CMD NumArraySinCmd
+#define CMD NumArraySin
 #define INTRES double
 #define DBLRES double
 #define INTOP DBLOP
@@ -2305,7 +2305,7 @@ static inline double fsign(double x) {
 #define CPLXOP *result = NumArray_ComplexSin(op);
 #include "uniop.h"
 
-#define CMD NumArrayCosCmd
+#define CMD NumArrayCos
 #define INTRES double
 #define DBLRES double
 #define INTOP DBLOP
@@ -2314,7 +2314,7 @@ static inline double fsign(double x) {
 #define CPLXOP *result = NumArray_ComplexCos(op);
 #include "uniop.h"
 
-#define CMD NumArrayTanCmd
+#define CMD NumArrayTan
 #define INTRES double
 #define DBLRES double
 #define INTOP DBLOP
@@ -2323,7 +2323,7 @@ static inline double fsign(double x) {
 #define CPLXOP *result = NumArray_ComplexTan(op);
 #include "uniop.h"
 
-#define CMD NumArrayExpCmd
+#define CMD NumArrayExp
 #define INTRES double
 #define DBLRES double
 #define INTOP DBLOP
@@ -2332,7 +2332,7 @@ static inline double fsign(double x) {
 #define CPLXOP *result = NumArray_ComplexExp(op);
 #include "uniop.h"
 
-#define CMD NumArrayLogCmd
+#define CMD NumArrayLog
 #define INTRES double
 #define DBLRES double
 #define INTOP DBLOP
@@ -2341,7 +2341,7 @@ static inline double fsign(double x) {
 #define CPLXOP *result = NumArray_ComplexLog(op);
 #include "uniop.h"
 
-#define CMD NumArrayLog10Cmd
+#define CMD NumArrayLog10
 #define INTRES double
 #define DBLRES double
 #define INTOP DBLOP
@@ -2350,7 +2350,7 @@ static inline double fsign(double x) {
 #define CPLXOP *result = NumArray_ComplexLog(op);
 #include "uniop.h"
 
-#define CMD NumArraySqrtCmd
+#define CMD NumArraySqrt
 #define INTRES double
 #define DBLRES double
 #define INTOP DBLOP
@@ -2359,7 +2359,7 @@ static inline double fsign(double x) {
 #define CPLXOP *result = NumArray_ComplexSqrt(op);
 #include "uniop.h"
 
-#define CMD NumArraySinhCmd
+#define CMD NumArraySinh
 #define INTRES double
 #define DBLRES double
 #define INTOP DBLOP
@@ -2368,7 +2368,7 @@ static inline double fsign(double x) {
 #define CPLXOP *result = NumArray_ComplexSinh(op);
 #include "uniop.h"
 
-#define CMD NumArrayCoshCmd
+#define CMD NumArrayCosh
 #define INTRES double
 #define DBLRES double
 #define INTOP DBLOP
@@ -2377,7 +2377,7 @@ static inline double fsign(double x) {
 #define CPLXOP *result = NumArray_ComplexCosh(op);
 #include "uniop.h"
 
-#define CMD NumArrayTanhCmd
+#define CMD NumArrayTanh
 #define INTRES double
 #define DBLRES double
 #define INTOP DBLOP
@@ -2386,7 +2386,7 @@ static inline double fsign(double x) {
 #define CPLXOP *result = NumArray_ComplexTanh(op);
 #include "uniop.h"
 
-#define CMD NumArrayAsinCmd
+#define CMD NumArrayAsin
 #define INTRES double
 #define DBLRES double
 #define INTOP DBLOP
@@ -2395,7 +2395,7 @@ static inline double fsign(double x) {
 #define CPLXOP *result = NumArray_ComplexAsin(op);
 #include "uniop.h"
 
-#define CMD NumArrayAcosCmd
+#define CMD NumArrayAcos
 #define INTRES double
 #define DBLRES double
 #define INTOP DBLOP
@@ -2404,7 +2404,7 @@ static inline double fsign(double x) {
 #define CPLXOP *result = NumArray_ComplexAcos(op);
 #include "uniop.h"
 
-#define CMD NumArrayAtanCmd
+#define CMD NumArrayAtan
 #define INTRES double
 #define DBLRES double
 #define INTOP DBLOP
@@ -2413,7 +2413,7 @@ static inline double fsign(double x) {
 #define CPLXOP *result = NumArray_ComplexAtan(op);
 #include "uniop.h"
 
-#define CMD NumArrayAsinhCmd
+#define CMD NumArrayAsinh
 #define INTRES double
 #define DBLRES double
 #define INTOP DBLOP
@@ -2422,7 +2422,7 @@ static inline double fsign(double x) {
 #define CPLXOP *result = NumArray_ComplexAsinh(op);
 #include "uniop.h"
 
-#define CMD NumArrayAcoshCmd
+#define CMD NumArrayAcosh
 #define INTRES double
 #define DBLRES double
 #define INTOP DBLOP
@@ -2431,7 +2431,7 @@ static inline double fsign(double x) {
 #define CPLXOP *result = NumArray_ComplexAcosh(op);
 #include "uniop.h"
 
-#define CMD NumArrayAtanhCmd
+#define CMD NumArrayAtanh
 #define INTRES double
 #define DBLRES double
 #define INTOP DBLOP
@@ -2442,7 +2442,7 @@ static inline double fsign(double x) {
 
 
 /* Implement reductions with optional dimension */
-#define CMD NumArraySumCmd
+#define CMD NumArraySum
 #define INIT ;
 #define FIRST accum=op;
 #define INTOP accum+=op;
@@ -2452,7 +2452,7 @@ static inline double fsign(double x) {
 #include "reduction.h"
 
 
-#define CMD NumArrayMeanCmd
+#define CMD NumArrayMean
 #define INIT ;
 #define FIRST accum=op;
 #define INTRES double
@@ -2463,7 +2463,7 @@ static inline double fsign(double x) {
 #define CPLXRETURN accum.re /= nlength; accum.im /= nlength; 
 #include "reduction.h"
 
-#define CMD NumArrayAxisMinCmd
+#define CMD NumArrayAxisMin
 #define INIT ;
 #define FIRST accum=op;
 #define INTOP if (op < accum) accum=op;
@@ -2471,7 +2471,7 @@ static inline double fsign(double x) {
 #define RETURN ;
 #include "reduction.h"
 
-#define CMD NumArrayAxisMaxCmd
+#define CMD NumArrayAxisMax
 #define INIT ;
 #define FIRST accum=op;
 #define INTOP if (op > accum) accum=op;
@@ -2479,7 +2479,7 @@ static inline double fsign(double x) {
 #define RETURN ;
 #include "reduction.h"
 
-#define CMD NumArrayStdCmd
+#define CMD NumArrayStd
 #define INIT double first; double sum=0;
 #define FIRST accum=0; first=op;
 #define DBLOP  accum+=(op-first)*(op-first); sum+=(op-first);
@@ -2488,7 +2488,7 @@ static inline double fsign(double x) {
 #define RETURN accum = (nlength==1)?0:sqrt(accum/(nlength-1) - (sum*sum/nlength)/(nlength-1));
 #include "reduction.h"
 
-#define CMD NumArrayStd1Cmd
+#define CMD NumArrayStd1
 #define INIT double first; double sum=0;
 #define FIRST accum=0; first=op;
 #define DBLOP  accum+=(op-first)*(op-first); sum+=(op-first);
@@ -2497,14 +2497,14 @@ static inline double fsign(double x) {
 #define RETURN accum = sqrt(accum/nlength - (sum/nlength)*(sum/nlength));
 #include "reduction.h"
 
-#define CMD NumArrayAllCmd
+#define CMD NumArrayAll
 #define INIT ;
 #define FIRST if (op) { accum=1; } else { accum=0; }
 #define INTOP if (!op) { accum=0; break; } 
 #define RETURN ;
 #include "reduction.h"
 
-#define CMD NumArrayAnyCmd
+#define CMD NumArrayAny
 #define INIT ;
 #define FIRST if (!op) { accum=0; } else { accum=1; }
 #define INTOP if (op) { accum=1; break; } 

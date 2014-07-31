@@ -2,22 +2,42 @@
  * it defines an elementwise binary operator
  * which works by iterating over all elements
  * for compatible operands */
-int CMD( 
+
+#define TCLCMDPROC(X) NUMARRAYTPASTER(X,Cmd)
+
+int CMD(Tcl_Interp *interp, Tcl_Obj* naObj, Tcl_Obj **resultObj);
+
+MODULE_SCOPE
+int TCLCMDPROC(CMD) ( 
 		ClientData dummy,
 		Tcl_Interp *interp,
 		int objc,
 		Tcl_Obj *const *objv)
 {	
 	Tcl_Obj *naObj, *resultObj;
-	NumArrayInfo *info, *resultinfo;
-	NumArraySharedBuffer *resultbuf;
+	int resultcode;
 
 	if (objc != 2) {
 		Tcl_WrongNumArgs(interp, 1, objv, "numarray");
 		return TCL_ERROR;
 	}
-	
+
     naObj = objv[1];
+
+	resultcode=CMD(interp, naObj, &resultObj);
+	
+	if (resultcode == TCL_OK) {
+		Tcl_SetObjResult(interp, resultObj);
+	}
+
+	return resultcode;
+}
+
+
+int CMD(Tcl_Interp *interp, Tcl_Obj* naObj, Tcl_Obj **resultObj) {
+
+	NumArrayInfo *info, *resultinfo;
+	NumArraySharedBuffer *resultbuf;
 	
 	if (Tcl_ConvertToType(interp, naObj, &NumArrayTclType) != TCL_OK) {
 		return TCL_ERROR;
@@ -119,14 +139,15 @@ int CMD(
             return TCL_ERROR;
 	}
 
-	resultObj=Tcl_NewObj();
-	NumArraySetInternalRep(resultObj, resultbuf, resultinfo);
-	Tcl_SetObjResult(interp, resultObj);
+	*resultObj=Tcl_NewObj();
+	NumArraySetInternalRep(*resultObj, resultbuf, resultinfo);
+	Tcl_SetObjResult(interp, *resultObj);
 
 	return TCL_OK;
 }
 
 #undef CMD
+#undef TCLCMDPROC
 
 #undef INTOP
 #undef INTRES

@@ -56,20 +56,21 @@
 #define CPLXRES NumArray_Complex
 #endif
 
-int CMD( 
+#define TCLCMDPROC(X) NUMARRAYTPASTER(X,Cmd)
+
+int CMD(Tcl_Interp *interp, Tcl_Obj* naObj, int axis, Tcl_Obj **resultObj);
+
+MODULE_SCOPE
+int TCLCMDPROC(CMD) ( 
 		ClientData dummy,
 		Tcl_Interp *interp,
 		int objc,
 		Tcl_Obj *const *objv)
 {	
 	Tcl_Obj *naObj, *resultObj;
-	NumArrayInfo *info, *resultinfo, *sliceinfo;
-	NumArraySharedBuffer *sharedbuf, *resultbuf;
 	int axis;
-	int *resultdims;
-	int resultnDim;
-	int d;
-	
+	int resultcode;
+
 	if (objc != 2 && objc != 3) {
 		Tcl_WrongNumArgs(interp, 1, objv, "numarray ?axis?");
 		return TCL_ERROR;
@@ -77,16 +78,33 @@ int CMD(
 	
 	naObj = objv[1];
 	
-	if (Tcl_ConvertToType(interp, naObj, &NumArrayTclType) != TCL_OK) {
-		return TCL_ERROR;
-	}
-
 	if (objc == 2) {
 		axis = 0;
 	} else {
 		if (Tcl_GetIntFromObj(interp, objv[2], &axis) != TCL_OK) {
 			return TCL_ERROR;
 		}
+	}
+	
+	resultcode=CMD(interp, naObj, axis, &resultObj);
+	
+	if (resultcode == TCL_OK) {
+		Tcl_SetObjResult(interp, resultObj);
+	}
+
+	return resultcode;
+}
+
+int CMD(Tcl_Interp *interp, Tcl_Obj* naObj, int axis, Tcl_Obj **resultObj) {
+
+	NumArrayInfo *info, *resultinfo, *sliceinfo;
+	NumArraySharedBuffer *sharedbuf, *resultbuf;
+	int *resultdims;
+	int resultnDim;
+	int d;
+	
+	if (Tcl_ConvertToType(interp, naObj, &NumArrayTclType) != TCL_OK) {
+		return TCL_ERROR;
 	}
 
 	sharedbuf =  naObj->internalRep.twoPtrValue.ptr1;
@@ -252,14 +270,14 @@ int CMD(
 	NumArrayIteratorFree(&it);
 	DeleteNumArrayInfo(sliceinfo);
 
-	resultObj=Tcl_NewObj();
-	NumArraySetInternalRep(resultObj, resultbuf, resultinfo);
-	Tcl_SetObjResult(interp, resultObj);
+	*resultObj=Tcl_NewObj();
+	NumArraySetInternalRep(*resultObj, resultbuf, resultinfo);
 
 	return TCL_OK;
 }
 
 #undef CMD
+#undef TCLCMDPROC
 #undef OP
 #undef RETURN
 #undef FIRST

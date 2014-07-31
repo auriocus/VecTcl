@@ -14,6 +14,8 @@ typedef int (binop_loop_fun) (Tcl_Interp *interp, Tcl_Obj *naObj1, Tcl_Obj *naOb
 #define LOOPTABLE_IMP1(C) LOOPTABLE_IMP2(C)
 #define LOOPTABLE_IMP2(C) C##_table
 
+#define TCLCMDPROC(X) NUMARRAYTPASTER(X,Cmd)
+
 DECLARE_BINOP(NaWideInt, NaWideInt);
 DECLARE_BINOP(NaWideInt, double);
 DECLARE_BINOP(NaWideInt, NumArray_Complex);
@@ -38,15 +40,18 @@ static binop_loop_fun * LOOPTBL[3][3] = {
 	}	
 };
 
+int CMD(Tcl_Interp *interp, Tcl_Obj* naObj1, Tcl_Obj* naObj2, Tcl_Obj **resultObj);
 
-int CMD( 
+MODULE_SCOPE
+int TCLCMDPROC(CMD) ( 
 		ClientData dummy,
 		Tcl_Interp *interp,
 		int objc,
 		Tcl_Obj *const *objv)
 {	
 	Tcl_Obj *naObj1, *naObj2, *resultObj;
-	NumArrayInfo *info1, *info2;
+
+	int resultcode;
 
 	if (objc != 3) {
 		Tcl_WrongNumArgs(interp, 1, objv, "numarray1 numarray2");
@@ -56,6 +61,17 @@ int CMD(
     naObj1 = objv[1];
 	naObj2 = objv[2];
 	
+
+	resultcode=CMD(interp, naObj1, naObj2, &resultObj);
+	
+	if (resultcode == TCL_OK) {
+		Tcl_SetObjResult(interp, resultObj);
+	}
+
+	return resultcode;
+}
+
+int CMD(Tcl_Interp *interp, Tcl_Obj* naObj1, Tcl_Obj* naObj2, Tcl_Obj **resultObj) {
 	if (Tcl_ConvertToType(interp, naObj1, &NumArrayTclType) != TCL_OK) {
 		return TCL_ERROR;
 	}
@@ -64,16 +80,11 @@ int CMD(
 		return TCL_ERROR;
 	}
 	
+	NumArrayInfo *info1, *info2;
 	info1 = naObj1->internalRep.twoPtrValue.ptr2;
 	info2 = naObj2->internalRep.twoPtrValue.ptr2;
 
-	if (LOOPTBL[info1->type][info2->type](interp, naObj1, naObj2, &resultObj) != TCL_OK) {
-		return TCL_ERROR;
-	}
-	
-	Tcl_SetObjResult(interp, resultObj);
-
-	return TCL_OK;
+	return LOOPTBL[info1->type][info2->type](interp, naObj1, naObj2, resultObj);
 }
 
 /* Implement the inner loop for the binary operators 
@@ -205,6 +216,7 @@ int CMD(
 #undef GETOP_IMP
 
 #undef CMD
+#undef TCLCMD
 #undef OP
 #undef OPINT
 #undef OPDBL
