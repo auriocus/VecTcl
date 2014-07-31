@@ -11,6 +11,7 @@ namespace import rbc::vector
 # bug in napcore: it unsets global variable dir
 package require napcore
 
+package require tcc4tcl
 
 # benchmark linear regression formulae
 proc linear_regression_tcl {xv yv {rep 1}} {
@@ -78,6 +79,104 @@ proc linear_regression_vexprQR {xv yv rep} {
 	} $rep]
 	list $t1 $t2 $alpha $beta
 }
+
+tcc4tcl::cproc linregjit {Tcl_Interp* interp Tcl_Obj* xv Tcl_Obj* yv} ok {
+	int NumArrayPlus(Tcl_Interp *interp, Tcl_Obj* op1, Tcl_Obj* op2, Tcl_Obj** result);
+	int NumArrayMinus(Tcl_Interp *interp, Tcl_Obj* op1, Tcl_Obj* op2, Tcl_Obj** result);
+	int NumArrayPow(Tcl_Interp *interp, Tcl_Obj* op1, Tcl_Obj* op2, Tcl_Obj** result);
+	int NumArrayTimes(Tcl_Interp *interp, Tcl_Obj* op1, Tcl_Obj* op2, Tcl_Obj** result);
+	int NumArrayRdivide(Tcl_Interp *interp, Tcl_Obj* op1, Tcl_Obj* op2, Tcl_Obj** result);
+	
+	int NumArraySum(Tcl_Interp *interp, Tcl_Obj* op, int axis, Tcl_Obj** result);
+	int NumArrayMean(Tcl_Interp *interp, Tcl_Obj* op, int axis, Tcl_Obj** result);
+	
+	/* Temporary and standard objects */
+	Tcl_Obj *temp1, *temp2, *temp3, *temp4, *temp5, *temp6, *temp7, *temp8;
+	Tcl_Obj *result;
+	int code;
+	
+	/* Intermediate results */
+	Tcl_Obj *xm, *ym, *alpha, *beta;
+
+	/* xm=mean(xv) */
+	
+	code = NumArrayMean(interp, xv, 0, &xm);
+	if (code != TCL_OK) { return TCL_ERROR; }
+	
+	/* ym=mean(yv) */
+	code = NumArrayMean(interp, yv, 0, &ym);
+	if (code != TCL_OK) { return TCL_ERROR; }
+	
+	/* beta=sum((xv-xm).*(yv-ym))./sum((xv-xm).^2) */
+	
+	code=NumArrayMinus(interp, xv, xm, &temp1);
+	if (code != TCL_OK) { return TCL_ERROR; }
+
+	code=NumArrayMinus(interp, yv, ym, &temp2);
+	if (code != TCL_OK) { return TCL_ERROR; }
+
+	code=NumArrayTimes(interp, temp1, temp2, &temp3);
+	if (code != TCL_OK) { return TCL_ERROR; }
+	Tcl_DecrRefCount(temp1);
+	Tcl_DecrRefCount(temp2);
+
+
+	code=NumArraySum(interp, temp3, 0, &temp4);
+	if (code != TCL_OK) { return TCL_ERROR; }
+	Tcl_DecrRefCount(temp3);
+	
+	code=NumArrayMinus(interp, xv, xm, &temp5);
+	if (code != TCL_OK) { return TCL_ERROR; }
+
+	temp6=Tcl_NewIntObj(2);
+
+	code=NumArrayPow(interp, temp5, temp6, &temp7);
+	if (code != TCL_OK) { return TCL_ERROR; }
+	Tcl_DecrRefCount(temp5);
+	Tcl_DecrRefCount(temp6);
+
+	code=NumArraySum(interp, temp7, 0, &temp8);
+	if (code != TCL_OK) { return TCL_ERROR; }
+	Tcl_DecrRefCount(temp7);
+
+	code=NumArrayRdivide(interp, temp4, temp8, &beta);
+	if (code != TCL_OK) { return TCL_ERROR; }
+	Tcl_DecrRefCount(temp4);
+	Tcl_DecrRefCount(temp8);
+
+	/* alpha=ym-beta*xm */
+	code=NumArrayTimes(interp, beta, xm, &temp1);
+	if (code != TCL_OK) { return TCL_ERROR; }
+
+	code = NumArrayMinus(interp, ym, temp1, &alpha);
+	Tcl_DecrRefCount(temp1);
+	if (code != TCL_OK) { return TCL_ERROR; }
+	
+	/* here the garbage collection is missing in case of errors */
+	result=Tcl_NewObj();
+	code=Tcl_ListObjAppendElement(interp, result, alpha);
+	if (code != TCL_OK) { return TCL_ERROR;}
+
+	code=Tcl_ListObjAppendElement(interp, result, beta);
+	if (code != TCL_OK) { return TCL_ERROR;}
+	
+	Tcl_SetObjResult(interp, result);
+	
+	Tcl_DecrRefCount(xm);
+	Tcl_DecrRefCount(ym);
+
+	return TCL_OK;
+}
+
+proc linear_regression_vexprJIT {xv yv rep} {
+	set t1 [time {numarray create $xv; numarray create $yv}]
+	# setup can't be repeated, because it is cached 
+	# in the Tcl_Objs of x and y
+	set t2 [time {set result [linregjit $xv $yv]} $rep]
+	list $t1 $t2 {*}$result
+}
+
+
 
 proc linear_regression_C {xv yv rep} {
 	set t1 [time {numarray create $xv; numarray create $yv}]
@@ -179,7 +278,7 @@ proc benchlinreg {vlength} {
 		"vexpr" linear_regression_vexpr 1e10
 		"vexprQR" linear_regression_vexprQR 1e10
 		"vexprC" linear_regression_C 1e10
-		"vexprBC" linear_regression_vexprBC 1e10
+		"vexprJIT" linear_regression_vexprJIT 1e10
 	}
 
 #	puts "Correctness: "
