@@ -80,7 +80,7 @@ proc linear_regression_vexprQR {xv yv rep} {
 	list $t1 $t2 $alpha $beta
 }
 
-tcc4tcl::cproc linregjit {Tcl_Interp* interp Tcl_Obj* xv Tcl_Obj* yv} ok {
+tcc4tcl::cproc linregjit {Tcl_Interp* interp Tcl_Obj* xv Tcl_Obj* yv Tcl_Obj* c1} ok {
 	int NumArrayPlus(Tcl_Interp *interp, Tcl_Obj* op1, Tcl_Obj* op2, Tcl_Obj** result);
 	int NumArrayMinus(Tcl_Interp *interp, Tcl_Obj* op1, Tcl_Obj* op2, Tcl_Obj** result);
 	int NumArrayPow(Tcl_Interp *interp, Tcl_Obj* op1, Tcl_Obj* op2, Tcl_Obj** result);
@@ -128,12 +128,9 @@ tcc4tcl::cproc linregjit {Tcl_Interp* interp Tcl_Obj* xv Tcl_Obj* yv} ok {
 	code=NumArrayMinus(interp, xv, xm, &temp5);
 	if (code != TCL_OK) { return TCL_ERROR; }
 
-	temp6=Tcl_NewIntObj(2);
-
-	code=NumArrayPow(interp, temp5, temp6, &temp7);
+	code=NumArrayPow(interp, temp5, c1, &temp7);
 	if (code != TCL_OK) { return TCL_ERROR; }
 	Tcl_DecrRefCount(temp5);
-	Tcl_DecrRefCount(temp6);
 
 	code=NumArraySum(interp, temp7, 0, &temp8);
 	if (code != TCL_OK) { return TCL_ERROR; }
@@ -164,6 +161,7 @@ tcc4tcl::cproc linregjit {Tcl_Interp* interp Tcl_Obj* xv Tcl_Obj* yv} ok {
 	
 	Tcl_DecrRefCount(xm);
 	Tcl_DecrRefCount(ym);
+	
 
 	return TCL_OK;
 }
@@ -172,7 +170,7 @@ proc linear_regression_vexprJIT {xv yv rep} {
 	set t1 [time {numarray create $xv; numarray create $yv}]
 	# setup can't be repeated, because it is cached 
 	# in the Tcl_Objs of x and y
-	set t2 [time {set result [linregjit $xv $yv]} $rep]
+	set t2 [time {set result [linregjit $xv $yv 2]} $rep]
 	list $t1 $t2 {*}$result
 }
 
@@ -270,7 +268,7 @@ proc benchlinreg {vlength} {
 	}
 
 	
-	set solutions {
+	set solutions_all {
 		"Tcl" linear_regression_tcl 1e10
 		"Rbc" linear_regression_rbc 1e10
 		"NAP" linear_regression_nap_1f 50000
@@ -280,6 +278,14 @@ proc benchlinreg {vlength} {
 		"vexprC" linear_regression_C 1e10
 		"vexprJIT" linear_regression_vexprJIT 1e10
 	}
+	
+	set solutions {
+		"vexprJIT" linear_regression_vexprJIT 1e10
+		"Tcl" linear_regression_tcl 1e10
+		"vexpr" linear_regression_vexpr 1e10
+		"vexprC" linear_regression_C 1e10
+	}
+
 
 #	puts "Correctness: "
 #	foreach {d s max} $solutions {

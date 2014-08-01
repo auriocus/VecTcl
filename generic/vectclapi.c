@@ -136,14 +136,15 @@ NumArrayInfo* CreateNumArrayInfo(int nDim, const int *dims, NumArrayType dtype) 
 	int d = 0;
 	int elemsize=NumArrayType_SizeOf(dtype);
 	
-	NumArrayInfo* result = ckalloc(sizeof(NumArrayInfo));
+	char *allocptr = ckalloc(sizeof(NumArrayInfo)+2*sizeof(int)*nDim);
+	NumArrayInfo* result = allocptr;
 	result -> nDim = nDim;
 	result -> canonical = 1;
 	result -> bufsize = elemsize;
 	result -> type = dtype;
-	result -> dims = ckalloc(sizeof(int)*nDim);
+	result -> dims = allocptr+sizeof(NumArrayInfo);
 	result -> offset = 0;
-	result -> pitches = ckalloc(sizeof(int)*nDim);
+	result -> pitches = allocptr+sizeof(NumArrayInfo)+sizeof(int)*nDim;
 	
 	for (d=0; d<nDim; d++) {
 		int dim=0;
@@ -182,15 +183,16 @@ NumArrayInfo* CreateNumArrayInfoColMaj(int nDim, const int *dims, NumArrayType d
 	int d = 0;
 	int elemsize=NumArrayType_SizeOf(dtype);
 	
-	NumArrayInfo* result = ckalloc(sizeof(NumArrayInfo));
+	char *allocptr = ckalloc(sizeof(NumArrayInfo)+2*sizeof(int)*nDim);
+	NumArrayInfo* result = allocptr;
 	result -> nDim = nDim;
 	result -> canonical = 0; /* column major */
 	result -> bufsize = elemsize;
 	result -> type = dtype;
-	result -> dims = ckalloc(sizeof(int)*nDim);
+	result -> dims = allocptr+sizeof(NumArrayInfo);
 	result -> offset = 0;
-	result -> pitches = ckalloc(sizeof(int)*nDim);
-	
+	result -> pitches = allocptr+sizeof(NumArrayInfo)+sizeof(int)*nDim;
+
 	for (d=0; d<nDim; d++) {
 		int dim=0;
 		if (dims) {
@@ -219,24 +221,24 @@ NumArrayInfo* CreateNumArrayInfoColMaj(int nDim, const int *dims, NumArrayType d
 
 
 void DeleteNumArrayInfo(NumArrayInfo* info) {
-	ckfree(info -> pitches);
-	ckfree(info -> dims);
 	ckfree(info);
 }
 
 NumArrayInfo* DupNumArrayInfo(NumArrayInfo* src) {
 	/* Copy NumArrayInfo into new struct */
-	int i = 0, nDim = 0;
-	NumArrayInfo* result = ckalloc(sizeof(NumArrayInfo));
-	nDim = src -> nDim;
+	int i = 0;
+	int nDim = src -> nDim;
+
+	char *allocptr = ckalloc(sizeof(NumArrayInfo)+2*sizeof(int)*nDim);
+	NumArrayInfo* result = allocptr;
 	result -> nDim = nDim;
 	result -> canonical = src -> canonical;
 	result -> bufsize = src -> bufsize;
 	result -> type = src -> type;
 	result -> offset = src -> offset;
 
-	result -> dims = ckalloc(sizeof(int)*nDim);
-	result -> pitches = ckalloc(sizeof(int)*nDim);
+	result -> dims = allocptr+sizeof(NumArrayInfo);
+	result -> pitches = allocptr+sizeof(NumArrayInfo)+sizeof(int)*nDim;
 	for (i=0; i<nDim; i++) {
 		result -> dims[i] = src -> dims[i];
 		result -> pitches[i] = src -> pitches[i];
@@ -433,14 +435,16 @@ void NumArrayStripSingletonDimensions(NumArrayInfo *info) {
 
 /* A refcounted buffer */
 NumArraySharedBuffer *NumArrayNewSharedBuffer (int size) {
-	NumArraySharedBuffer* sharedbuf=ckalloc(sizeof(NumArraySharedBuffer));
+	/* Alloc this buffer in one block */
+	char *baseptr = ckalloc(sizeof(NumArraySharedBuffer)+size);
+	NumArraySharedBuffer* sharedbuf=baseptr;
 	sharedbuf -> refcount = 0;
-	sharedbuf -> buffer	  = ckalloc(size);
+	sharedbuf -> buffer	  = baseptr + sizeof(NumArraySharedBuffer);
 	return sharedbuf;
 }
 
 void * NumArrayGetPtrFromSharedBuffer(NumArraySharedBuffer *sharedbuf) {
-	return sharedbuf -> buffer;
+	return (char*)sharedbuf + sizeof(NumArraySharedBuffer);
 }
 
 void NumArraySharedBufferIncrRefcount(NumArraySharedBuffer* sharedbuf) {
@@ -453,7 +457,6 @@ void NumArraySharedBufferDecrRefcount(NumArraySharedBuffer *sharedbuf) {
 	DEBUGPRINTF(("===%p NumArraySharedBufferDecrRefcount = %d\n", sharedbuf, sharedbuf->refcount));
 	if (sharedbuf->refcount <= 0) {
 		/* destroy this buffer */
-		ckfree(sharedbuf->buffer);
 		ckfree(sharedbuf);
 		DEBUGPRINTF(("===%p  deleted\n", sharedbuf));
 	}
