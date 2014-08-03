@@ -5,11 +5,11 @@ lappend auto_path $benchdir $benchdir/lib
 package require vectcl
 namespace import vectcl::vexpr
 
-package require rbc
-namespace import rbc::vector
+#package require rbc
+#namespace import rbc::vector
 
 # bug in napcore: it unsets global variable dir
-package require napcore
+#package require napcore
 
 package require tcc4tcl
 
@@ -170,7 +170,7 @@ proc linear_regression_vexprJIT {xv yv rep} {
 	set t1 [time {numarray create $xv; numarray create $yv}]
 	# setup can't be repeated, because it is cached 
 	# in the Tcl_Objs of x and y
-	set t2 [time {set result [linregjit $xv $yv 2]} $rep]
+	set t2 [time {set result [linregjit $xv $yv 2.0]} $rep]
 	list $t1 $t2 {*}$result
 }
 
@@ -281,9 +281,9 @@ proc benchlinreg {vlength} {
 	
 	set solutions {
 		"vexprJIT" linear_regression_vexprJIT 1e10
-		"Tcl" linear_regression_tcl 1e10
-		"vexpr" linear_regression_vexpr 1e10
 		"vexprC" linear_regression_C 1e10
+		"vexpr" linear_regression_vexpr 1e10
+		"Tcl" linear_regression_tcl 1e10
 	}
 
 
