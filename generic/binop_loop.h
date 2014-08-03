@@ -1,12 +1,12 @@
 #define TUP UPCAST_COMMON(T1, T2)
 /* for scalar values, take the first value as 
  * the constant and operate over the second field */
-static int BINOP_LOOP_FUN(CMD, T1, T2) (Tcl_Interp *interp, Tcl_Obj *naObj1, Tcl_Obj *naObj2, Tcl_Obj **resultObj) {
+static int BINOP_LOOP_FUN(CMD, T1, T2) (Tcl_Obj *naObj1, Tcl_Obj *naObj2, Tcl_Obj **resultObj) {
 	NumArrayInfo *info1 = naObj1->internalRep.twoPtrValue.ptr2;
 	NumArrayInfo *info2 = naObj2->internalRep.twoPtrValue.ptr2;
 	
 	#ifndef OP
-	RESULTPRINTF(("Operator undefined for types %s, %s", NumArray_typename[info1->type], NumArray_typename[info2->type]));
+	*resultObj = Tcl_ObjPrintf("Operator undefined for types %s, %s", NumArray_typename[info1->type], NumArray_typename[info2->type]);
 	return TCL_ERROR;
 	#else 
 	
@@ -14,7 +14,7 @@ static int BINOP_LOOP_FUN(CMD, T1, T2) (Tcl_Interp *interp, Tcl_Obj *naObj1, Tcl
 	if (!NumArrayCompatibleDimensions(info1, info2) && 
 		!ISSCALARINFO(info1)  && !ISSCALARINFO(info2)) {
 
-		Tcl_SetResult(interp, "incompatible operands", NULL);
+		*resultObj = Tcl_NewStringObj("incompatible operands", -1);
 		return TCL_ERROR;
 	}
 

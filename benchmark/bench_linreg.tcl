@@ -80,7 +80,7 @@ proc linear_regression_vexprQR {xv yv rep} {
 	list $t1 $t2 $alpha $beta
 }
 
-tcc4tcl::cproc linregjit {Tcl_Interp* interp Tcl_Obj* xv Tcl_Obj* yv Tcl_Obj* c1} ok {
+tcc4tcl::cproc linregjit_old {Tcl_Interp* interp Tcl_Obj* xv Tcl_Obj* yv Tcl_Obj* c1} ok {
 	int NumArrayPlus(Tcl_Interp *interp, Tcl_Obj* op1, Tcl_Obj* op2, Tcl_Obj** result);
 	int NumArrayMinus(Tcl_Interp *interp, Tcl_Obj* op1, Tcl_Obj* op2, Tcl_Obj** result);
 	int NumArrayPow(Tcl_Interp *interp, Tcl_Obj* op1, Tcl_Obj* op2, Tcl_Obj** result);
@@ -148,6 +148,142 @@ tcc4tcl::cproc linregjit {Tcl_Interp* interp Tcl_Obj* xv Tcl_Obj* yv Tcl_Obj* c1
 	code = NumArrayMinus(interp, ym, temp1, &alpha);
 	Tcl_DecrRefCount(temp1);
 	if (code != TCL_OK) { return TCL_ERROR; }
+	
+	/* here the garbage collection is missing in case of errors */
+	result=Tcl_NewObj();
+	code=Tcl_ListObjAppendElement(interp, result, alpha);
+	if (code != TCL_OK) { return TCL_ERROR;}
+
+	code=Tcl_ListObjAppendElement(interp, result, beta);
+	if (code != TCL_OK) { return TCL_ERROR;}
+	
+	Tcl_SetObjResult(interp, result);
+	
+	Tcl_DecrRefCount(xm);
+	Tcl_DecrRefCount(ym);
+	
+
+	return TCL_OK;
+}
+
+tcc4tcl::cproc linregjit {Tcl_Interp* interp Tcl_Obj* xv Tcl_Obj* yv Tcl_Obj* c1} ok {
+	int NumArrayPlus(Tcl_Obj* op1, Tcl_Obj* op2, Tcl_Obj** result);
+	int NumArrayMinus(Tcl_Obj* op1, Tcl_Obj* op2, Tcl_Obj** result);
+	int NumArrayPow(Tcl_Obj* op1, Tcl_Obj* op2, Tcl_Obj** result);
+	int NumArrayTimes(Tcl_Obj* op1, Tcl_Obj* op2, Tcl_Obj** result);
+	int NumArrayRdivide(Tcl_Obj* op1, Tcl_Obj* op2, Tcl_Obj** result);
+	
+	int NumArraySum(Tcl_Obj* op, int axis, Tcl_Obj** result);
+	int NumArrayMean(Tcl_Obj* op, int axis, Tcl_Obj** result);
+
+	extern const Tcl_ObjType NumArrayTclType;
+
+	if (Tcl_ConvertToType(interp, xv, &NumArrayTclType) != TCL_OK) {
+		return TCL_ERROR;
+	}	
+	
+	if (Tcl_ConvertToType(interp, yv, &NumArrayTclType) != TCL_OK) {
+		return TCL_ERROR;
+	}	
+	
+	if (Tcl_ConvertToType(interp, c1, &NumArrayTclType) != TCL_OK) {
+		return TCL_ERROR;
+	}	
+	
+	/* Temporary and standard objects */
+	Tcl_Obj *temp1, *temp2, *temp3, *temp4, *temp5, *temp6, *temp7, *temp8;
+	Tcl_Obj *result;
+	int code;
+	
+	/* Intermediate results */
+	Tcl_Obj *xm, *ym, *alpha, *beta;
+
+	/* xm=mean(xv) */
+	
+	code = NumArrayMean(xv, 0, &xm);
+	if (code != TCL_OK) { 
+		Tcl_SetObjResult(interp, xm);
+		return TCL_ERROR;
+	}
+	
+	/* ym=mean(yv) */
+	code = NumArrayMean(yv, 0, &ym);
+	if (code != TCL_OK) { 
+		Tcl_SetObjResult(interp, ym);
+		return TCL_ERROR;
+	}
+	
+	/* beta=sum((xv-xm).*(yv-ym))./sum((xv-xm).^2) */
+	
+	code=NumArrayMinus(xv, xm, &temp1);
+	if (code != TCL_OK) { 
+		Tcl_SetObjResult(interp, temp1);
+		return TCL_ERROR;
+	}
+
+	code=NumArrayMinus(yv, ym, &temp2);
+	if (code != TCL_OK) { 
+		Tcl_SetObjResult(interp, temp2);
+		return TCL_ERROR;
+	}
+
+	code=NumArrayTimes(temp1, temp2, &temp3);
+	Tcl_DecrRefCount(temp1);
+	Tcl_DecrRefCount(temp2);
+	if (code != TCL_OK) { 
+		Tcl_SetObjResult(interp, temp3);
+		return TCL_ERROR;
+	}
+
+
+	code=NumArraySum(temp3, 0, &temp4);
+	Tcl_DecrRefCount(temp3);
+	if (code != TCL_OK) { 
+		Tcl_SetObjResult(interp, temp4);
+		return TCL_ERROR;
+	}
+	
+	code=NumArrayMinus(xv, xm, &temp5);
+	if (code != TCL_OK) { 
+		Tcl_SetObjResult(interp, temp5);
+		return TCL_ERROR;
+	}
+
+	code=NumArrayPow(temp5, c1, &temp7);
+	Tcl_DecrRefCount(temp5);
+	if (code != TCL_OK) { 
+		Tcl_SetObjResult(interp, temp7);
+		return TCL_ERROR;
+	}
+
+	code=NumArraySum(temp7, 0, &temp8);
+	Tcl_DecrRefCount(temp7);
+	if (code != TCL_OK) { 
+		Tcl_SetObjResult(interp, temp8);
+		return TCL_ERROR;
+	}
+
+	code=NumArrayRdivide(temp4, temp8, &beta);
+	Tcl_DecrRefCount(temp4);
+	Tcl_DecrRefCount(temp8);
+	if (code != TCL_OK) { 
+		Tcl_SetObjResult(interp, beta);
+		return TCL_ERROR;
+	}
+
+	/* alpha=ym-beta*xm */
+	code=NumArrayTimes(beta, xm, &temp1);
+	if (code != TCL_OK) { 
+		Tcl_SetObjResult(interp, temp1);
+		return TCL_ERROR;
+	}
+
+	code = NumArrayMinus(ym, temp1, &alpha);
+	Tcl_DecrRefCount(temp1);
+	if (code != TCL_OK) { 
+		Tcl_SetObjResult(interp, alpha);
+		return TCL_ERROR;
+	}
 	
 	/* here the garbage collection is missing in case of errors */
 	result=Tcl_NewObj();
@@ -283,7 +419,6 @@ proc benchlinreg {vlength} {
 		"vexprJIT" linear_regression_vexprJIT 1e10
 		"vexprC" linear_regression_C 1e10
 		"vexpr" linear_regression_vexpr 1e10
-		"Tcl" linear_regression_tcl 1e10
 	}
 
 
@@ -319,7 +454,7 @@ set timings {}
 # cutoff any one-time cost
 benchlinreg 5
 # geometric progression of vector length
-
+exit
 foreach size {5 10 20 50 100 200 500 1000 2000 5000 10000 20000 50000 100000 200000 500000 1000000} {
 	benchlinreg $size
 }

@@ -5,7 +5,7 @@
 
 #define TCLCMDPROC(X) NUMARRAYTPASTER(X,Cmd)
 
-int CMD(Tcl_Interp *interp, Tcl_Obj* naObj, Tcl_Obj **resultObj);
+int CMD(Tcl_Obj* naObj, Tcl_Obj **resultObj);
 
 MODULE_SCOPE
 int TCLCMDPROC(CMD) ( 
@@ -24,25 +24,23 @@ int TCLCMDPROC(CMD) (
 
     naObj = objv[1];
 
-	resultcode=CMD(interp, naObj, &resultObj);
-	
-	if (resultcode == TCL_OK) {
-		Tcl_SetObjResult(interp, resultObj);
+	if (Tcl_ConvertToType(interp, naObj, &NumArrayTclType) != TCL_OK) {
+		return TCL_ERROR;
 	}
+
+	resultcode=CMD(naObj, &resultObj);
+	
+	Tcl_SetObjResult(interp, resultObj);
 
 	return resultcode;
 }
 
 
-int CMD(Tcl_Interp *interp, Tcl_Obj* naObj, Tcl_Obj **resultObj) {
+int CMD(Tcl_Obj* naObj, Tcl_Obj **resultObj) {
 
 	NumArrayInfo *info, *resultinfo;
 	NumArraySharedBuffer *resultbuf;
 	
-	if (Tcl_ConvertToType(interp, naObj, &NumArrayTclType) != TCL_OK) {
-		return TCL_ERROR;
-	}
-
 	info = naObj->internalRep.twoPtrValue.ptr2;
 	
 	NumArrayIterator it;
@@ -135,13 +133,12 @@ int CMD(Tcl_Interp *interp, Tcl_Obj* naObj, Tcl_Obj **resultObj) {
 
 		default:
 			
-			RESULTPRINTF(("Undefined function for datatype %s", NumArray_typename[info->type]));
+			*resultObj = Tcl_ObjPrintf("Undefined function for datatype %s", NumArray_typename[info->type]);
             return TCL_ERROR;
 	}
 
 	*resultObj=Tcl_NewObj();
 	NumArraySetInternalRep(*resultObj, resultbuf, resultinfo);
-	Tcl_SetObjResult(interp, *resultObj);
 
 	return TCL_OK;
 }

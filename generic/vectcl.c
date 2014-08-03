@@ -2062,7 +2062,7 @@ static inline double fsign(double x) {
 #define OPINT if (op1!=0) { \
 		*result = op2 / op1; \
 	} else { \
-		Tcl_SetResult(interp, "Integer division by zero", NULL);\
+		*resultObj=Tcl_NewStringObj("Integer division by zero", -1);\
 		return TCL_ERROR;\
 	}
 #define OPDBL *result = op2 / op1;
@@ -2073,7 +2073,7 @@ static inline double fsign(double x) {
 #define OPINT if (op2!=0) { \
 		*result = op1 / op2; \
 	} else { \
-		Tcl_SetResult(interp, "Integer division by zero", NULL);\
+		*resultObj=Tcl_NewStringObj("Integer division by zero", -1);\
 		return TCL_ERROR;\
 	}
 
@@ -2085,7 +2085,7 @@ static inline double fsign(double x) {
 #define OPINT if (op2!=0) { \
 		*result = op1 % op2; \
 	} else { \
-		Tcl_SetResult(interp, "Integer division by zero", NULL);\
+		*resultObj=Tcl_NewStringObj("Integer division by zero", -1);\
 		return TCL_ERROR;\
 	}
 #include "binop.h"

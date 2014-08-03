@@ -58,7 +58,7 @@
 
 #define TCLCMDPROC(X) NUMARRAYTPASTER(X,Cmd)
 
-int CMD(Tcl_Interp *interp, Tcl_Obj* naObj, int axis, Tcl_Obj **resultObj);
+int CMD(Tcl_Obj* naObj, int axis, Tcl_Obj **resultObj);
 
 MODULE_SCOPE
 int TCLCMDPROC(CMD) ( 
@@ -78,6 +78,10 @@ int TCLCMDPROC(CMD) (
 	
 	naObj = objv[1];
 	
+	if (Tcl_ConvertToType(interp, naObj, &NumArrayTclType) != TCL_OK) {
+		return TCL_ERROR;
+	}
+
 	if (objc == 2) {
 		axis = 0;
 	} else {
@@ -86,16 +90,14 @@ int TCLCMDPROC(CMD) (
 		}
 	}
 	
-	resultcode=CMD(interp, naObj, axis, &resultObj);
+	resultcode=CMD(naObj, axis, &resultObj);
 	
-	if (resultcode == TCL_OK) {
-		Tcl_SetObjResult(interp, resultObj);
-	}
+	Tcl_SetObjResult(interp, resultObj);
 
 	return resultcode;
 }
 
-int CMD(Tcl_Interp *interp, Tcl_Obj* naObj, int axis, Tcl_Obj **resultObj) {
+int CMD(Tcl_Obj* naObj, int axis, Tcl_Obj **resultObj) {
 
 	NumArrayInfo *info, *resultinfo, *sliceinfo;
 	NumArraySharedBuffer *sharedbuf, *resultbuf;
@@ -103,20 +105,16 @@ int CMD(Tcl_Interp *interp, Tcl_Obj* naObj, int axis, Tcl_Obj **resultObj) {
 	int resultnDim;
 	int d;
 	
-	if (Tcl_ConvertToType(interp, naObj, &NumArrayTclType) != TCL_OK) {
-		return TCL_ERROR;
-	}
-
 	sharedbuf =  naObj->internalRep.twoPtrValue.ptr1;
 	info = naObj->internalRep.twoPtrValue.ptr2;
 	
 	if (axis < 0 || axis >= info -> nDim) {
-		Tcl_SetResult(interp, "Dimension mismatch", NULL);
+		*resultObj=Tcl_NewStringObj("Dimension mismatch", -1);
 		return TCL_ERROR;
 	}
 
 	if (ISEMPTYINFO(info)) {
-		Tcl_SetResult(interp, "Empty array", NULL);
+		*resultObj=Tcl_NewStringObj("Empty array", -1);
 		return TCL_ERROR;
 	}
 
@@ -160,7 +158,7 @@ int CMD(Tcl_Interp *interp, Tcl_Obj* naObj, int axis, Tcl_Obj **resultObj) {
 
 		default:
 			
-		    RESULTPRINTF(("Undefined function for datatype %s", NumArray_typename[info->type]));
+		    *resultObj=Tcl_ObjPrintf("Undefined function for datatype %s", NumArray_typename[info->type]);
 		    ckfree(resultdims);
 		    return TCL_ERROR;
 	}
@@ -263,7 +261,7 @@ int CMD(Tcl_Interp *interp, Tcl_Obj* naObj, int axis, Tcl_Obj **resultObj) {
 		
 		default:
 			/* Can't happen */
-			RESULTPRINTF(("Undefined function for datatype %s", NumArray_typename[info->type]));
+			*resultObj=Tcl_ObjPrintf("Undefined function for datatype %s", NumArray_typename[info->type]);
             return TCL_ERROR;
 	}
 

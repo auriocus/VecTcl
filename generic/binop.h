@@ -3,7 +3,7 @@
  * which works by iterating over all elements
  * for compatible operands */
 #ifndef BINOP_LOOP
-typedef int (binop_loop_fun) (Tcl_Interp *interp, Tcl_Obj *naObj1, Tcl_Obj *naObj2, Tcl_Obj **resultObj);
+typedef int (binop_loop_fun) (Tcl_Obj *naObj1, Tcl_Obj *naObj2, Tcl_Obj **resultObj);
 #define BINOP_LOOP_FUN(C, T1, T2) BINOP_LOOP_FUN1(C, T1, T2)
 #define BINOP_LOOP_FUN1(C, T1, T2) C##_loop_##T1##_##T2
 #define DECLARE_BINOP(T1, T2) static binop_loop_fun BINOP_LOOP_FUN(CMD, T1, T2)
@@ -40,7 +40,7 @@ static binop_loop_fun * LOOPTBL[3][3] = {
 	}	
 };
 
-int CMD(Tcl_Interp *interp, Tcl_Obj* naObj1, Tcl_Obj* naObj2, Tcl_Obj **resultObj);
+int CMD(Tcl_Obj* naObj1, Tcl_Obj* naObj2, Tcl_Obj **resultObj);
 
 MODULE_SCOPE
 int TCLCMDPROC(CMD) ( 
@@ -61,17 +61,6 @@ int TCLCMDPROC(CMD) (
     naObj1 = objv[1];
 	naObj2 = objv[2];
 	
-
-	resultcode=CMD(interp, naObj1, naObj2, &resultObj);
-	
-	if (resultcode == TCL_OK) {
-		Tcl_SetObjResult(interp, resultObj);
-	}
-
-	return resultcode;
-}
-
-int CMD(Tcl_Interp *interp, Tcl_Obj* naObj1, Tcl_Obj* naObj2, Tcl_Obj **resultObj) {
 	if (Tcl_ConvertToType(interp, naObj1, &NumArrayTclType) != TCL_OK) {
 		return TCL_ERROR;
 	}
@@ -80,11 +69,20 @@ int CMD(Tcl_Interp *interp, Tcl_Obj* naObj1, Tcl_Obj* naObj2, Tcl_Obj **resultOb
 		return TCL_ERROR;
 	}
 	
+	resultcode=CMD(naObj1, naObj2, &resultObj);
+	
+	Tcl_SetObjResult(interp, resultObj);
+	
+	return resultcode;
+}
+
+int CMD(Tcl_Obj* naObj1, Tcl_Obj* naObj2, Tcl_Obj **resultObj) {
+
 	NumArrayInfo *info1, *info2;
 	info1 = naObj1->internalRep.twoPtrValue.ptr2;
 	info2 = naObj2->internalRep.twoPtrValue.ptr2;
 
-	return LOOPTBL[info1->type][info2->type](interp, naObj1, naObj2, resultObj);
+	return LOOPTBL[info1->type][info2->type](naObj1, naObj2, resultObj);
 }
 
 /* Implement the inner loop for the binary operators 
