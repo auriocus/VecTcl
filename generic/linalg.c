@@ -724,7 +724,7 @@ MODULE_SCOPE int solvezQRP(Tcl_Interp *interp, Tcl_Obj *A, Tcl_Obj *y, Tcl_Obj *
     integer lda = m;
 
     int result= zgelsy_(interp, &m, &n, &nrhs,
-	QRptr, &lda, bptr, &ldb, jpiv,
+	(doublecomplex *)QRptr, &lda, bptr, &ldb, jpiv,
 	&rcond, &rank, work, &lwork, rwork, &info);
 
     ckfree(work);

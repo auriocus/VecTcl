@@ -850,7 +850,7 @@ error_set (RDE_PARAM p, int s)
 	p->ER->loc      = p->CL;
 	p->ER->msg      = rde_stack_new (NULL);
 	ASSERT_BOUNDS(s,p->numstr);
-	rde_stack_push (p->ER->msg, (void*) s);
+	rde_stack_push (p->ER->msg, (void*)(uintptr_t) s);
 }
 	static void
 error_state_free (void* esx)
@@ -947,7 +947,7 @@ rde_param_i_symbol_restore (RDE_PARAM p, int s)
 	hPtr = Tcl_FindHashEntry (&p->NC, (char*) p->CL);
 	if (!hPtr) { return 0; }
 	tablePtr = (Tcl_HashTable*) Tcl_GetHashValue (hPtr);
-	hPtr = Tcl_FindHashEntry (tablePtr, (char*) s);
+	hPtr = Tcl_FindHashEntry (tablePtr, (void*)(uintptr_t) s);
 	if (!hPtr) { return 0; }
 
 	scs = Tcl_GetHashValue (hPtr);
@@ -980,7 +980,7 @@ rde_param_i_symbol_save (RDE_PARAM p, int s)
 	} else {
 		tablePtr = (Tcl_HashTable*) Tcl_GetHashValue (hPtr);
 	}
-	hPtr = Tcl_CreateHashEntry (tablePtr, (char*) s, &isnew);
+	hPtr = Tcl_CreateHashEntry (tablePtr, (void*)(uintptr_t) s, &isnew);
 	if (isnew) {
 
 		scs = ALLOC (NC_STATE);
@@ -1027,7 +1027,7 @@ rde_param_i_test_ascii (RDE_PARAM p)
 	test_class (p, UniCharIsAscii, tc_ascii);
 }
 	SCOPE void
-rde_param_i_test_char (RDE_PARAM p, char* c, int msg)
+rde_param_i_test_char (RDE_PARAM p, const char* c, int msg)
 {
 	ASSERT_BOUNDS(msg,p->numstr);
 	p->ST = Tcl_UtfNcmp (p->CC, c, 1) == 0;
@@ -1614,7 +1614,7 @@ rde_param_i_bra_value2value (RDE_PARAM p)
 	return p->ST;
 }
 	SCOPE void
-rde_param_i_next_str (RDE_PARAM p, char* str, int m)
+rde_param_i_next_str (RDE_PARAM p, const char* str, int m)
 {
 	int at = p->CL;
 	while (*str) {
@@ -1632,7 +1632,7 @@ rde_param_i_next_str (RDE_PARAM p, char* str, int m)
 	}
 }
 	SCOPE void
-rde_param_i_next_class (RDE_PARAM p, char* class, int m)
+rde_param_i_next_class (RDE_PARAM p, const char* class, int m)
 {
 	rde_param_i_input_next (p, m);
 	if (!p->ST) return;
