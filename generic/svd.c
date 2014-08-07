@@ -145,8 +145,8 @@ static int doSVD(Tcl_Interp *interp, Tcl_Obj *matrix, Tcl_Obj **s,  Tcl_Obj **U,
 */
 		/* call out to zgesdd */
 		int result=zgesdd_(interp, request,  &m, &n, 
-			Aptr, &lda, sptr, Uptr, 
-			&ldu, VTptr, &ldvt, work, 
+			(doublecomplex *)Aptr, &lda, sptr, (doublecomplex *)Uptr, 
+			&ldu, (doublecomplex *)VTptr, &ldvt, (doublecomplex *)work, 
 			&lwork, rwork, iwork, &info);
 		
 		/* free workspace */
