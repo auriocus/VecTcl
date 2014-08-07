@@ -127,6 +127,16 @@ int NumArrayConvertToType(Tcl_Interp *interp, Tcl_Obj *naObj, NumArrayType type,
  * (metadata describing the memory buffer 
  */
 
+static inline NumArrayInfo * AllocNumArrayInfo(int nDim) {
+	/* Allocate uninitialized space for NumArrayInfo */
+	char *allocptr = ckalloc(sizeof(NumArrayInfo)+2*sizeof(int)*nDim);
+	NumArrayInfo* result = (NumArrayInfo *)allocptr;
+	result -> nDim = nDim;
+	result -> dims = (int*) (allocptr+sizeof(NumArrayInfo));
+	result -> pitches = (int*) (allocptr+sizeof(NumArrayInfo)+sizeof(int)*nDim);
+	return result;
+}
+
 /* Constructor, destructor, copy constructor for NumArrayInfo */
 NumArrayInfo* CreateNumArrayInfo(int nDim, const int *dims, NumArrayType dtype) {
 	/* Create empty information with nDim number of dimensions
@@ -136,15 +146,11 @@ NumArrayInfo* CreateNumArrayInfo(int nDim, const int *dims, NumArrayType dtype) 
 	int d = 0;
 	int elemsize=NumArrayType_SizeOf(dtype);
 	
-	char *allocptr = ckalloc(sizeof(NumArrayInfo)+2*sizeof(int)*nDim);
-	NumArrayInfo* result = allocptr;
-	result -> nDim = nDim;
+	NumArrayInfo* result = AllocNumArrayInfo(nDim);
 	result -> canonical = 1;
 	result -> bufsize = elemsize;
 	result -> type = dtype;
-	result -> dims = allocptr+sizeof(NumArrayInfo);
 	result -> offset = 0;
-	result -> pitches = allocptr+sizeof(NumArrayInfo)+sizeof(int)*nDim;
 	
 	for (d=0; d<nDim; d++) {
 		int dim=0;
@@ -183,15 +189,11 @@ NumArrayInfo* CreateNumArrayInfoColMaj(int nDim, const int *dims, NumArrayType d
 	int d = 0;
 	int elemsize=NumArrayType_SizeOf(dtype);
 	
-	char *allocptr = ckalloc(sizeof(NumArrayInfo)+2*sizeof(int)*nDim);
-	NumArrayInfo* result = allocptr;
-	result -> nDim = nDim;
+	NumArrayInfo* result = AllocNumArrayInfo(nDim);
 	result -> canonical = 0; /* column major */
 	result -> bufsize = elemsize;
 	result -> type = dtype;
-	result -> dims = allocptr+sizeof(NumArrayInfo);
 	result -> offset = 0;
-	result -> pitches = allocptr+sizeof(NumArrayInfo)+sizeof(int)*nDim;
 
 	for (d=0; d<nDim; d++) {
 		int dim=0;
@@ -229,16 +231,12 @@ NumArrayInfo* DupNumArrayInfo(NumArrayInfo* src) {
 	int i = 0;
 	int nDim = src -> nDim;
 
-	char *allocptr = ckalloc(sizeof(NumArrayInfo)+2*sizeof(int)*nDim);
-	NumArrayInfo* result = allocptr;
-	result -> nDim = nDim;
+	NumArrayInfo* result = AllocNumArrayInfo(nDim);
 	result -> canonical = src -> canonical;
 	result -> bufsize = src -> bufsize;
 	result -> type = src -> type;
 	result -> offset = src -> offset;
 
-	result -> dims = allocptr+sizeof(NumArrayInfo);
-	result -> pitches = allocptr+sizeof(NumArrayInfo)+sizeof(int)*nDim;
 	for (i=0; i<nDim; i++) {
 		result -> dims[i] = src -> dims[i];
 		result -> pitches[i] = src -> pitches[i];
@@ -437,7 +435,7 @@ void NumArrayStripSingletonDimensions(NumArrayInfo *info) {
 NumArraySharedBuffer *NumArrayNewSharedBuffer (int size) {
 	/* Alloc this buffer in one block */
 	char *baseptr = ckalloc(sizeof(NumArraySharedBuffer)+size);
-	NumArraySharedBuffer* sharedbuf=baseptr;
+	NumArraySharedBuffer* sharedbuf= (NumArraySharedBuffer*) baseptr;
 	sharedbuf -> refcount = 0;
 	sharedbuf -> buffer	  = baseptr + sizeof(NumArraySharedBuffer);
 	return sharedbuf;
