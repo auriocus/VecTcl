@@ -3,6 +3,7 @@ layout: default
 title: VecTcl
 subtitle: Downloads
 downloads: true
+toplink: true
 permalink: "downloads.html"
 ---
 

@@ -13,20 +13,13 @@
     	</li>
 		{% assign sorted_pages = site.pages | sort:"name" %}
         {% for p in sorted_pages %}
-        	{% if p.design  %}
-        	{% else %}
-        	{% if p.bench  %}
-        	{% else %}
-			{% if p.home %}
-			{% else %}
+        	{% if p.toplink  %}
         <li>
         	<a {% if p.url == page.url %}class="active"{% endif %} href="{{ site.baseurl }}{{ p.url }}">
             {{ p.subtitle }}
             </a>
         </li>
-        {% endif %}
-        {% endif %}
-        {% endif %}
+			{% endif %}
         {% endfor %}
     </ul>
     

@@ -2,7 +2,8 @@
 layout: design
 title: VecTcl
 subtitle: Design and implementation issues
-downloads: false
+toplink: false
+documentation: true
 permalink: "design.html"
 ---
 

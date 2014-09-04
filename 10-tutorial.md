@@ -3,6 +3,7 @@ title: VecTcl
 layout: default
 subtitle: Tutorial
 home: false
+documentation: true
 permalink: "tutorial.html"
 ---
 

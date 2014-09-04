@@ -3,6 +3,7 @@ layout: default
 title: VecTcl
 subtitle: Benchmarks
 home: false
+toplink: true
 permalink: "benchmarks.html"
 ---
 
