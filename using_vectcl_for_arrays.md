@@ -176,9 +176,11 @@ Here are the expressions that gives us that:
 
     corr     = mean((salinity-salmean).*(temperature-tmpmean))/salstdev/tmpstdev
 
-Note the ".*" and ".^" operators - they are used to indicate that the
-operation is to be applied element-wise. Multiplication "*" is
+{% raw %}
+Note the `.*` and`.^` operators - they are used to indicate that the
+operation is to be applied element-wise. Multiplication `*` is
 interpreted as a matrix-matrix or matrix-vector operation.
+{% endraw %}
 
 As you can see, Vectcl makes it possible to eliminate a lot of loops
 that would otherwise obscure the code with irrelevant details. Well,
@@ -278,7 +280,7 @@ over the four sides of the cell. Via so-called finite differences we can
 calculate an approximation of the temperature gradient. It takes a few
 steps, but the heat balance for a cell can be expressed as:
 
-   dHeat = lambda * (Tleft + Tright + Tup + Tdown - 4*Tcell) / dx^2
+	dHeat = lambda * (Tleft + Tright + Tup + Tdown - 4*Tcell) / dx^2
 
 where _lambda_ measures the conductivity and _dx_ the grid cell's size.
 
