@@ -1,7 +1,7 @@
 ---
 title: VecTcl
 layout: default
-subtitle: Tutorial
+subtitle: Getting started tutorial
 home: false
 documentation: true
 permalink: "tutorial.html"

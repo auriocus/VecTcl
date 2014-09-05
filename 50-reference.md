@@ -1,22 +1,16 @@
 ---
 title: VecTcl
 layout: default
-subtitle: Reference
+subtitle: A guided tour to VecTcl / basic reference
 documentation: true
 home: false
-toplink: true
+toplink: false
 ---
 
 
-= A tour of **VecTcl**.
+## Introduction.
 
-== Introduction.
-
-**VecTcl** is an awesome **Tcl** extension which allow users to operate, with a reasonable efficiency, with numeric arrays of arbitrary dimensions within **Tcl**. The present document aims at giving a glimpse of all the functionality it conveys in a guided form and by means of using small examples.
-
-The [get started tutorial](http://auriocus.github.io/VecTcl/tutorial.html) is also a good place to start reading about **VecTcl** powers.
-
-For further reference we should recommend **VecTcl** [design document](http://auriocus.github.io/VecTcl/design.html) or the [source code](https://github.com/auriocus/VecTcl) for all that matters.
+The present document aims at giving a glimpse of all the functionality it conveys in a guided form and by means of using small examples.
 
 **VecTcl** functionality may be used by invoking a **Tcl** command (`vexpr`) that offers the possibility of using a similar syntax to that of Matlab with infix form operators, assignments, no need to use `$` for variable access, calling **Tcl** commands disguised as functions, indexing and slicing as in `A[:,1]`, special forms for conditional branching and looping, etc...
 
@@ -30,7 +24,7 @@ At the end of the document we will collect random notes of things that might be 
 
 So let's **VecTcl**...
 
-== Creating a numeric array.
+## Creating a numeric array.
 
 Let's start by the most basic task, creating numeric arrays.
 
@@ -138,11 +132,11 @@ set A [numarray::create { {1. 2. 3.} {4. 5. 6.} {7. 8. 9.} }]
 {% endraw %}
 {% endhighlight %}
 
-=== Creating special numeric arrays.
+### Creating special numeric arrays.
 
 There are ways to create some specialized arrays.
 
-==== Filling an array with a constant.
+#### Filling an array with a constant.
 
 The function to use is `constfill` with signature:
 
@@ -195,7 +189,7 @@ Giving, in nested list string representation:
 {% endraw %}
 {% endhighlight %}
 
-==== Creating an identity matrix.
+#### Creating an identity matrix.
 
 The function to use is `eye` whose signatures are:
 
@@ -246,7 +240,7 @@ $$
 </div>
 {% endraw %}
 
-=== Creating a vector of linearly spaced numbers.
+### Creating a vector of linearly spaced numbers.
 
 With `linspace`, a **Tcl** convenience procedure, we can create a vector of linearly spaced reals. The procedure needs the initial and the final points of the interval to be returned and the number of divisions to establish in it.
 
@@ -267,7 +261,7 @@ vexpr {
 
 This will just return a vector `0.0 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0`.
 
-== Destroying numeric arrays.
+## Destroying numeric arrays.
 
 One of the many good things of **VecTcl** is that, being numeric arrays first class citizens in the realm of **Tcl** objects, the user has not to care when to dispose of a numeric array, the system does that in automagical fashion.
 
@@ -282,13 +276,13 @@ unset A
 {% endraw %}
 {% endhighlight %}
 
-== Asking for metadata of a numeric array.
+## Asking for metadata of a numeric array.
 
 There are some pieces of information associated to each numeric array like the number of its dimensions and such. We call these pieces the array's metadata.
 
 We will see now some ways to ask **VecTcl** about the metadata of a numeric array.
 
-=== Info.
+### Info.
 
 This command is used mainly for debug purposes. To avoid collisions with the **Tcl** `info` command this form is used:
 
@@ -311,7 +305,7 @@ This will produce:
 dimensions {2 2} offset 0 pitches {16 8} canonical 1 bufsize 32 refcount 1 type 1
 {% endraw %}
 
-=== Dimensions.
+### Dimensions.
 
 Signatures:
 
@@ -331,7 +325,7 @@ numarray::dimensions $I23
 {% endraw %}
 {% endhighlight %}
 
-=== Shape.
+### Shape.
 
 The shape of a numeric array is a list giving the size of each dimension of the array. Signatures for `shape`:
 
@@ -351,7 +345,7 @@ numarray::shape $I23
 {% endraw %}
 {% endhighlight %}
 
-=== Rows and columns.
+### Rows and columns.
 
 For vectors and matrices there is a pair of **Tcl** convenience procedures called `rows` and `cols`.
 
@@ -365,11 +359,11 @@ numarray::cols numArrayVal
 
 Continuing with the `I23`example, we, naturally, should get `2` if we ask for its `rows` and 3` if we ask for its `cols`.
 
-== Changing the shape of a numeric array.
+## Changing the shape of a numeric array.
 
 If you consider a numeric array as a set of contiguous numbers with an associated legend (or metadata) that allows you to interpret them as, let's say, a column vector or a two by two matrix then it is conceivable that we could use a function to define the metadata so as to change our interpretation of the array.
 
-=== Reshape.
+### Reshape.
 
 The `reshape` function allows to redefine the shape of a numeric array. Its signatures:
 
@@ -403,7 +397,7 @@ vexpr {
 
 Would transform `A` into `{% raw %}{{1 2} {3 4}} {{5 6} {7 8}}{% endraw %}` in nested list form.
 
-=== Transposition.
+### Transposition.
 
 One very common way of reshaping a numeric array is the transposition operation with which the reader maybe familiar in the cases of vectors and matrices.
 
@@ -485,7 +479,7 @@ By the way, using this form we would be, at least partly, freed from **VecTcl** 
 
 Lastly, notice that the `transpose` function can be applied to a complex numeric array too (but, of course, it won't flip signs of the imaginary parts of its elements).
 
-== Recap on shapes.
+## Recap on shapes.
 
 Out of curiosity, let's see the dimensions and shapes of different numeric arrays and their transposes.
 
@@ -546,7 +540,7 @@ And, lastly, here we have a stack of 1 2 by 3 matrix in the first line of the ta
 
 To keep on building up on dimensions is an exercise left to the curious reader.
 
-== Composing numeric arrays.
+## Composing numeric arrays.
 
 There is a general function for concatenating numeric arrays that goes by the following signatures:
 
@@ -612,7 +606,7 @@ F -- {1 2} {3 4} {5 6} {100 200}
 
 Notice (at `F`) how part of `C` has been lost when concatenating it vertically to `A`. Interestingly too `C` being naturally thought of a column vector in **VecTcl** has been transposed to make it match `A` row structure.
 
-== Accessing the elements of a numeric array.
+## Accessing the elements of a numeric array.
 
 We shall start little, we will try to access to one particular element to begin with. Later on we will see how to get to entire ranges of elements (called slices).
 
@@ -665,7 +659,7 @@ puts [numarray::get $A 1 1]
 {% endraw %}
 {% endhighlight %}
 
-== Slicing a numeric array.
+## Slicing a numeric array.
 
 Apart from accessing particular elements within a numeric array whole ranges can be "sliced" out of it by using the slicing syntax, borrowed from **Python**.
 
@@ -697,7 +691,7 @@ Note that indices in **VecTcl** start at 0.
 
 In principle, **VecTcl** may report an index out of bounds if user misspecifies the slice, sometimes, as we have seen, **VecTcl** just returns an empty array if there is nothing to give back.
 
-== Diagonal.
+## Diagonal.
 
 To extract the diagonal of a numeric array could perhaps be seen as a specialized form of slicing.
 
@@ -733,11 +727,11 @@ $$
 
 Final note: function `diag` is not defined for dimensions higher than 2.
 
-== Elementwise operations.
+## Elementwise operations.
 
 Elementwise operations are those performed over all elements of a numeric array.
 
-=== Unary operators.
+### Unary operators.
 
 The most elementary one is the negation operator `-` or, in function form, `neg`. This negates all elements of a numeric array. Take the following example:
 
@@ -772,7 +766,7 @@ As you probably can guess by now, we could also have used the form:
 numarray::neg numArrayVal
 {% endraw %}
 
-=== Binary operators.
+### Binary operators.
 
 Let's now see binary operators.
 
@@ -1051,7 +1045,7 @@ $$
 </div>
 {% endraw %}
 
-=== Elementwise functions.
+### Elementwise functions.
 
 Apart from the elementwise operators that we have just seen there are functions that are applied to each element of a numeric array.
 
@@ -1084,7 +1078,7 @@ $$
 </div>
 {% endraw %}
 
-=== A further example.
+### A further example.
 
 As `log10` function does not exist at time of writing this document let's use it as an example of creating our own functions in **VecTcl** with `vproc`.
 
@@ -1113,7 +1107,7 @@ $$
 
 Notice the entities `NaN` and `Inf`.
 
-== Operations defined over numeric arrays.
+## Operations defined over numeric arrays.
 
 The most used operator is probably `*`, which allows for the standard "dot" product defined over numeric arrays.
 
@@ -1185,7 +1179,7 @@ $$
 </div>
 {% endraw %}
 
-=== More auxiliary **Tcl** procedures.
+### More auxiliary **Tcl** procedures.
 
 Related to the `\` operator is the `inv` procedure that compute the inverse of a square matrix.
 
@@ -1251,7 +1245,7 @@ $$
 </div>
 {% endraw %}
 
-== Aggregation functions.
+## Aggregation functions.
 
 The concept of aggregation in a numeric array is similar to the concept of aggregating in **SQL** by using `GROUP BY` sentences.
 
@@ -1331,13 +1325,13 @@ Function `any` returns `1` if any element of a numeric array is different from z
 
 (**Is `all` and `any`depictions correct ???**)
 
-== Guest functions.
+## Guest functions.
 
 **VecTcl** aims to be a complete package with minimum dependencies. Apart from its many core functionalities it borrows from other places useful stuff adapted to its internals.
 
 We will give here quickly the relevant signatures with some comments for these methods.
 
-=== Matrix decompositions.
+### Matrix decompositions.
 
 To perform the QR decomposition of a matrix (provided that it does not have more columns than rows) use `qreco`.
 
@@ -1385,7 +1379,7 @@ schur(squareMatrixVar)
 numarray::schur squareMatrixVal
 {% endraw %}
 
-=== Fast Fourier transform and inverse.
+### Fast Fourier transform and inverse.
 
 The relevant signatures:
 
@@ -1397,133 +1391,13 @@ ifft(numArrayVar)
 numarray::ifft numArrayVal
 {% endraw %}
 
-== Benchmark functions.
+## Benchmark functions.
 
 Finally, some functions, namely `fastcopy`, `fastadd` and `linreg` are benchmark tools. They shouldn't be used, they probably break **EIAS** and they are largely useless except perhaps to core **VecTcl** developers.
 
-== Final notes.
+## Final notes.
 
-=== Parsing literal doubles.
+### Parsing literal doubles.
 
-Inside `vexpr` a double literal with unspecified decimal part (like `1.`) gives syntax error due to ambiguity with elementwise operators (as in `1.+3`).
+Inside `vexpr` a double literal with unspecified decimal part (like `1.`) gives syntax error due to ambiguity with elementwise operators (as in `1.+3`). The decimal part is required, beause otherwise the elementwise operators cannot be disambiguated: `1 .* a` versus `1. * a`
 
-=== Number of elements function.
-
-Is this function available?
-
-=== Antidiagonal function suggested.
-
-Diagonal suggest we could also have antidiagonal (or let the user do the diagonal of the transpose).
-
-=== XOR function suggested.
-
-We have `&&` and `||`, what about an XOR function?
-
-=== Extending elementwise operators.
-
-Could elementwise operators be extended in a way that for two numerical arrays of different dimensions but with a common one and the other being 1 would work?
-
-Like add to all rows of a matrix a given row vector or add to all columns of a matrix a column vector:
-
-{% highlight tcl %}
-{% raw %}
-vexpr {
-    A = eye(2)
-    B = constfill(2,1,2)
-    C = constfill(2,2,1)
-    AB = A .+ B
-    AC = A .+ C
-}
-{% endraw %}
-{% endhighlight %}
-
-=== Extending aggregator functions.
-
-Aggregator functions, like `sum`, `mean`, `std`, `axismax`, `axismin` don't deal well with the presence of `NaN` in the data. At least not according to what users of statistical analysis packages might expect under the interpretation of of `NaN` representing a missing value.
-
-jima needs to specify this more... the idea is to copy **SQL** or **R** perhaps.
-
-=== Extending metadata associated to a numeric array.
-
-Sometimes it is useful to consider what purposes the numeric array are serving.
-
-Apart from what **Sean Woods** and **Andreas Kupries** are contributing from their respective extensions (potential clients of **VecTcl**) here come some thoughts.
-
-==== Categorical variables.
-
-For data analysis, categorical variables may be represented numerically as vectors or integers.
-
-It would be perhaps nice to have a map that linked those integers to strings that better describe the different levels of a categorical variable for humans.
-
-How does a language like **R** does it?
-
-==== Physical units.
-
-Well, a complex subject... see perhaps the relevant section of this [wiki page](http://wiki.tcl.tk/37423).
-
-==== Coordinate systems.
-
-**NAP** implements some features to allow interpolation of values that are thought to be inside a kind of grid. This is aided by some metadata at axis level.
-
-jima needs to elaborate more on this point.
-
-=== Logical extraction of numeric array elements.
-
-I copy here a fragment **Arjen Markus** shared on this topic.
-
-Well, there is plenty of things to think about and discuss, but here
-is one idea for "logical indices". I personally do not like them very
-much, it feels odd to see "a > 0" as an index. What I thought of is: a
-vector of indices, not necessarily contiguous or sorted, like {0 3 4}
-to select the corresponding elements from an array and a function to
-generate these indices from a logical expression. I have not examined
-it very closely, but it might solve the parsing ambiguities that are
-lurking here. Something along these lines:
-
-{% raw %}
-a[ lindices( a > 0 )] = 1
-{% endraw %}
-
-instead of:
-
-{% raw %}
-a[a > 0] = 1
-{% endraw %}
-
-Like I said, just a thought.
-
-Now, me (jima): it is interesting the possibility of extracting elements out of a numeric array by using an expression as **Arjen** is pointing out. I see two ways the result could be past back to the user.
-
-First way: as a collection of indices, not necessarily contiguous or sorted, as **Arjen** says. Beware that for arrays of more than one dimension the result has the form of a matrix (like `{1 2 3} {1 2 4}`) where each row represents the coordinates you need to use to access a particular element of the original array that has been included in the result.
-
-Second way: as an array of same dimensionality of the array being processed and formed by `0` and `1`. Naturally `1` elements will signal the elements from the original array that form part of the result. This way is the one **J** advocates and makes it easy to establish hit counts of results by axis using `sum` as aggregator if needed.
-
-I suggest we implement both by simply using different names for the funcion used to extract the result, I suggest `indices` in the first case and `pattern` in the second:
-
-{% raw %}
-a[ indices( a > 0 ) ]
-a[ pattern( a > 0 ) ]
-{% endraw %}
-
-=== Unreported functionality.
-
-I (jima) have left undocumented at least these ones that I know of:
-
-{% raw %}
-numarray::I
-
-double()
-numarray::double
-
-complex()
-numarray::complex
-
-bcexecute
-numarray::bcexecute
-{% endraw %}
-
-Also undocumented the `for` and `if` capabilities of `vexpr`.
-
-Benchmark functions are mentioned just to scare users of them but not really documented.
-
-I haven't commented on metaprogramming with **VecTcl** `"$aTerm * $bTerm"`.
