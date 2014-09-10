@@ -80,6 +80,171 @@ proc linear_regression_vexprQR {xv yv rep} {
 	list $t1 $t2 $alpha $beta
 }
 
+set jit [tcc4tcl::new]
+$jit add_include_path $benchdir/generic
+$jit ccode {#include <vectcl.h>}  
+
+$jit cproc linregdeepjit {Tcl_Interp* interp Tcl_Obj* xv Tcl_Obj* yv Tcl_Obj* c1} ok {
+	
+	int NumArraySum(Tcl_Obj* op, int axis, Tcl_Obj** result);
+	int NumArrayMean(Tcl_Obj* op, int axis, Tcl_Obj** result);
+
+	extern const Tcl_ObjType NumArrayTclType;
+
+	if (Tcl_ConvertToType(interp, xv, &NumArrayTclType) != TCL_OK) {
+		return TCL_ERROR;
+	}	
+	
+	if (Tcl_ConvertToType(interp, yv, &NumArrayTclType) != TCL_OK) {
+		return TCL_ERROR;
+	}	
+	
+	if (Tcl_ConvertToType(interp, c1, &NumArrayTclType) != TCL_OK) {
+		return TCL_ERROR;
+	}	
+	
+	/* Temporary and standard objects */
+	Tcl_Obj *temp1, *temp2, *temp3;
+	Tcl_Obj *result;
+	int code;
+	
+	/* Intermediate results */
+	Tcl_Obj *xm, *ym, *alpha, *beta;
+
+	/* xm=mean(xv) */
+	
+	code = NumArrayMean(xv, 0, &xm);
+	if (code != TCL_OK) { 
+		Tcl_SetObjResult(interp, xm);
+		return TCL_ERROR;
+	}
+	
+	/* ym=mean(yv) */
+	code = NumArrayMean(yv, 0, &ym);
+	if (code != TCL_OK) { 
+		Tcl_SetObjResult(interp, ym);
+		return TCL_ERROR;
+	}
+	
+	/* beta=sum((xv-xm).*(yv-ym))./sum((xv-xm).^2) */
+	
+/*	code=NumArrayMinus(xv, xm, &temp1);
+	if (code != TCL_OK) { 
+		Tcl_SetObjResult(interp, temp1);
+		return TCL_ERROR;
+	}
+
+	code=NumArrayMinus(yv, ym, &temp2);
+	if (code != TCL_OK) { 
+		Tcl_SetObjResult(interp, temp2);
+		return TCL_ERROR;
+	}
+
+	code=NumArrayTimes(temp1, temp2, &temp3);
+	Tcl_DecrRefCount(temp1);
+	Tcl_DecrRefCount(temp2);
+	if (code != TCL_OK) { 
+		Tcl_SetObjResult(interp, temp3);
+		return TCL_ERROR;
+	}
+*/
+	
+	/* Beware that error handling is left out for now */
+	{
+		NumArrayInfo *xvinfo = NumArrayGetInfoFromObj(interp, xv);
+		NumArrayInfo *yvinfo = NumArrayGetInfoFromObj(interp, yv);
+		double *xvptr = NumArrayGetPtrFromObj(interp, xv);
+		double *yvptr = NumArrayGetPtrFromObj(interp, yv);
+		const int N = xvinfo -> dims[0];
+		const int xvpitch = xvinfo -> pitches[0] / sizeof(double);
+		const int yvpitch = yvinfo -> pitches[0] / sizeof(double);
+		
+		double scal_xm=*((double*)NumArrayGetPtrFromObj(interp, xm));
+		double scal_ym=*((double*)NumArrayGetPtrFromObj(interp, ym));
+
+		temp1 = NumArrayNewVector(NumArray_Float64, N);
+		double *temp1ptr =NumArrayGetPtrFromObj(interp, temp1);
+
+		int index;
+		for (index=0; index < N; index++) {
+			*temp1ptr++ = (*xvptr-scal_xm)*(*yvptr-scal_ym);	
+			xvptr += xvpitch;
+			yvptr += yvpitch;
+		}
+	}
+	code=NumArraySum(temp1, 0, &temp2);
+	Tcl_DecrRefCount(temp1);
+	if (code != TCL_OK) { 
+		Tcl_SetObjResult(interp, temp2);
+		return TCL_ERROR;
+	}
+	
+	{
+		NumArrayInfo *xvinfo = NumArrayGetInfoFromObj(interp, xv);
+		double *xvptr = NumArrayGetPtrFromObj(interp, xv);
+		const int N = xvinfo -> dims[0];
+		const int xvpitch = xvinfo -> pitches[0] / sizeof(double);
+		
+		double scal_xm=*((double*)NumArrayGetPtrFromObj(interp, xm));
+
+		temp1 = NumArrayNewVector(NumArray_Float64, N);
+		double *temp1ptr =NumArrayGetPtrFromObj(interp, temp1);
+
+		int index;
+		for (index=0; index < N; index++) {
+			*temp1ptr++ = (*xvptr-scal_xm)*(*xvptr-scal_xm);	
+			xvptr += xvpitch;
+		}
+	}
+
+	code=NumArraySum(temp1, 0, &temp3);
+	Tcl_DecrRefCount(temp1);
+	if (code != TCL_OK) { 
+		Tcl_SetObjResult(interp, temp3);
+		return TCL_ERROR;
+	}
+
+	code=NumArrayRdivide(temp2, temp3, &beta);
+	Tcl_DecrRefCount(temp2);
+	Tcl_DecrRefCount(temp3);
+	if (code != TCL_OK) { 
+		Tcl_SetObjResult(interp, beta);
+		return TCL_ERROR;
+	}
+
+	/* alpha=ym-beta*xm */
+	code=NumArrayTimes(beta, xm, &temp1);
+	if (code != TCL_OK) { 
+		Tcl_SetObjResult(interp, temp1);
+		return TCL_ERROR;
+	}
+
+	code = NumArrayMinus(ym, temp1, &alpha);
+	Tcl_DecrRefCount(temp1);
+	if (code != TCL_OK) { 
+		Tcl_SetObjResult(interp, alpha);
+		return TCL_ERROR;
+	}
+	
+	/* here the garbage collection is missing in case of errors */
+	result=Tcl_NewObj();
+	code=Tcl_ListObjAppendElement(interp, result, alpha);
+	if (code != TCL_OK) { return TCL_ERROR;}
+
+	code=Tcl_ListObjAppendElement(interp, result, beta);
+	if (code != TCL_OK) { return TCL_ERROR;}
+	
+	Tcl_SetObjResult(interp, result);
+	
+	Tcl_DecrRefCount(xm);
+	Tcl_DecrRefCount(ym);
+	
+
+	return TCL_OK;
+}
+
+$jit go
+
 tcc4tcl::cproc linregjit {Tcl_Interp* interp Tcl_Obj* xv Tcl_Obj* yv Tcl_Obj* c1} ok {
 	int NumArrayPlus(Tcl_Obj* op1, Tcl_Obj* op2, Tcl_Obj** result);
 	int NumArrayMinus(Tcl_Obj* op1, Tcl_Obj* op2, Tcl_Obj** result);
@@ -220,7 +385,7 @@ proc linear_regression_vexprJIT {xv yv rep} {
 	set t1 [time {numarray create $xv; numarray create $yv}]
 	# setup can't be repeated, because it is cached 
 	# in the Tcl_Objs of x and y
-	set t2 [time {set result [linregjit $xv $yv 2.0]} $rep]
+	set t2 [time {set result [linregdeepjit $xv $yv 2.0]} $rep]
 	list $t1 $t2 {*}$result
 }
 
