@@ -19,6 +19,8 @@ namespace eval vectcl {
 		variable errpos
 		variable compileexpression
 
+		variable debugsymbols
+
 		constructor {p} {
 			set parser $p
 		}
@@ -27,6 +29,7 @@ namespace eval vectcl {
 			# Instantiate the parser
 			set script $script_
 			set varrefs {}
+			set debugsymbols {}
 			set tempcount 0
 			
 			set ast [$parser parset $script]
@@ -106,13 +109,21 @@ namespace eval vectcl {
 			append body "return TCL_OK; \n"
 			
 			
-			set lit [$compileexpression getliterals]
-			if {$lit != {}} {
+			set literals [$compileexpression getliterals]
+			if {$literals != {}} {
 				append body "Literals: \n"
-				dict for {lit val} $lit {
+				dict for {lit val} $literals {
 					append body "$lit $val\n"
 				}
 			}
+			
+			if {$debugsymbols != {}} {
+				append body "Symbols: \n"
+				dict for {val sym} $debugsymbols {
+					append body "$sym $val\n"
+				}
+			}
+
 			$compileexpression destroy
 			return $body
 
@@ -126,7 +137,8 @@ namespace eval vectcl {
 			foreach stmt $args {
 				lassign [my {*}$stmt] rvar code
 				lappend resultcode {*}$code
-				if {($rvar ne {}) && ($code ne {})} {
+				#puts "Code $code rvar $rvar"
+				if {($rvar ne {}) || ($code ne {})} {
 					# ignore empty result for empty statements
 					set resultvar $rvar
 				}
@@ -158,22 +170,41 @@ namespace eval vectcl {
 			error "Combined assignment not supported"			
 		}
 
+		method assignsym {sym value} {
+			$compileexpression addsymbol $sym $value
+			dict set debugsymbols $value $sym
+		}
+
+		method assignvar {sym value} {
+			# if value is a temporary, shortcut the assignment
+			if {[lindex $value 0] == "Tempvar"} {
+				set tvar $value
+				set code {}
+				# puts "Used $tvar $code"
+			} else {
+				set tvar [$compileexpression allocvar]
+				set code [list = $tvar $value]
+				# puts "Alloced $tvar $code"
+			}
+			my assignsym $sym $tvar
+			return [list $tvar $code]
+		}
 
 		method Assignment {from to args} {
 			# VarSlice1 VarSlice2 ... Expression
 			set expression [lindex $args end]
-			lassign [$compileexpression compile $script $expression] value resultcode
+			lassign [$compileexpression compile $script $expression] rvar resultcode
 
 			if {[llength $args] == 2} {
 				# single assignment
 				set varslice [lindex $args 0 ]
 				lassign [$compileexpression analyseslice $varslice] var slice
 				if {$slice=={}} {
-					# simple assignment
-					set vsym [list Variable $var]
-					$compileexpression addsymbol $var $vsym
-					lappend resultcode [list Phi $vsym $value]
-					return [list $value $resultcode]
+					# simple assignment - insert result var of expression
+					# into the symboltable
+					lassign [my assignvar $var $rvar] tvar code
+					lappend resultcode $code
+					return [list $tvar $resultcode]
 				} else {
 					# assignment to slice
 					error "Slice assignment not supported"
@@ -225,14 +256,35 @@ namespace eval vectcl {
 
 			return $result
 		}
-
-	
-		method ForLoop {from to Var rangeexpr Sequence} {
-		    # parse components
-			error "For loop not supported"
-		    return $body
-		}
 		
+		# support for Phi function placement
+		method PhiIntersect {stbl1 stbl2} {
+			# compute phi functions as an intersection 
+			# of the symbol tables at point1 and point2
+			# TODO extend for intersection of n codepaths
+			set phicode {}
+			dict for {sym val1} $stbl1 {
+				if {[dict exists $stbl2 $sym]} {
+					set val2 [dict get $stbl2 $sym]
+					if {$val1 ne $val2} {
+						# create new temporary for this variable
+						set phiv [$compileexpression allocvar]
+						lappend phicode [list Phi $phiv $val1 $val2]
+						my assignsym $sym $phiv
+					}
+				}
+			}
+			return $phicode
+		}
+
+		method SetSymbols {symtable} {
+			$compileexpression setsymboltable $symtable
+		}
+	
+		method GetSymbols {} {
+			$compileexpression getsymboltable
+		}
+	
 		method ForEachLoop {from to Var Expr Sequence} {
 		    # parse components
 			error "ForEach loop not supported"
@@ -240,13 +292,48 @@ namespace eval vectcl {
 
 		method IfClause {from to Condition Then {Else {Empty}}} {
 		    # parse components
-			error "If clause not supported"
+			lassign [$compileexpression compile $script $Condition] cvar ccode
+			set stbl1 [my GetSymbols]
+
+			lassign [my {*}$Then] tvar tcode
+			set stbl2 [my GetSymbols]
+			
+			set ecode {}
+			if {$Else ne "Empty"} {
+				# restore symbol table from block befor if
+				my SetSymbols $stbl1
+				lassign [my {*}$Else] evar ecode
+				set stbl1 [my GetSymbols]
+			}
+
+			set resultcode $ccode
+			lappend resultcode [list If {} $cvar]
+			lappend resultcode {*}$tcode
+			
+			if {$ecode ne {}} {
+				lappend resultcode [list Else {} {}]
+				lappend resultcode {*}$ecode
+			}
+
+			lappend resultcode [list EndIf {} {}]
+			
+			set phicode [my PhiIntersect $stbl1 $stbl2]
+			lappend resultcode {*}$phicode
+			
+			list {} $resultcode
 		}
 		
 		method WhileLoop {from to Condition Body} {
 		    # parse components
 			error "while loop not supported"
-		 }
+		}
+
+		method ForLoop {from to Var rangeexpr Sequence} {
+		    # parse components
+			error "For loop not supported"
+		    return $body
+		}
+		
 	}
 
 	oo::class create CompileVectorExpr {
@@ -305,6 +392,14 @@ namespace eval vectcl {
 				return -code error "Undefined variable $sym"
 			}
 			return $val
+		}
+
+		method getsymboltable {} {
+			return $symboltable
+		}
+
+		method setsymboltable {symtable} {
+			set symboltable $symtable
 		}
 
 		method Empty args {}
