@@ -176,16 +176,19 @@ namespace eval vectcl {
 		}
 
 		method assignvar {sym value} {
-			# if value is a temporary, shortcut the assignment
-			if {[lindex $value 0] == "Tempvar"} {
-				set tvar $value
-				set code {}
-				# puts "Used $tvar $code"
-			} else {
-				set tvar [$compileexpression allocvar]
-				set code [list = $tvar $value]
-				# puts "Alloced $tvar $code"
-			}
+			## if value is a temporary, shortcut the assignment
+			#if {[lindex $value 0] == "Tempvar"} {
+			#	set tvar $value
+			#	set code {}
+			#	# puts "Used $tvar $code"
+			#} else {
+			#	# puts "Alloced $tvar $code"
+			#	set tvar [$compileexpression allocvar]
+			#	set code [list = $tvar $value]
+			#}
+			
+			set tvar [$compileexpression allocvar]
+			set code [list = $tvar $value]
 			my assignsym $sym $tvar
 			return [list $tvar $code]
 		}
@@ -277,6 +280,24 @@ namespace eval vectcl {
 			return $phicode
 		}
 
+
+		method varmap {map code} {
+			set result {}
+			foreach instr $code {
+				set tail [lassign $instr f rvar]
+				set instrmap [list $f $rvar]
+				foreach arg $tail {
+					if {[dict exists $map $arg]} {
+						lappend instrmap [dict get $map $arg]
+					} else {
+						lappend instrmap $arg
+					}
+				}
+				lappend result $instrmap
+			}
+			return $result
+		}
+
 		method SetSymbols {symtable} {
 			$compileexpression setsymboltable $symtable
 		}
@@ -325,7 +346,35 @@ namespace eval vectcl {
 		
 		method WhileLoop {from to Condition Body} {
 		    # parse components
-			error "while loop not supported"
+			lassign [$compileexpression compile $script $Condition] cvar ccode
+			set stbl1 [my GetSymbols]
+
+			lassign [my {*}$Body] bvar bcode
+			set stbl2 [my GetSymbols]
+			
+			set phicode [my PhiIntersect $stbl1 $stbl2]
+			
+			# the phi nodes are placed in the header
+			# of the loop; thus we must replace all occurences 
+			# of the symbol in stbl1 int the body of the loop
+			
+			foreach phi $phicode {
+				lassign $phi Phi newcurr oldcurr 
+				# bad: This code knows that the 1st operand is from stbl1
+				dict set phimap $oldcurr $newcurr
+			}
+
+			set ccode [my varmap $phimap $ccode]
+			set bcode [my varmap $phimap $bcode]
+
+			set resultcode {{While {} {}}}
+			lappend resultcode {*}$phicode
+			lappend resultcode {*}$ccode
+			lappend resultcode [list Do {} $cvar]
+			lappend resultcode {*}$bcode
+			lappend resultcode {EndWhile {} {}}
+
+			return [list {} $resultcode]
 		}
 
 		method ForLoop {from to Var rangeexpr Sequence} {
