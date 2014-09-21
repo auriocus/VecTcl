@@ -12,7 +12,7 @@ toplink: false
 
 The current implementation of VecTcl fairs quite well performancewise, but it hits two limits
 which can hardly be overcome using the current scheme of implementation. As explained in the [design
-document]({{ site.baseurl }}/design_performance.html), the speed and memory usage of complex vector
+document]({{ site.baseurl }}/design.html), the speed and memory usage of complex vector
 expressions is constrained by the use of temporaries, which store the whole vector instead of one
 component at a time; and the speed of tight low-level loops is bound by the execution speed of the
 Tcl bytecode engine, which is several orders of magnitude slower than an equivalent loop in native
