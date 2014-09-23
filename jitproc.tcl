@@ -4,20 +4,25 @@ package require vectcl
 namespace eval vectcl {
 	namespace export jit
 
-	proc jit {arg xprstring} {
-		variable jitcompiler
+	proc jitproc {arg xprstring} {
+		set ccode [jitcompile $arg $xprstring]
+		# now call tcc
+		# tcc4tcl::ccode $ccode
+	}
+
+	proc jitcompile {arg xprstring} {
 		variable parser
 		if {![info exists jitcompiler]} {
 			set jitcompiler [CompileJIT new $parser]
 		}
-		$jitcompiler compile $xprstring -args $arg
+		set ccode [$jitcompiler compile $xprstring -args $arg]
+		return $ccode
 	}
 
 	oo::class create CompileJIT {
 		variable tokens script varrefs tempcount parser
 		variable purefunctions
 		variable errpos
-		variable compileexpression
 
 		variable debugsymbols
 
@@ -32,37 +37,41 @@ namespace eval vectcl {
 			set debugsymbols {}
 			set tempcount 0
 			
+			set vartable {}
+			set vcount 0
+			
+			set literals {}
+			set lcount 0
+
+			set symboltable {}
+		
 			set ast [$parser parset $script]
 			set errpos [$parser errpos]
-			return [my {*}$ast {*}$args]
-		}
-
-		# reference variables
-		method varref {var} {
-			if {[dict exists $varrefs $var]} {
-				return [dict get $varrefs $var]
-			}
-
-			# check for qualified names
-			if {[regexp  {^[^:]+::} $var]} {
-				# it contains ::, but doesn't start with ::
-				# i.e. a relative namespace varref like a::b
-				set name [my alloctemp]
-			} else {
-				# either global ::var, or local var
-				# use it as is
-				set name $var
-			}
-			dict set varrefs $var $name
-			return $name
-		}
-
-		method getvarrefs {} {
-			dict keys $varrefs
-		}
-
+			# first pass: generate three-address code (SSA)
+			set TAC [my {*}$ast {*}$args]
 			
-		variable resultvar
+			# optimization
+			set TAC_opt [my optimize {*}$TAC]
+
+			# type inference
+			set TAC_annot [my infer_type {*}$TAC_opt]
+			
+			# code generation
+			set ccode [my codegen {*}$TAC_annot]
+
+			return $ccode
+
+		}
+		
+		method optimize {rvar tac} { list $rvar $tac }
+		
+		method infer_type {rvar tac} { list $rvar $tac }
+		
+		method codegen {rvar tac} {
+			# generate C code - for now just print three address code
+			set code [join $tac \n]
+			append code "\nTcl_SetObjResult(interp, $rvar)\n"
+		}
 
 		method Program {from to sequence args} {
 			# check arguments
@@ -98,34 +107,31 @@ namespace eval vectcl {
 			}
 		    
 			# the single arg represents a sequence. 
-			set compileexpression [vectcl::CompileVectorExpr new]
 			# add formal arguments to symbol table
 			foreach arg [dict get $opt -args] {
-				$compileexpression addsymbol $arg [list Argument $arg]
+				my addsymbol $arg [list Argument $arg]
 			}
+			
 			lassign [my {*}$sequence] rvar tac
-			append body "[join $tac "\n"]\n"
-			append body "Tcl_SetObjResult($rvar)\n"
-			append body "return TCL_OK; \n"
 			
-			
-			set literals [$compileexpression getliterals]
+			set dbgout {}
 			if {$literals != {}} {
-				append body "Literals: \n"
+				append dbgout "Literals: \n"
 				dict for {lit val} $literals {
-					append body "$lit $val\n"
+					append dbgout "$lit $val\n"
 				}
 			}
 			
 			if {$debugsymbols != {}} {
-				append body "Symbols: \n"
+				append dbgout "Symbols: \n"
 				dict for {val sym} $debugsymbols {
-					append body "$sym $val\n"
+					append dbgout "$sym $val\n"
 				}
 			}
 
-			$compileexpression destroy
-			return $body
+			puts stderr $dbgout
+			
+			return [list $rvar $tac]
 
 		}
 
@@ -151,9 +157,10 @@ namespace eval vectcl {
 		method Statement {from to stmt} {
 			# can be expression, assignment, opassignment
 			lassign $stmt type
+			return [my  {*}$stmt]
+			
 			if {$type eq "Expression"} {
-				set resultvar {}
-				return [$compileexpression compile $script $stmt]
+				return [my  {*}$stmt]
 			} else {	
 				# Assignment and OpAssignment
 				return [my {*}$stmt]
@@ -171,23 +178,12 @@ namespace eval vectcl {
 		}
 
 		method assignsym {sym value} {
-			$compileexpression addsymbol $sym $value
+			my addsymbol $sym $value
 			dict set debugsymbols $value $sym
 		}
 
 		method assignvar {sym value} {
-			## if value is a temporary, shortcut the assignment
-			#if {[lindex $value 0] == "Tempvar"} {
-			#	set tvar $value
-			#	set code {}
-			#	# puts "Used $tvar $code"
-			#} else {
-			#	# puts "Alloced $tvar $code"
-			#	set tvar [$compileexpression allocvar]
-			#	set code [list = $tvar $value]
-			#}
-			
-			set tvar [$compileexpression allocvar]
+			set tvar [my allocvar]
 			set code [list = $tvar $value]
 			my assignsym $sym $tvar
 			return [list $tvar $code]
@@ -196,12 +192,12 @@ namespace eval vectcl {
 		method Assignment {from to args} {
 			# VarSlice1 VarSlice2 ... Expression
 			set expression [lindex $args end]
-			lassign [$compileexpression compile $script $expression] rvar resultcode
+			lassign [my {*}$expression] rvar resultcode
 
 			if {[llength $args] == 2} {
 				# single assignment
 				set varslice [lindex $args 0 ]
-				lassign [$compileexpression analyseslice $varslice] var slice
+				lassign [my analyseslice $varslice] var slice
 				if {$slice=={}} {
 					# simple assignment - insert result var of expression
 					# into the symboltable
@@ -271,7 +267,7 @@ namespace eval vectcl {
 					set val2 [dict get $stbl2 $sym]
 					if {$val1 ne $val2} {
 						# create new temporary for this variable
-						set phiv [$compileexpression allocvar]
+						set phiv [my allocvar]
 						lappend phicode [list Phi $phiv $val1 $val2]
 						my assignsym $sym $phiv
 					}
@@ -299,11 +295,11 @@ namespace eval vectcl {
 		}
 
 		method SetSymbols {symtable} {
-			$compileexpression setsymboltable $symtable
+			set symboltable $symtable
 		}
 	
 		method GetSymbols {} {
-			$compileexpression getsymboltable
+			return $symboltable
 		}
 	
 		method ForEachLoop {from to Var Expr Sequence} {
@@ -313,7 +309,7 @@ namespace eval vectcl {
 
 		method IfClause {from to Condition Then {Else {Empty}}} {
 		    # parse components
-			lassign [$compileexpression compile $script $Condition] cvar ccode
+			lassign [my {*}$Condition] cvar ccode
 			set stbl1 [my GetSymbols]
 
 			lassign [my {*}$Then] tvar tcode
@@ -346,7 +342,7 @@ namespace eval vectcl {
 		
 		method WhileLoop {from to Condition Body} {
 		    # parse components
-			lassign [$compileexpression compile $script $Condition] cvar ccode
+			lassign [my {*}$Condition] cvar ccode
 			set stbl1 [my GetSymbols]
 
 			lassign [my {*}$Body] bvar bcode
@@ -383,29 +379,9 @@ namespace eval vectcl {
 		    return $body
 		}
 		
-	}
-
-	oo::class create CompileVectorExpr {
-		
-		variable script
-		
-		method compile {xpr ast} {
-			set script $xpr
-			set TAC [my {*}$ast]
-			return $TAC
-		}
-		
 		variable literals
 		variable lcount
 		variable symboltable
-
-		constructor {} {
-			set vartable {}
-			set vcount 0
-			set literals {}
-			set lcount 0
-			set symboltable {}
-		}
 
 		variable vartable
 		variable vcount
@@ -428,10 +404,6 @@ namespace eval vectcl {
 			list Literal $lcount
 		}
 
-		method getliterals {} {
-			return $literals
-		}
-
 		method addsymbol {sym val} {
 			dict set symboltable $sym $val
 		}
@@ -443,15 +415,6 @@ namespace eval vectcl {
 			return $val
 		}
 
-		method getsymboltable {} {
-			return $symboltable
-		}
-
-		method setsymboltable {symtable} {
-			set symboltable $symtable
-		}
-
-		method Empty args {}
 		method Expression-Compound {from to args} {
 			#set resultcode {}
 			#set resultvar {}
@@ -622,51 +585,30 @@ namespace eval vectcl {
 		
 	}
 
-	# some expressions to test
-	set testscripts {
-		{3+4i}
-		{a= b}
-		{a=b+c+d}
-		{A[:, 4] = b*3.0}
-		{Q, R = qr(A)}
-		{A \ x}
-		{b = -sin(A)}
-		{c = hstack(A,b)}
-		{A += b}
-		{b = c[0:1:-2]}
-		{2-3}
-		{5*(-c)}
-		{x, y = list(y,x)}
-		{a*b*c}
-		{a.^b.^c}
-		{-a+b}
-		{-a.^b}
-		{A={1 2 3}}
-		{{{1 2 3} {4 5 6}}}
-		{A = ws*3}
-	}
-	
-	proc testcompiler {args} {
-		variable testscripts
-		variable compiler
-		variable parser
-
-		if {[llength $args] != 0} { 
-			set scripts $args
-		} else {
-			set scripts $testscripts
-		}
-		foreach script $scripts {
-			puts " === $script"
-			set parsed [$parser parset $script]
-			puts [untok $parsed $script]
-
-			if {[catch {$compiler compile $script} compiled]} {
-				puts stderr "Error: $compiled"
-			} else {
-				puts stdout "======Compiled: \n$compiled\n====END==="
+	proc testjit {} {
+		set code [vectcl::jitproc N	{
+			i=0
+			while N != 1 {
+				if (N%2 == 1) {
+					N=3*N+1
+				} else {
+					N=N/2
+				}
+				i=i+1
 			}
-		}
+			i
+		}]
+		puts $code
+
+
+		set code [vectcl::jitproc {xv yv}	{
+			xm=mean(xv); ym=mean(yv)
+			beta=sum((xv-xm).*(yv-ym))./sum((xv-xm).^2)
+			alpha=ym-beta*xm
+			list(alpha, beta)
+		}]
+		puts $code
 	}
+
 }
 	
