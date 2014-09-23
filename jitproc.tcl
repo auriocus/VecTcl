@@ -58,12 +58,91 @@ namespace eval vectcl {
 			
 			# code generation
 			set ccode [my codegen {*}$TAC_annot]
+			
+			# print literals and symbols for debug purposes
+			set dbgout {}
+			if {$literals != {}} {
+				append dbgout "Literals: \n"
+				dict for {lit val} $literals {
+					append dbgout "$lit $val\n"
+				}
+			}
+			
+			if {$debugsymbols != {}} {
+				append dbgout "Symbols: \n"
+				dict for {val sym} $debugsymbols {
+					append dbgout "$sym $val\n"
+				}
+			}
 
+			puts stderr $dbgout
+	
 			return $ccode
 
 		}
 		
-		method optimize {rvar tac} { list $rvar $tac }
+		method optimize {rvar tac} {
+			# optimize away assigned temporaries
+			# which are not arguments to phi functions
+			
+			# first record all variables on the right side of 
+			# an assignment, count the usages
+			for {set iter 0} {$iter<10} {incr iter} {
+				set usecount [dict create $rvar 1]
+				set assignments {}
+				foreach instr $tac {
+					set srcops [lassign $instr opcode dest]
+					foreach op $srcops { dict incr usecount $op }
+					if {$opcode eq "="} {
+						dict set assignments $op $dest
+					}
+				}
+
+				# find all variables that are used only once, 
+				# in an assignment to another variable.
+				set singleuse [dict filter $assignments script {src dest} {
+					expr {[dict get $usecount $src] == 1}
+				}]
+				
+				set nosubst true
+
+				# move the code that creates those
+				# to replace the assignment
+				set resultcode {}
+				set assignmap {}
+				foreach instr $tac {
+					set srcops [lassign $instr opcode dest]
+					if {$opcode eq "="} {
+						# maybe replace this assignment 
+						if {[dict exists $assignmap $dest]} {
+							lappend resultcode [dict get $assignmap $dest]
+							set nosubst false
+							continue
+						}	
+					}
+
+					if {[dict exists $singleuse $dest]} {
+						# this is a write instruction,
+						# which should be replaced
+						set assigndest [dict get $singleuse $dest]
+						dict set assignmap $assigndest [list $opcode $assigndest {*}$srcops]
+						continue
+					}
+
+					lappend resultcode $instr
+				}
+
+				set tac $resultcode
+				if {$nosubst} { break }
+			}
+
+			if {$iter>=10} {
+				puts stderr [join $tac \n]
+				puts stderr $singleuse
+				puts stderr $assignmap
+			}	
+			list $rvar $resultcode
+		}
 		
 		method infer_type {rvar tac} { list $rvar $tac }
 		
@@ -108,30 +187,16 @@ namespace eval vectcl {
 		    
 			# the single arg represents a sequence. 
 			# add formal arguments to symbol table
+			set resultcode {}
 			foreach arg [dict get $opt -args] {
-				my addsymbol $arg [list Argument $arg]
+				lassign [my assignvar $arg [list Argument $arg]] tvar tcode
+				lappend resultcode $tcode
 			}
 			
 			lassign [my {*}$sequence] rvar tac
-			
-			set dbgout {}
-			if {$literals != {}} {
-				append dbgout "Literals: \n"
-				dict for {lit val} $literals {
-					append dbgout "$lit $val\n"
-				}
-			}
-			
-			if {$debugsymbols != {}} {
-				append dbgout "Symbols: \n"
-				dict for {val sym} $debugsymbols {
-					append dbgout "$sym $val\n"
-				}
-			}
-
-			puts stderr $dbgout
-			
-			return [list $rvar $tac]
+			lappend resultcode {*}$tac
+		
+			return [list $rvar $resultcode]
 
 		}
 
@@ -158,14 +223,6 @@ namespace eval vectcl {
 			# can be expression, assignment, opassignment
 			lassign $stmt type
 			return [my  {*}$stmt]
-			
-			if {$type eq "Expression"} {
-				return [my  {*}$stmt]
-			} else {	
-				# Assignment and OpAssignment
-				return [my {*}$stmt]
-			}
-
 		}
 		
 		method Empty {from to args} {
