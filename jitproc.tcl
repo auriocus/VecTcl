@@ -30,6 +30,17 @@ namespace eval vectcl {
 			set parser $p
 		}
 		
+		method dict_get_default {dict arg default} {
+			if {[dict exists $dict $arg]} {
+				return [dict get $dict $arg]
+			} else {
+				return $default
+			}
+		}
+
+		variable typetable
+		variable signatures
+
 		method compile {script_ args} {
 			# Instantiate the parser
 			set script $script_
@@ -44,6 +55,24 @@ namespace eval vectcl {
 			set lcount 0
 
 			set symboltable {}
+
+			set typetable {}
+
+			# store common signatures as a lookup table
+			set signatures {
+				+ binary
+				- binary
+				.* binary
+				./ binary
+				.^ binary
+				{CALL sum} reduction
+				{CALL mean} reduction
+				{CALL sin} unary-float
+				{CALL cos} unary-float
+				{CALL tan} unary-float
+				{CALL exp} unary-float
+				{CALL log} unary-float
+			}
 		
 			set ast [$parser parset $script]
 			set errpos [$parser errpos]
@@ -72,6 +101,13 @@ namespace eval vectcl {
 				append dbgout "Symbols: \n"
 				dict for {val sym} $debugsymbols {
 					append dbgout "$sym $val\n"
+				}
+			}
+			
+			if {$typetable != {}} {
+				append dbgout "Types: \n"
+				dict for {sym type} $typetable {
+					append dbgout "$sym $type\n"
 				}
 			}
 
@@ -144,14 +180,148 @@ namespace eval vectcl {
 			list $rvar $resultcode
 		}
 		
-		method infer_type {rvar tac} { list $rvar $tac }
+		method infer_type {rvar tac} {
+			# first deduce type of all literals
+			dict for {sym value} $literals {
+				set info [numarray info $value]
+				set type [lindex {int double complex} [dict get $info type]]
+				set shape [dict get $info dimensions]
+				dict set typetable $sym [list $type $shape]
+			}
+
+			foreach instr $tac {
+				set args [lassign $instr opcode dest]
+				dict set typetable $dest [my type_on_instr $opcode $args]
+				
+			}
+			list $rvar $tac 
+		}
 		
+		method type_on_instr {opcode arguments} {
+			set argtypes [lmap arg $arguments {my dict_get_default $typetable $arg Any}]
+			set opcode [my dict_get_default $signatures $opcode $opcode]
+			# compute a common type, if possible
+			lassign $argtypes t1 t2
+			lassign $t1 type1 shape1
+			lassign $t2 type2 shape2
+
+			switch -exact -- $opcode {
+				= {
+					return $t1
+				}
+				
+				* { 
+					set type [my upcast $type1 $type2]
+					if {$type eq "Any"} { return Any }
+					set shape [list {*}$shape1 {*}[lrange $shape2 1 end]]
+					return [list $type $shape]
+				}
+					
+				/ { 
+					set type [my upcast $type1 $type2]
+					if {$type eq "Any"} { return Any }
+					if {$shape1 eq {1} && $shape2 eq {2}} { 
+						# scalar division
+						set shape 1
+					} else {
+						error "Non-scalar right division not implemented"
+					}
+					return [list $type $shape]
+				}
+				
+				\\ { 
+					set type [my upcast $type1 $type2]
+					set type [my upcast $type double] ;# int is always promoted to float
+					if {$type eq "Any"} { return Any }
+					set shape [list {*}[lrange $shape1 1 end] {*}[lrange $shape2 1 end]] 
+					if {$shape eq {}} { set shape 1 } ;# scalar reverse division
+					return [list $type $shape]
+				}
+
+				binary {
+					set type [my upcast $type1 $type2]
+					if {$type eq "Any"} { return Any }
+
+					# perform shape and type promotion
+					if {$shape1 eq 1} { 
+						set shape $shape2
+					} elseif {$shape2 eq 1} { 
+						set shape $shape1 
+					} else {
+						# dimensions must match
+						if {[llength $shape1] != [llength $shape2]} {
+							return Any
+							# don't signal the mismatch here, but we could
+							error "Shape mismatch"
+						} else {
+							set shape $shape1\
+						}
+					}
+
+					return [list $type $shape]
+				}
+				unary-float {
+					lassign $t1 type shape
+					if {$type eq "complex" || $type eq "double"} { return $t1 }
+					if {$type eq "int"} { return [list double $shape] }
+					return Any
+
+				}
+				reduction {
+					# second argument is dimension
+					# doesn't work, ignore for now
+					lassign $t1 type1 shape1
+					if {[llength $argtypes] == 1} {
+						set dim 0
+					} else {
+						set dim [lindex $arguments 1]
+					}
+					if {$type1 eq "Any"} { return Any }
+					switch [llength $shape1] {
+						0 { error "Undefined shape" }
+						
+						1 { 
+							set n [lindex $shape1 0]
+							if {$n == 0} { return Any }; # empty
+							if {$n == 1} { return $t1 }; # scalar
+							return [list $type1 {1}]; # vector
+						}
+						2 {
+							return [list $type1 {n}]
+						}
+						default {
+							# for more than two dimensions cut one off
+							return [list $type1 [lrange $shape1 0 end-1]]
+						}
+					}
+				}
+
+				default {
+					return Any
+				}
+			}
+		}
+
+		method upcast {t1 t2} {
+			foreach type {Any complex double int} {
+				if {$t1 == $type || $t2 == $type} {
+					return $type
+				}
+			}
+
+			error "Don't know how to cast $t1, $t2"
+			
+		}
+
 		method codegen {rvar tac} {
 			# generate C code - for now just print three address code
 			set code [join $tac \n]
 			append code "\nTcl_SetObjResult(interp, $rvar)\n"
 		}
 
+		#######################################
+		# machinery to traverse the parse tree
+		#######################################
 		method Program {from to sequence args} {
 			# check arguments
 			set opt {-args {}}; set nopt [dict size $opt]
@@ -189,9 +359,13 @@ namespace eval vectcl {
 			# add formal arguments to symbol table
 			set resultcode {}
 			foreach arg [dict get $opt -args] {
-				lassign [my assignvar $arg [list Argument $arg]] tvar tcode
+				lassign $arg name type
+				set symbol [list Argument $name]
+				dict set typetable $symbol $type
+				lassign [my assignvar $name $symbol] tvar tcode
 				lappend resultcode $tcode
 			}
+			puts "Typetable $typetable"
 			
 			lassign [my {*}$sequence] rvar tac
 			lappend resultcode {*}$tac
@@ -457,8 +631,9 @@ namespace eval vectcl {
 
 		method allocliteral {value} {
 			incr lcount
-			dict set literals $lcount $value
-			list Literal $lcount
+			set symbol [list Literal $lcount]
+			dict set literals $symbol $value
+			return $symbol
 		}
 
 		method addsymbol {sym val} {
@@ -643,7 +818,7 @@ namespace eval vectcl {
 	}
 
 	proc testjit {} {
-		set code [vectcl::jitproc N	{
+		set code [vectcl::jitproc {{N {int 1}}}	{
 			i=0
 			while N != 1 {
 				if (N%2 == 1) {
@@ -658,7 +833,7 @@ namespace eval vectcl {
 		puts $code
 
 
-		set code [vectcl::jitproc {xv yv}	{
+		set code [vectcl::jitproc {{xv {double {n}}} {yv {double {n}}}}	{
 			xm=mean(xv); ym=mean(yv)
 			beta=sum((xv-xm).*(yv-ym))./sum((xv-xm).^2)
 			alpha=ym-beta*xm
