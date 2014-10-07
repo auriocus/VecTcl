@@ -59,12 +59,21 @@ namespace eval vectcl {
 			set typetable {}
 
 			# store common signatures as a lookup table
+			# TODO % and .^ are a lie - % only works on integer 
+			# and .^ upcasts to float
 			set signatures {
 				+ binary
 				- binary
 				.* binary
 				./ binary
 				.^ binary
+				% binary
+				> relational
+				< relational
+				== relational
+				!= relational
+				>= relational
+				<= relational
 				{CALL sum} reduction
 				{CALL mean} reduction
 				{CALL sin} unary-float
@@ -189,16 +198,30 @@ namespace eval vectcl {
 				dict set typetable $sym [list $type $shape]
 			}
 
-			foreach instr $tac {
-				set args [lassign $instr opcode dest]
-				dict set typetable $dest [my type_on_instr $opcode $args]
-				
+			for {set link 0} {$link<3} {incr link} {
+				set finish true
+				foreach instr $tac {
+					set args [lassign $instr opcode dest]
+					
+					if {[catch {my type_on_instr $opcode $args} resulttype]} {
+						puts stderr "Warning: Aliasing incompatible types $instr"
+						dict set typetable $dest $resulttype
+					}
+
+					if {![dict exists $typetable $dest] || \
+						([dict get $typetable $dest] ne $resulttype)} {
+						dict set typetable $dest $resulttype
+						set finish false
+					}
+				}
+
+				if {$finish} { break }
 			}
 			list $rvar $tac 
 		}
 		
 		method type_on_instr {opcode arguments} {
-			set argtypes [lmap arg $arguments {my dict_get_default $typetable $arg Any}]
+			set argtypes [lmap arg $arguments {my dict_get_default $typetable $arg undefined}]
 			set opcode [my dict_get_default $signatures $opcode $opcode]
 			# compute a common type, if possible
 			lassign $argtypes t1 t2
@@ -206,6 +229,32 @@ namespace eval vectcl {
 			lassign $t2 type2 shape2
 
 			switch -exact -- $opcode {
+				Phi {
+					puts "$t1 - $t2"
+
+					if {$t1 eq {undefined}} {
+						return $t2
+					}
+
+					if {$t2 eq {undefined}} {
+						return $t1
+					}
+
+					# here both t1 and t2 are defined types
+					if {$t1 ne $t2} {
+						# might be a contradiction. They can still
+						# be compatible, if the number of dimensions agree
+						# (e.g. {n} == {m}
+						if {($type1 eq $type2 ) && ([llength $shape1] == [llength $shape2])} {
+							puts stderr "Compatible types $t1 - $t2"
+							return $t1
+						}
+						puts stderr "Warning: incompatible types $t1 - $t2"
+						return -code error Any
+					} else {
+						return $t1
+					}
+				}
 				= {
 					return $t1
 				}
@@ -220,7 +269,7 @@ namespace eval vectcl {
 				/ { 
 					set type [my upcast $type1 $type2]
 					if {$type eq "Any"} { return Any }
-					if {$shape1 eq {1} && $shape2 eq {2}} { 
+					if {$shape1 eq {1} && $shape2 eq {1}} { 
 						# scalar division
 						set shape 1
 					} else {
@@ -260,6 +309,31 @@ namespace eval vectcl {
 
 					return [list $type $shape]
 				}
+
+				relational {
+					if {$type1 eq "Any" || $type2 eq "Any"} {
+						return Any
+					}
+
+					# perform shape promotion
+					if {$shape1 eq 1} { 
+						set shape $shape2
+					} elseif {$shape2 eq 1} { 
+						set shape $shape1 
+					} else {
+						# dimensions must match
+						if {[llength $shape1] != [llength $shape2]} {
+							return Any
+							# don't signal the mismatch here, but we could
+							error "Shape mismatch"
+						} else {
+							set shape $shape1\
+						}
+					}
+
+					return [list int $shape]
+				}
+				
 				unary-float {
 					lassign $t1 type shape
 					if {$type eq "complex" || $type eq "double"} { return $t1 }
