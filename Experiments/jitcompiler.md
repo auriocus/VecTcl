@@ -168,7 +168,7 @@ the cycle length of the 3n+1 sequence as an example of a tight low-level loop, w
 
 {% highlight tcl %}
 {% raw %}
-vectcl::jit {xv yv} {
+vectcl::jitproc {{xv {double n}} {yv {double n}}}	{
 	xm=mean(xv); ym=mean(yv)
 	beta=sum((xv-xm).*(yv-ym))./sum((xv-xm).^2)
 	alpha=ym-beta*xm
@@ -180,32 +180,51 @@ vectcl::jit {xv yv} {
 This function compiles into the following code
 {% highlight tcl %}
 {% raw %}
-{CALL mean} {Tempvar 1} {Argument xv}
-= {Tempvar 2} {Tempvar 1}
-{CALL mean} {Tempvar 3} {Argument yv}
-= {Tempvar 4} {Tempvar 3}
-- {Tempvar 5} {Argument xv} {Tempvar 2}
-- {Tempvar 6} {Argument yv} {Tempvar 4}
-.* {Tempvar 7} {Tempvar 5} {Tempvar 6}
-{CALL sum} {Tempvar 8} {Tempvar 7}
-- {Tempvar 9} {Argument xv} {Tempvar 2}
-.^ {Tempvar 10} {Tempvar 9} {Literal 1}
-{CALL sum} {Tempvar 11} {Tempvar 10}
-./ {Tempvar 12} {Tempvar 8} {Tempvar 11}
-= {Tempvar 13} {Tempvar 12}
-* {Tempvar 14} {Tempvar 13} {Tempvar 2}
-- {Tempvar 15} {Tempvar 4} {Tempvar 14}
-= {Tempvar 16} {Tempvar 15}
-{CALL list} {Tempvar 17} {Tempvar 16} {Tempvar 13}
-Tcl_SetObjResult(Tempvar 17)
-return TCL_OK; 
+= {Tempvar 1} {Argument xv}
+= {Tempvar 2} {Argument yv}
+{CALL mean} {Tempvar 4} {Tempvar 1}
+{CALL mean} {Tempvar 6} {Tempvar 2}
+- {Tempvar 7} {Tempvar 1} {Tempvar 4}
+- {Tempvar 8} {Tempvar 2} {Tempvar 6}
+.* {Tempvar 9} {Tempvar 7} {Tempvar 8}
+{CALL sum} {Tempvar 10} {Tempvar 9}
+- {Tempvar 11} {Tempvar 1} {Tempvar 4}
+.^ {Tempvar 12} {Tempvar 11} {Literal 1}
+{CALL sum} {Tempvar 13} {Tempvar 12}
+./ {Tempvar 15} {Tempvar 10} {Tempvar 13}
+* {Tempvar 16} {Tempvar 15} {Tempvar 4}
+- {Tempvar 18} {Tempvar 6} {Tempvar 16}
+{CALL list} {Tempvar 19} {Tempvar 18} {Tempvar 15}
+Tcl_SetObjResult(interp, Tempvar 19)
+
 Literals: 
-1 2
+Literal 1 2
 Symbols: 
-xm Tempvar 2
-ym Tempvar 4
-beta Tempvar 13
-alpha Tempvar 16
+xv Tempvar 1
+yv Tempvar 2
+xm Tempvar 4
+ym Tempvar 6
+beta Tempvar 15
+alpha Tempvar 18
+Types: 
+Argument xv double n
+Argument yv double n
+Literal 1 int 1
+Tempvar 1 double n
+Tempvar 2 double n
+Tempvar 4 double 1
+Tempvar 6 double 1
+Tempvar 7 double n
+Tempvar 8 double n
+Tempvar 9 double n
+Tempvar 10 double 1
+Tempvar 11 double n
+Tempvar 12 double n
+Tempvar 13 double 1
+Tempvar 15 double 1
+Tempvar 16 double 1
+Tempvar 18 double 1
+Tempvar 19 Any
 {% endraw %}
 {% endhighlight %}
 
@@ -220,7 +239,7 @@ The benchmark function for the cycle length looks like this:
 
 {% highlight tcl %}
 {% raw %}
-vectcl::jit {N} {
+vectcl::jitproc {{N {int 1}}}	{
 	i=0
 	while N != 1 {
 		if (N%2 == 1) {
@@ -238,45 +257,68 @@ vectcl::jit {N} {
 The resulting SSA code is this:
 {% highlight tcl %}
 {% raw %}
-= {Tempvar 1} {Literal 1}
+= {Tempvar 1} {Argument N}
+= {Tempvar 2} {Literal 1}
 While {} {}
-Phi {Tempvar 13} {Argument N} {Tempvar 10}
-Phi {Tempvar 14} {Tempvar 1} {Tempvar 12}
-!= {Tempvar 2} {Tempvar 13} {Literal 2}
-Do {} {Tempvar 2}
-% {Tempvar 3} {Tempvar 13} {Literal 3}
-== {Tempvar 4} {Tempvar 3} {Literal 4}
-If {} {Tempvar 4}
-* {Tempvar 5} {Literal 5} {Tempvar 13}
-+ {Tempvar 6} {Tempvar 5} {Literal 6}
-= {Tempvar 7} {Tempvar 6}
+Phi {Tempvar 14} {Tempvar 1} {Tempvar 11}
+Phi {Tempvar 15} {Tempvar 2} {Tempvar 13}
+!= {Tempvar 3} {Tempvar 14} {Literal 2}
+Do {} {Tempvar 3}
+% {Tempvar 4} {Tempvar 14} {Literal 3}
+== {Tempvar 5} {Tempvar 4} {Literal 4}
+If {} {Tempvar 5}
+* {Tempvar 6} {Literal 5} {Tempvar 14}
++ {Tempvar 8} {Tempvar 6} {Literal 6}
 Else {} {}
-/ {Tempvar 8} {Tempvar 13} {Literal 7}
-= {Tempvar 9} {Tempvar 8}
+/ {Tempvar 10} {Tempvar 14} {Literal 7}
 EndIf {} {}
-Phi {Tempvar 10} {Tempvar 9} {Tempvar 7}
-+ {Tempvar 11} {Tempvar 14} {Literal 8}
-= {Tempvar 12} {Tempvar 11}
+Phi {Tempvar 11} {Tempvar 10} {Tempvar 8}
++ {Tempvar 13} {Tempvar 15} {Literal 8}
 EndWhile {} {}
-Tcl_SetObjResult(Tempvar 14)
-return TCL_OK; 
+Tcl_SetObjResult(interp, Tempvar 15)
+
 Literals: 
-1 0
-2 1
-3 2
-4 1
-5 3
-6 1
-7 2
-8 1
+Literal 1 0
+Literal 2 1
+Literal 3 2
+Literal 4 1
+Literal 5 3
+Literal 6 1
+Literal 7 2
+Literal 8 1
 Symbols: 
-i Tempvar 1
-N Tempvar 7
-N Tempvar 9
+N Tempvar 1
+i Tempvar 2
+N Tempvar 8
 N Tempvar 10
-i Tempvar 12
-N Tempvar 13
-i Tempvar 14
+N Tempvar 11
+i Tempvar 13
+N Tempvar 14
+i Tempvar 15
+Types: 
+Argument N int 1
+Literal 1 int 1
+Literal 2 int 1
+Literal 3 int 1
+Literal 4 int 1
+Literal 5 int 1
+Literal 6 int 1
+Literal 7 int 1
+Literal 8 int 1
+Tempvar 1 int 1
+Tempvar 2 int 1
+ Any
+Tempvar 14 int 1
+Tempvar 15 int 1
+Tempvar 3 int 1
+Tempvar 4 int 1
+Tempvar 5 int 1
+Tempvar 6 int 1
+Tempvar 8 int 1
+Tempvar 10 int 1
+Tempvar 11 int 1
+Tempvar 13 int 1
+
 {% endraw %}
 {% endhighlight %}
 Due to the loops and branches, this translation contains many phi functions.
