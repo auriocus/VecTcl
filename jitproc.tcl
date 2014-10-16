@@ -6,7 +6,7 @@ namespace eval vectcl {
 
 	proc jitproc {arg xprstring} {
 		set ccode [jitcompile $arg $xprstring]
-		# now call tcc
+		# now call tcc in some distant future
 		# tcc4tcl::ccode $ccode
 	}
 
@@ -59,6 +59,9 @@ namespace eval vectcl {
 			set typetable {}
 
 			# store common signatures as a lookup table
+			# these functions are also pure and can be constant-folded
+			# or optimized away in dead-code elimination
+			#
 			# TODO % and .^ are a lie - % only works on integer 
 			# and .^ upcasts to float
 			set signatures {
@@ -94,8 +97,9 @@ namespace eval vectcl {
 			# type inference
 			set TAC_annot [my infer_type {*}$TAC_opt]
 			
+			set TAC_bloop [my infer_basic_loop {*}$TAC_annot]
 			# code generation
-			set ccode [my codegen {*}$TAC_annot]
+			set ccode [my codegen {*}$TAC_bloop]
 			
 			# print literals and symbols for debug purposes
 			set dbgout {}
@@ -198,7 +202,8 @@ namespace eval vectcl {
 				dict set typetable $sym [list $type $shape]
 			}
 
-			for {set link 0} {$link<3} {incr link} {
+			for {set link 0} {$link<10} {incr link} {
+				puts stderr "Link stage $link"
 				set finish true
 				foreach instr $tac {
 					set args [lassign $instr opcode dest]
@@ -386,6 +391,73 @@ namespace eval vectcl {
 			error "Don't know how to cast $t1, $t2"
 			
 		}
+		
+		# a basic loop is represented as a dictionary
+		# input: dict/set of input variables
+		# output: output variable
+		# code: list of SSA instructions
+		method fuse_basic_loops {b1 b2} {
+			# take two basic loops and
+			# create one out of them
+			
+			# unpack structures
+			set b1in [dict get $b1 input]
+			set b2in [dict get $b2 input]
+			set b1out [dict get $b1 output]
+			set b2out [dict get $b2 output]
+			set b1code [dict get $b1 code]
+			set b2code [dict get $b2 code]
+
+			# input = both inputs minus output from the first block
+			set bin [dict merge $b1in $b2in]
+			dict unset bin $b1out
+
+			set b [dict create \
+				input $bin \
+				output $b2out \
+				code [list {*}$b1code {*}$b2code] \
+				]
+
+			return $b
+			
+		}
+
+		method b_from_SSA {instr} {
+			# convert a single instruction into the equivalent basic loop
+			foreach input [lassign $instr opcode dest] {
+				dict set inp $input 1
+			}
+			dict set b input $inp
+			dict set b output $dest
+			dict set b code $instr
+		}
+
+		method trivial_basic_loop {rvar tac} {
+			# turn any instruction into a basic loop
+			# except for control constructs
+			set result {}
+			set controls {If 1 Else 1 Endif 1 While 1 Do 1 EndWhile 1 Phi 1}
+			foreach instr $tac {
+				lassign $instr opcode dest
+				set bloop [my b_from_SSA $instr]
+
+				if {[dict exists $controls $opcode]} {
+					lappend result [list control $bloop]
+				} else {
+					lappend result [list bloop $bloop]
+				}
+			}
+			return [list $rvar $result]
+		}
+
+
+		method infer_basic_loop {rvar tac} {
+			# try to move around instructions such that 
+			# we can infer the basic loops
+			return [my trivial_basic_loop $rvar $tac]
+			return [list $rvar $tac]
+		}
+
 
 		method codegen {rvar tac} {
 			# generate C code - for now just print three address code
@@ -907,11 +979,15 @@ namespace eval vectcl {
 		puts $code
 
 
-		set code [vectcl::jitproc {{xv {double {n}}} {yv {double {n}}}}	{
+		set code [vectcl::jitproc {{xv {double n}} {yv {double n}}}	{
 			xm=mean(xv); ym=mean(yv)
 			beta=sum((xv-xm).*(yv-ym))./sum((xv-xm).^2)
 			alpha=ym-beta*xm
 			list(alpha, beta)
+		}]
+		puts $code
+		set code [vectcl::jitproc {{xv {double n}} {yv {double n}}}	{
+			xv.*xv+yv.*yv
 		}]
 		puts $code
 	}
