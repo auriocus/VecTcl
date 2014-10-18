@@ -33,7 +33,7 @@ First, we will do simple matrix calculations
 {% endraw %}
 {% endhighlight %}
 
-Commands entered are first evaluated as a VecTcl expressino, and on failure 
+Commands entered are first evaluated as a VecTcl expression, and on failure 
 reevaluated as a Tcl command. This allows us to mix Tcl with math in VecTcl.
 
 For instance, we construct a x-y dataseries for plotting
