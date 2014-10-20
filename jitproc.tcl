@@ -79,6 +79,7 @@ namespace eval vectcl {
 				<= relational
 				{CALL sum} reduction
 				{CALL mean} reduction
+				{CALL std} reduction
 				{CALL sin} unary-float
 				{CALL cos} unary-float
 				{CALL tan} unary-float
@@ -432,30 +433,107 @@ namespace eval vectcl {
 			dict set b code $instr
 		}
 
-		method trivial_basic_loop {rvar tac} {
+		method trivial_basic_loop {tac} {
 			# turn any instruction into a basic loop
 			# except for control constructs
 			set result {}
-			set controls {If 1 Else 1 Endif 1 While 1 Do 1 EndWhile 1 Phi 1}
+			foreach opcode {If Else Endif While Do EndWhile Phi} {
+				dict set instr_class $opcode control
+			}
+			
+			foreach opcode {= + - .+ .- .* ./ .^ % == < > <= >= !=} {
+				dict set instr_class $opcode bloop
+			}
+			
+			foreach opcode {sin cos tan exp log} {
+				dict set instr_class [list CALL $opcode] bloop
+			}
+			
+			foreach opcode {sum mean std} {
+				dict set instr_class [list CALL $opcode] reduction
+			}
+			
+			set ip 0
 			foreach instr $tac {
 				lassign $instr opcode dest
-				set bloop [my b_from_SSA $instr]
+				set loop [my b_from_SSA $instr]
 
-				if {[dict exists $controls $opcode]} {
-					lappend result [list control $bloop]
-				} else {
-					lappend result [list bloop $bloop]
-				}
+				set type [my dict_get_default $instr_class $opcode call]
+				dict set result $ip type $type
+				dict set result $ip loop $loop
+				incr ip
 			}
-			return [list $rvar $result]
+			return $result
 		}
 
 
 		method infer_basic_loop {rvar tac} {
 			# try to move around instructions such that 
 			# we can infer the basic loops
-			return [my trivial_basic_loop $rvar $tac]
-			return [list $rvar $tac]
+			set tac_bloop [my trivial_basic_loop $tac]
+			# now create usage tree of variables
+			set usage [dict create $rvar "return"]
+			dict for {ip loop} $tac_bloop {
+				dict for {var _} [dict get $loop loop input] {
+					dict lappend usage $var $ip
+				}
+			}
+			# now go over the code and combine 
+			# - bloops with bloops
+			# - bloops with reductions
+			while true {
+				set ips [dict keys $tac_bloop]
+				# not: dict for {ip loop} $tac_bloop 
+				# because we are modifying tac_bloop downstream
+				foreach ip $ips {
+					if {![dict exists $tac_bloop $ip]} { continue }
+					
+					set nochange true
+					set loop [dict get $tac_bloop $ip]
+					set type [dict get $loop type]
+					if {$type ne "bloop"} { continue }
+
+					set output [dict get $loop loop output]
+					set uses [my dict_get_default $usage $output {}]
+					switch [llength $uses] {
+						0 { 
+							# dead code, remove
+							# puts "Dead code: $ip"
+							dict unset tac_bloop $ip
+							set nochange false
+						}
+
+						1 {
+							# only a single use - combine
+							set useip [lindex $uses 0]
+							if {$useip eq "return"} { continue }
+							set useloop [dict get $tac_bloop $useip loop]
+							set usetype [dict get $tac_bloop $useip type]
+
+							if {$usetype ne "bloop"} { continue }
+							# don't do reductions yet
+							#puts "Loop fusion: $ip $useip"
+							set loop1 [dict get $loop loop]
+							set combined_loop [my fuse_basic_loops $loop1 $useloop]
+							#puts "$loop1 + $useloop"
+							#puts "->$combined_loop"
+							dict unset tac_bloop $ip
+							dict set tac_bloop $useip loop $combined_loop
+							dict unset usages $output
+							set nochange false
+						}
+
+						default {
+							# multiple uses - leave. Could later decide 
+							# for inlining
+						}
+					}
+				}
+
+				if {$nochange} { break }
+			}
+
+			return [list $rvar $tac_bloop]
 		}
 
 
