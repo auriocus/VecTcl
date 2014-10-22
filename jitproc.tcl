@@ -28,6 +28,7 @@ namespace eval vectcl {
 
 		constructor {p} {
 			set parser $p
+			my init_instr_class
 		}
 		
 		method dict_get_default {dict arg default} {
@@ -194,6 +195,15 @@ namespace eval vectcl {
 			list $rvar $resultcode
 		}
 		
+		method isscalar {sym} {
+			my isscalartype [dict get $typetable $sym]
+		}
+
+		method isscalartype {stype} {
+			lassign $stype type shape
+			expr {$shape == 1}
+		}
+
 		method infer_type {rvar tac} {
 			# first deduce type of all literals
 			dict for {sym value} $literals {
@@ -412,37 +422,34 @@ namespace eval vectcl {
 			# input = both inputs minus output from the first block
 			set bin [dict merge $b1in $b2in]
 			dict unset bin $b1out
+			set temp [dict merge [dict get $b1 temp] [dict get $b2 temp]]
+			dict set temp $b1out 1
 
 			set b [dict create \
 				input $bin \
 				output $b2out \
 				code [list {*}$b1code {*}$b2code] \
+				type [dict get $b2 type] \
+				temp $temp
 				]
 
 			return $b
 			
 		}
-
-		method b_from_SSA {instr} {
-			# convert a single instruction into the equivalent basic loop
-			foreach input [lassign $instr opcode dest] {
-				dict set inp $input 1
-			}
-			dict set b input $inp
-			dict set b output $dest
-			dict set b code $instr
-		}
-
-		method trivial_basic_loop {tac} {
-			# turn any instruction into a basic loop
-			# except for control constructs
-			set result {}
+		
+		variable instr_class
+		
+		method init_instr_class {} {
 			foreach opcode {If Else Endif While Do EndWhile Phi} {
 				dict set instr_class $opcode control
 			}
 			
 			foreach opcode {= + - .+ .- .* ./ .^ % == < > <= >= !=} {
 				dict set instr_class $opcode bloop
+			}
+			
+			foreach opcode {* / \\} {
+				dict set instr_class $opcode matrixmult
 			}
 			
 			foreach opcode {sin cos tan exp log} {
@@ -452,15 +459,50 @@ namespace eval vectcl {
 			foreach opcode {sum mean std} {
 				dict set instr_class [list CALL $opcode] reduction
 			}
+		}
+
+		method b_from_SSA {instr} {
+			# convert a single instruction into the equivalent basic loop
 			
+			foreach input [lassign $instr opcode dest] {
+				dict set inp $input 1
+			}
+
+			set type [my dict_get_default $instr_class $opcode call]
+
+			# in case of matrix multiplication op,
+			# reduce to bloop if one of the operands is scalar
+			if {$type eq "matrixmult"} {
+				lassign [dict keys $inp] op1 op2
+				if {[my isscalar $op1] || [my isscalar $op2]} {
+					# it is not a true matrix op
+					# and can be converted into an equivalent bloop
+					set opcode .$opcode
+					lset instr 0 $opcode
+					set type bloop
+				} else {
+					# true matrix op
+					set type call
+				}
+			}
+			
+			dict set b input $inp
+			dict set b output $dest
+			dict set b code $instr
+			dict set b temp {}
+			dict set b type $type
+		}
+
+		method trivial_basic_loop {tac} {
+			# turn any instruction into a basic loop
+			# except for control constructs
+			set result {}
+		
 			set ip 0
 			foreach instr $tac {
-				lassign $instr opcode dest
 				set loop [my b_from_SSA $instr]
-
-				set type [my dict_get_default $instr_class $opcode call]
-				dict set result $ip type $type
-				dict set result $ip loop $loop
+	
+				dict set result $ip $loop
 				incr ip
 			}
 			return $result
@@ -474,7 +516,7 @@ namespace eval vectcl {
 			# now create usage tree of variables
 			set usage [dict create $rvar "return"]
 			dict for {ip loop} $tac_bloop {
-				dict for {var _} [dict get $loop loop input] {
+				dict for {var _} [dict get $loop input] {
 					dict lappend usage $var $ip
 				}
 			}
@@ -483,6 +525,7 @@ namespace eval vectcl {
 			# - bloops with reductions
 			while true {
 				set ips [dict keys $tac_bloop]
+				# puts "Code: [join $tac_bloop \n]"
 				# not: dict for {ip loop} $tac_bloop 
 				# because we are modifying tac_bloop downstream
 				foreach ip $ips {
@@ -493,7 +536,7 @@ namespace eval vectcl {
 					set type [dict get $loop type]
 					if {$type ne "bloop"} { continue }
 
-					set output [dict get $loop loop output]
+					set output [dict get $loop output]
 					set uses [my dict_get_default $usage $output {}]
 					switch [llength $uses] {
 						0 { 
@@ -507,18 +550,17 @@ namespace eval vectcl {
 							# only a single use - combine
 							set useip [lindex $uses 0]
 							if {$useip eq "return"} { continue }
-							set useloop [dict get $tac_bloop $useip loop]
+							set useloop [dict get $tac_bloop $useip]
 							set usetype [dict get $tac_bloop $useip type]
 
 							if {$usetype ne "bloop"} { continue }
 							# don't do reductions yet
-							#puts "Loop fusion: $ip $useip"
-							set loop1 [dict get $loop loop]
-							set combined_loop [my fuse_basic_loops $loop1 $useloop]
-							#puts "$loop1 + $useloop"
-							#puts "->$combined_loop"
+							# puts "Loop fusion: $ip $useip"
+							# puts "$loop + $useloop"
+							set combined_loop [my fuse_basic_loops $loop $useloop]
+							# puts "->$combined_loop"
 							dict unset tac_bloop $ip
-							dict set tac_bloop $useip loop $combined_loop
+							dict set tac_bloop $useip $combined_loop
 							dict unset usages $output
 							set nochange false
 						}
