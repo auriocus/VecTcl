@@ -99,6 +99,9 @@ namespace eval vectcl {
 			# type inference
 			set TAC_annot [my infer_type {*}$TAC_opt]
 			
+			puts "Typetable $typetable"
+			puts "Code [join $TAC_annot \n]"
+			
 			set TAC_bloop [my infer_basic_loop {*}$TAC_annot]
 			# code generation
 			set ccode [my codegen {*}$TAC_bloop]
@@ -473,7 +476,8 @@ namespace eval vectcl {
 			# in case of matrix multiplication op,
 			# reduce to bloop if one of the operands is scalar
 			if {$type eq "matrixmult"} {
-				lassign [dict keys $inp] op1 op2
+				lassign $instr _ _ op1 op2
+				# puts "$instr\n$inp"
 				if {[my isscalar $op1] || [my isscalar $op2]} {
 					# it is not a true matrix op
 					# and can be converted into an equivalent bloop
@@ -631,7 +635,6 @@ namespace eval vectcl {
 				lassign [my assignvar $name $symbol] tvar tcode
 				lappend resultcode $tcode
 			}
-			puts "Typetable $typetable"
 			
 			lassign [my {*}$sequence] rvar tac
 			lappend resultcode {*}$tac
