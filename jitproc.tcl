@@ -104,7 +104,9 @@ namespace eval vectcl {
 			
 			set TAC_bloop [my infer_basic_loop {*}$TAC_annot]
 			# code generation
-			set ccode [my codegen {*}$TAC_bloop]
+			set TAC_dephi [my dephi {*}$TAC_bloop]
+			# code generation
+			set ccode [my codegen {*}$TAC_dephi]
 			
 			# print literals and symbols for debug purposes
 			set dbgout {}
@@ -527,15 +529,17 @@ namespace eval vectcl {
 			# now go over the code and combine 
 			# - bloops with bloops
 			# - bloops with reductions
+			# for {set iter 0} {$iter<10} {incr iter} {}
 			while true {
 				set ips [dict keys $tac_bloop]
-				# puts "Code: [join $tac_bloop \n]"
+				set nochange true
+				
+				# iterate over the instruction dict
 				# not: dict for {ip loop} $tac_bloop 
-				# because we are modifying tac_bloop downstream
+				# because we are modifying tac_bloop in the loop
 				foreach ip $ips {
 					if {![dict exists $tac_bloop $ip]} { continue }
 					
-					set nochange true
 					set loop [dict get $tac_bloop $ip]
 					set type [dict get $loop type]
 					if {$type ne "bloop"} { continue }
@@ -581,7 +585,10 @@ namespace eval vectcl {
 
 			return [list $rvar $tac_bloop]
 		}
-
+		
+		method dephi {rvar bloopcode} {
+			return [list $rvar [dict values $bloopcode]]
+		}
 
 		method codegen {rvar tac} {
 			# generate C code - for now just print three address code
