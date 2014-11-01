@@ -64,7 +64,7 @@ namespace eval vectcl {
 			# or optimized away in dead-code elimination
 			#
 			# TODO % and .^ are a lie - % only works on integer 
-			# and .^ upcasts to float
+			# and .^ really upcasts to float
 			set signatures {
 				+ binary
 				- binary
@@ -445,9 +445,11 @@ namespace eval vectcl {
 		variable instr_class
 		
 		method init_instr_class {} {
-			foreach opcode {If Else Endif While Do EndWhile Phi} {
+			foreach opcode {If Else EndIf While Do EndWhile} {
 				dict set instr_class $opcode control
 			}
+
+			dict set instr_class Phi phi
 			
 			foreach opcode {= + - .+ .- .* ./ .^ % == < > <= >= !=} {
 				dict set instr_class $opcode bloop
@@ -494,7 +496,7 @@ namespace eval vectcl {
 			
 			dict set b input $inp
 			dict set b output $dest
-			dict set b code $instr
+			dict set b code [list $instr]
 			dict set b temp {}
 			dict set b type $type
 		}
@@ -514,7 +516,8 @@ namespace eval vectcl {
 			return $result
 		}
 
-
+		variable usage
+		variable definition
 		method infer_basic_loop {rvar tac} {
 			# try to move around instructions such that 
 			# we can infer the basic loops
@@ -525,6 +528,8 @@ namespace eval vectcl {
 				dict for {var _} [dict get $loop input] {
 					dict lappend usage $var $ip
 				}
+				dict lappend definition [dict get $loop output] $ip
+
 			}
 			# now go over the code and combine 
 			# - bloops with bloops
@@ -551,6 +556,7 @@ namespace eval vectcl {
 							# dead code, remove
 							# puts "Dead code: $ip"
 							dict unset tac_bloop $ip
+							dict unset definition $output
 							set nochange false
 						}
 
@@ -569,7 +575,8 @@ namespace eval vectcl {
 							# puts "->$combined_loop"
 							dict unset tac_bloop $ip
 							dict set tac_bloop $useip $combined_loop
-							dict unset usages $output
+							dict unset usage $output
+							dict unset definition $output
 							set nochange false
 						}
 
@@ -586,13 +593,75 @@ namespace eval vectcl {
 			return [list $rvar $tac_bloop]
 		}
 		
+		method alias {rvar bloopcode var1 var2} {
+			# replace all occurences of var1 with var2
+			if {$rvar eq $var1} {set rvar $var2}
+			# find the statements assigning to var1
+			# Note: Since we are deconstructing SSA, there can be multiple assignments!
+			foreach assip [dict get $definition $var1] {
+				# fix code. Only the last instruction should
+				# assign here, but who knows
+				set newcode {}
+				puts stderr [join $bloopcode \n]
+				set code [dict get $bloopcode $assip code]
+				foreach instr $code {
+					set inp [lassign $instr opcode dest]
+					if {$dest eq $var1} { set dest $var2 }
+					lappend newcode [list $opcode $dest {*}$inp]
+				}
+				puts "$assip: $code -> $newcode"
+				dict set bloopcode $assip code $newcode
+				# fix output declaration
+				dict set bloopcode $assip output $var2
+			}
+			dict unset definition $var1
+
+			# find statements making use of var1
+			foreach useip [dict get $usage $var1] {
+				# fix code. Only the last instruction should
+				# assign here, but who knows
+				set newcode {}
+				foreach instr [dict get $bloopcode $useip code] {
+					set inp [lassign $instr opcode dest]
+					set inp [lmap var $inp { expr {$var eq $var1 ? $var2 : $var }}]
+					lappend newcode [list $opcode $dest {*}$inp]
+				}
+				dict set bloopcode $useip code $newcode
+
+				# fix input declaration
+				dict unset bloopcode $useip input $var1
+				dict set bloopcode $useip input $var2 1
+			}
+			dict unset usage $var1
+			return [list $rvar $bloopcode]
+		}
+		
 		method dephi {rvar bloopcode} {
-			return [list $rvar [dict values $bloopcode]]
+			puts [join $bloopcode \n]
+			set ips [dict keys $bloopcode]
+			foreach ip $ips {
+				# be careful, we are changing bloopcode on the way
+				if {![dict exists $bloopcode $ip]} { continue }
+
+				set bloop [dict get $bloopcode $ip]
+				if {[dict get $bloop type] eq "phi"} {
+					set phi [lindex [dict get $bloop code] 0]
+					lassign $phi opcode dest op1 op2
+					puts "Aliasing $op1 to $dest"
+					lassign [my alias $rvar $bloopcode $op1 $dest] rvar bloopcode
+					puts "Aliasing $op2 to $dest"
+					lassign [my alias $rvar $bloopcode $op2 $dest] rvar bloopcode
+					# kill the phi node
+					dict unset bloopcode $ip
+				}
+			}		
+
+			return [list $rvar $bloopcode]
 		}
 
 		method codegen {rvar tac} {
 			# generate C code - for now just print three address code
-			set code [join $tac \n]
+			set code [join [dict values $tac] \n]
 			append code "\nTcl_SetObjResult(interp, $rvar)\n"
 		}
 
