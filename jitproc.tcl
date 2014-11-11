@@ -659,10 +659,90 @@ namespace eval vectcl {
 			return [list $rvar $bloopcode]
 		}
 
+		
+		method allocobj2c {symbol} {
+			
+		}
+
+		method releaseobj2c {symbol} {
+		}	
+
+		method symbol2c {symbol} {
+			lassign $symbol type index
+			switch $type {
+				Tempvar {
+					return "temp$index"
+				}
+				Argument {
+					return "objv\[$index\]"
+				}
+				Literal {
+					return "literals\[$index\]"
+				}
+			}
+		}	
+
+		method call2c {call} {
+			# translate a single call instruction into C
+			set code [lindex $call 0]
+			set args [lassign $code fun dest]
+			set fname [lindex $fun 0]
+			set narg [expr {[llength $args]+1}] ;# including cmd name
+			set ccode "\{\n"
+			set cmdlit [my allocliteral $fname]
+			
+			set ccmdlit [my symbol2c $cmdlit]
+
+			append ccode "Tcl_Obj *cmdwords\[[expr {$narg}]\];\n"
+			append ccode "cmdwords\[0\] = $ccmdlit;\n"
+			
+			set i 1
+			foreach arg $args {	
+				set objvar "cmdwords\[$i\]" 
+				append ccode "$objvar = [my symbol2c $arg];\n"
+				incr i
+			}
+			
+			for {set i 0} {$i<$narg} {incr i} {
+				set objvar "cmdwords\[$i\]" 
+				append ccode "Tcl_IncrRefCount($objvar);\n"
+			}
+
+			append ccode "int code = Tcl_EvalObjv(interp, $narg, cmdwords, 0);\n"
+			
+			for {set i 0} {$i<$narg} {incr i} {
+				set objvar "cmdwords\[$i\]" 
+				append ccode "Tcl_DecrRefCount($objvar);\n"
+			}
+
+			append ccode " if (code != TCL_OK) { return TCL_ERROR; }\n"
+			append ccode "[my symbol2c $dest] = Tcl_GetObjResult(interp);\n"
+			append ccode "\}\n"
+			return "$code\n$ccode"
+			
+		}
+
 		method codegen {rvar tac} {
 			# generate C code - for now just print three address code
-			set code [join [dict values $tac] \n]
-			append code "\nTcl_SetObjResult(interp, $rvar)\n"
+			set name "somethingCmd"
+			set code "int jit_$name (ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv) \{\n"
+			append code "Tcl_Obj ** literals; int nLiterals;\n"
+			append code "if (Tcl_ListObjGetElements(interp, (Tcl_Obj *)cdata, &objc, &literals) != TCL_OK) \{\n"
+			append code "return TCL_ERROR; /* internal error ! */\n"
+			append code "\}\n"
+			dict for {ip instr} $tac {
+				switch [dict get $instr type] {
+					call {
+						append code "[my call2c [dict get $instr code]]\n"
+					}
+					default {
+						append code "$instr\n"
+					}
+				}
+			}
+
+			append code "\nTcl_SetObjResult(interp, [my symbol2c $rvar]);\n"
+			append code "\}\n"
 		}
 
 		#######################################
@@ -704,12 +784,14 @@ namespace eval vectcl {
 			# the single arg represents a sequence. 
 			# add formal arguments to symbol table
 			set resultcode {}
+			set ind 0
 			foreach arg [dict get $opt -args] {
 				lassign $arg name type
-				set symbol [list Argument $name]
+				set symbol [list Argument $ind]
 				dict set typetable $symbol $type
 				lassign [my assignvar $name $symbol] tvar tcode
 				lappend resultcode $tcode
+				incr ind
 			}
 			
 			lassign [my {*}$sequence] rvar tac
