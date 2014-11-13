@@ -408,6 +408,14 @@ namespace eval vectcl {
 			
 		}
 		
+		method reduce2scalar {symbol} {
+			lassign [dict get $typetable $symbol] dtype shape
+			if {$dtype ne "Any"} {
+				set shape {1}
+			}
+			dict set typetable $symbol [list $dtype $shape]
+		}
+
 		# a basic loop is represented as a dictionary
 		# input: dict/set of input variables
 		# output: output variable
@@ -429,6 +437,8 @@ namespace eval vectcl {
 			dict unset bin $b1out
 			set temp [dict merge [dict get $b1 temp] [dict get $b2 temp]]
 			dict set temp $b1out 1
+			# reduce the temporary variable to scalar
+			my reduce2scalar $b1out
 
 			set b [dict create \
 				input $bin \
@@ -451,9 +461,11 @@ namespace eval vectcl {
 
 			dict set instr_class Phi phi
 			
-			foreach opcode {= + - .+ .- .* ./ .^ % == < > <= >= !=} {
+			foreach opcode {+ - .+ .- .* ./ .^ % == < > <= >= !=} {
 				dict set instr_class $opcode bloop
 			}
+
+			dict set instr_class = copy
 			
 			foreach opcode {* / \\} {
 				dict set instr_class $opcode matrixmult
@@ -466,6 +478,10 @@ namespace eval vectcl {
 			foreach opcode {sum mean std} {
 				dict set instr_class [list CALL $opcode] reduction
 			}
+		}
+
+		method isargument {symbol} {
+			expr {[lindex $symbol 0] eq "Argument"}
 		}
 
 		method b_from_SSA {instr} {
@@ -491,6 +507,18 @@ namespace eval vectcl {
 				} else {
 					# true matrix op
 					set type call
+				}
+			}
+			
+			if {$type eq "copy"} {
+				# convert into a load instruction,
+				# if it merely stores an argument
+				# otherwise, convert to bloop
+				lassign $instr _ dest src
+				if {[my isargument $src]} {
+					set type load
+				} else {
+					set type bloop
 				}
 			}
 			
@@ -547,20 +575,21 @@ namespace eval vectcl {
 					
 					set loop [dict get $tac_bloop $ip]
 					set type [dict get $loop type]
-					if {$type ne "bloop"} { continue }
+					if {($type ne "bloop") && ($type ne "load")} { continue }
 
 					set output [dict get $loop output]
 					set uses [my dict_get_default $usage $output {}]
 					switch [llength $uses] {
 						0 { 
 							# dead code, remove
-							# puts "Dead code: $ip"
+							puts "Dead code: $ip"
 							dict unset tac_bloop $ip
 							dict unset definition $output
 							set nochange false
 						}
 
 						1 {
+							if  {($type ne "bloop")} { continue }
 							# only a single use - combine
 							set useip [lindex $uses 0]
 							if {$useip eq "return"} { continue }
@@ -602,14 +631,14 @@ namespace eval vectcl {
 				# fix code. Only the last instruction should
 				# assign here, but who knows
 				set newcode {}
-				puts stderr [join $bloopcode \n]
+				#puts stderr [join $bloopcode \n]
 				set code [dict get $bloopcode $assip code]
 				foreach instr $code {
 					set inp [lassign $instr opcode dest]
 					if {$dest eq $var1} { set dest $var2 }
 					lappend newcode [list $opcode $dest {*}$inp]
 				}
-				puts "$assip: $code -> $newcode"
+				#puts "$assip: $code -> $newcode"
 				dict set bloopcode $assip code $newcode
 				# fix output declaration
 				dict set bloopcode $assip output $var2
@@ -637,7 +666,7 @@ namespace eval vectcl {
 		}
 		
 		method dephi {rvar bloopcode} {
-			puts [join $bloopcode \n]
+			#puts [join $bloopcode \n]
 			set ips [dict keys $bloopcode]
 			foreach ip $ips {
 				# be careful, we are changing bloopcode on the way
@@ -647,9 +676,9 @@ namespace eval vectcl {
 				if {[dict get $bloop type] eq "phi"} {
 					set phi [lindex [dict get $bloop code] 0]
 					lassign $phi opcode dest op1 op2
-					puts "Aliasing $op1 to $dest"
+					#puts "Aliasing $op1 to $dest"
 					lassign [my alias $rvar $bloopcode $op1 $dest] rvar bloopcode
-					puts "Aliasing $op2 to $dest"
+					#puts "Aliasing $op2 to $dest"
 					lassign [my alias $rvar $bloopcode $op2 $dest] rvar bloopcode
 					# kill the phi node
 					dict unset bloopcode $ip
@@ -659,13 +688,98 @@ namespace eval vectcl {
 			return [list $rvar $bloopcode]
 		}
 
+		variable ctypetable {}
 		
-		method allocobj2c {symbol} {
-			
+		method makectypetable {} {
+			# iterate over the type table and create
+			# corresponding C data type
+			dict for {symbol type} $typetable {
+				lassign $type dtype shape
+				if {($type eq "Any") || ($shape != 1)} {
+					set ctype "Tcl_Obj *"
+				} else {
+					# scalar
+					switch $dtype {
+						int - 
+						double - { set ctype $dtype }
+						complex { set ctype NumArray_Complex }
+						default { return -code error "Unknown data type $dtype" }
+					}
+				}
+				dict set ctypetable $symbol $ctype
+			}
 		}
 
-		method releaseobj2c {symbol} {
+		method allocsymbol4c {symbol {init ""}} {
+			lassign [dict get $typetable $symbol] dtype shape
+			set csymbol [my symbol2c $symbol]
+			if {$dtype eq "Any"} {
+				set code "Tcl_Obj *$csymbol";
+				if {$init ne ""} {
+					append code " = $init;\n"
+					append code "Tcl_IncrRefCount($csymbol);\n"
+					return $code
+				} else {
+					append code ";\n"
+					return $code
+				}
+			}
+			if {$shape != 1} {
+				set code "Tcl_Obj *$csymbol";
+				if {$init ne ""} {
+					append code " = Tcl_DuplicateObj($init);\n"
+					append code "Tcl_IncrRefCount($csymbol);\n"
+					return $code
+				} else {
+					append code ";\n"
+					return $code
+				}
+			}
+
+			# shape == 1 , scalar values
+			switch $dtype {
+				int {
+					set code "int $csymbol"
+					if {$init ne ""} {
+						append code " = $init"
+					}
+				}
+				double {
+					set code "double $csymbol"
+					if {$init ne ""} {
+						append code " = $init"
+					}
+					
+				}
+				complex {
+					set code "NumArray_Complex $csymbol"
+					if {$init ne ""} {
+						append code " = $init"
+					}
+				}
+				default {
+					return -code error "Unknown data type $dtype"
+				}
+			}
+			append code ";\n"
+			return $code
+		}
+
+		method releasesymbol4c {symbol} {
+			lassign [dict get $typetable $symbol] dtype shape
+			if {($dtype eq "Any") || ($shape != 1)} {
+				# It is a Tcl_Obj*
+				return "Tcl_DecrRefCount([my symbol2c $symbol]);\n"
+			} else {
+				return ""
+			}
 		}	
+
+		method symbol2obj {symbol} {
+			lassign [dict get $typetable $symbol] dtype shape
+			set csymbol [my symbol2c $symbol]
+			
+		}
 
 		method symbol2c {symbol} {
 			lassign $symbol type index
@@ -722,6 +836,11 @@ namespace eval vectcl {
 			
 		}
 
+		method bloop2c {instr} {
+			# convert basic loop into C
+
+		}
+
 		method codegen {rvar tac} {
 			# generate C code - for now just print three address code
 			set name "somethingCmd"
@@ -741,7 +860,7 @@ namespace eval vectcl {
 				}
 			}
 
-			append code "\nTcl_SetObjResult(interp, [my symbol2c $rvar]);\n"
+			append code "\nTcl_SetObjResult(interp, [my symbol2obj $rvar]);\n"
 			append code "\}\n"
 		}
 
