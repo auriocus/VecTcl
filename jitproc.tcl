@@ -701,7 +701,7 @@ namespace eval vectcl {
 					# scalar
 					switch $dtype {
 						int - 
-						double - { set ctype $dtype }
+						double  { set ctype $dtype }
 						complex { set ctype NumArray_Complex }
 						default { return -code error "Unknown data type $dtype" }
 					}
@@ -739,7 +739,7 @@ namespace eval vectcl {
 			# shape == 1 , scalar values
 			switch $dtype {
 				int {
-					set code "int $csymbol"
+					set code "long $csymbol"
 					if {$init ne ""} {
 						append code " = $init"
 					}
@@ -774,12 +774,6 @@ namespace eval vectcl {
 				return ""
 			}
 		}	
-
-		method symbol2obj {symbol} {
-			lassign [dict get $typetable $symbol] dtype shape
-			set csymbol [my symbol2c $symbol]
-			
-		}
 
 		method symbol2c {symbol} {
 			lassign $symbol type index
@@ -835,6 +829,100 @@ namespace eval vectcl {
 			return "$code\n$ccode"
 			
 		}
+		
+		method castsymbol2ctype {symbol ctype} {
+			# return a Tcl_Obj*
+			set csymbol [my symbol2c $symbol]
+			set srcctype [dict get $ctypetable $symbol]
+			switch $ctype {
+				{Tcl_Obj *} {
+					switch $srcctype {
+						{Tcl_Obj *} {
+							return $csymbol
+						}
+						double {
+							return "Tcl_NewDoubleObj($csymbol)"
+						}
+						int {
+							return "Tcl_NewLongObj($csymbol)"
+						}
+						NumArray_Complex {
+							return "NumArray_NewComplexObj($csymbol)"
+						}
+						default {
+							return -code error "Unknown src type $srcctype"
+						}
+					}
+				}
+
+				NumArray_Complex {	
+					switch $srcctype {
+						{Tcl_Obj *} {
+							return -code error $csymbol
+							# can only construct it into a target
+						}
+						int - double {
+							return "NumArray_mkComplex($csymbol, 0.0)"
+						}
+						NumArray_Complex {
+							return $csymbol
+						}
+						default {
+							return -code error "Unknown src type $srcctype"
+						}
+					}
+				}
+
+				double {	
+					switch $srcctype {
+						{Tcl_Obj *} - NumArray_Complex {
+							return -code error "Can't downcast $csymbol to double"
+							# can only construct it into a target
+						}
+						int {
+							return "((double)$csymbol)"
+						} 
+						
+						double {
+							return "$csymbol" ;# compiler casts
+						}
+						default {
+							return -code error "Unknown src type $srcctype"
+						}
+					}
+				}
+				
+				int {	
+					switch $srcctype {
+						{Tcl_Obj *} - NumArray_Complex - double{
+							return -code error "Can't downcast $csymbol to int"
+							# can only construct it into a target
+						}
+						int {
+							return "$csymbol"
+						} 
+						
+						default {
+							return -code error "Unknown src type $srcctype"
+						}
+					}
+				}
+			}
+		}
+		
+		method unboxtclobj {cexpr symbol} {
+			# cexpr yields a Tcl_Obj*, extract the 
+			# primitive dtype into symbol (if it matches)
+			set csymbol [my symbol2c $symbol]
+			set ctype [dict get $ctypetable $symbol]
+			switch $ctype {
+				{Tcl_Obj *} { return "$csymbol = $cexpr;\nTcl_IncrRefCount($csymbol);\n code = TCL_OK;\n" }
+				double { return "code = Tcl_GetDoubleFromObj(interp, $cexpr, &$csymbol);\n" }
+				NumArray_Complex { return "code = NumArray_GetComplexFromObj(interp, $cexpr, &$csymbol);\n" }
+				int { return "code = Tcl_GetLongFromObj(interp, $cexpr, &$csymbol);\n" }
+				default { return -code error "Unknown type to unbox: $ctype" }
+			}
+		}
 
 		method bloop2c {instr} {
 			# convert basic loop into C
@@ -844,6 +932,9 @@ namespace eval vectcl {
 		method codegen {rvar tac} {
 			# generate C code - for now just print three address code
 			set name "somethingCmd"
+
+			my makectypetable
+
 			set code "int jit_$name (ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv) \{\n"
 			append code "Tcl_Obj ** literals; int nLiterals;\n"
 			append code "if (Tcl_ListObjGetElements(interp, (Tcl_Obj *)cdata, &objc, &literals) != TCL_OK) \{\n"
@@ -854,13 +945,18 @@ namespace eval vectcl {
 					call {
 						append code "[my call2c [dict get $instr code]]\n"
 					}
+					load {
+						# create native type from something
+
+					}
+
 					default {
 						append code "$instr\n"
 					}
 				}
 			}
 
-			append code "\nTcl_SetObjResult(interp, [my symbol2obj $rvar]);\n"
+			append code "\nTcl_SetObjResult(interp, [my castsymbol2ctype $rvar "Tcl_Obj *"]);\n"
 			append code "\}\n"
 		}
 
