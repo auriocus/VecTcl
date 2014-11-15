@@ -950,8 +950,39 @@ namespace eval vectcl {
 			}
 		}
 
-		method bloop2c {instr} {
+		method bloop2c {bloop} {
 			# convert basic loop into C
+
+		}
+
+		method control2c {code} {
+			set instr [lindex $code 0]
+			lassign $instr opcode _ src
+			switch $opcode {
+				If {
+					return "if ([my symbol2c $src]) \{\n"
+					# breaks if the symbol is not an int
+				}
+				Else {
+					return "\} else \{\n"
+				}
+				EndIf {
+					return "\}\n"
+				}
+				While {
+					return "while (true) \{\n"
+				}
+				Do {
+					return "if (![my symbol2c $src]) \{ break; \} \n"
+				}
+				EndWhile {
+					return "\}\n"
+				}
+
+				default {
+					return -code error "Unknown control construct: $opcode"
+				}
+			}
 
 		}
 
@@ -984,23 +1015,32 @@ namespace eval vectcl {
 						set cexpr [my symbol2c $src]
 						append bodycode [my unboxtclobj $cexpr $dest]
 					}
+					
+					control {
+						# handle control constructs like if, while, (for)
+						append bodycode [my control2c [dict get $instr code]]
+					}
 
 					default {
 						append bodycode "$instr\n"
 					}
 				}
 				if {$output ne ""} {
-					append allocs [my allocsymbol4c $output]
-					append cleanups [my releasesymbol4c $output]
+					dict set allocs $output [my allocsymbol4c $output]
+					dict set cleanups $output [my releasesymbol4c $output]
 				}
 			}
-			append code $allocs
+
+			set alloccode [join [dict values $allocs] ""]
+			set cleanupcode [join [dict values $cleanups] ""]
+			
+			append code $alloccode
 			append code $bodycode
 			append code "\nTcl_SetObjResult(interp, [my castsymbol2ctype $rvar "Tcl_Obj *"]);\n"
-			append code $cleanups
+			append code $cleanupcode
 			append code "return TCL_OK\;\n"
 			append code "error:\n"
-			append code $cleanups
+			append code $cleanupcode
 			append code "return TCL_ERROR;\n"
 			append code "\}\n"
 		}
