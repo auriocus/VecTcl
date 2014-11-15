@@ -1,22 +1,17 @@
-lappend auto_path .
+lappend auto_path . ~/Library/Tcl/
 package require vectcl
+package require tcc4tcl
 
 namespace eval vectcl {
 	namespace export jit
 
-	proc jitproc {arg xprstring} {
-		set ccode [jitcompile $arg $xprstring]
-		# now call tcc in some distant future
-		# tcc4tcl::ccode $ccode
-	}
-
-	proc jitcompile {arg xprstring} {
+	proc jitproc {name arg xprstring} {
 		variable parser
 		if {![info exists jitcompiler]} {
 			set jitcompiler [CompileJIT new $parser]
 		}
-		set ccode [$jitcompiler compile $xprstring -args $arg]
-		return $ccode
+		$jitcompiler compile $xprstring -args $arg -name $name
+		return
 	}
 
 	oo::class create CompileJIT {
@@ -41,7 +36,7 @@ namespace eval vectcl {
 
 		variable typetable
 		variable signatures
-
+		variable opts
 		method compile {script_ args} {
 			# Instantiate the parser
 			set script $script_
@@ -58,6 +53,13 @@ namespace eval vectcl {
 			set symboltable {}
 
 			set typetable {}
+
+			# check arguments
+			set opts {-args {} -name {compiledproc}}; set nopts [dict size $opts]
+			foreach {arg val} $args {
+			    dict set opts $arg $val
+			}
+			if {[dict size $opts] != $nopts} { return -code error "Unkown option(s) $args" }
 
 			# store common signatures as a lookup table
 			# these functions are also pure and can be constant-folded
@@ -90,8 +92,10 @@ namespace eval vectcl {
 		
 			set ast [$parser parset $script]
 			set errpos [$parser errpos]
+			# parse optional arguments
+
 			# first pass: generate three-address code (SSA)
-			set TAC [my {*}$ast {*}$args]
+			set TAC [my {*}$ast]
 			
 			# optimization
 			set TAC_opt [my optimize {*}$TAC]
@@ -132,9 +136,27 @@ namespace eval vectcl {
 			}
 
 			puts stderr $dbgout
-	
-			return $ccode
+			
+			# last stage: compile resulting C code and link
 
+			my machinecodegen $ccode
+			return $ccode
+		}
+
+		method machinecodegen {ccode} {
+			puts "Compiling C code: "
+			puts $ccode
+			# rework literal table into list form suitable for 
+			# the object command
+			set litcdata [dict values $literals] ;# as easy?
+			puts "Literals: $litcdata"
+			# now call tcc
+			if {[catch {
+				set handle [tcc4tcl::new]
+				$handle ccode $ccode
+				$handle linktclcommand [dict get $opts -name] $cname $litcdata
+				$handle go
+			} err]} { puts stderr "Error calling tcc: $err" }
 		}
 		
 		method optimize {rvar tac} {
@@ -720,7 +742,7 @@ namespace eval vectcl {
 					append code "Tcl_IncrRefCount($csymbol);\n"
 					return $code
 				} else {
-					append code ";\n"
+					append code " = NULL;\n"
 					return $code
 				}
 			}
@@ -766,10 +788,11 @@ namespace eval vectcl {
 		}
 
 		method releasesymbol4c {symbol} {
-			lassign [dict get $typetable $symbol] dtype shape
-			if {($dtype eq "Any") || ($shape != 1)} {
+			set csymbol [my symbol2c $symbol]
+			set ctype [dict get $ctypetable $symbol]
+			if {$ctype eq "Tcl_Obj *"} {
 				# It is a Tcl_Obj*
-				return "Tcl_DecrRefCount([my symbol2c $symbol]);\n"
+				return "if ($csymbol) Tcl_DecrRefCount($csymbol);\n$csymbol = NULL;\n"
 			} else {
 				return ""
 			}
@@ -782,7 +805,7 @@ namespace eval vectcl {
 					return "temp$index"
 				}
 				Argument {
-					return "objv\[$index\]"
+					return "objv\[[expr {$index+1}]\]"
 				}
 				Literal {
 					return "literals\[$index\]"
@@ -794,7 +817,7 @@ namespace eval vectcl {
 			# translate a single call instruction into C
 			set code [lindex $call 0]
 			set args [lassign $code fun dest]
-			set fname [lindex $fun 0]
+			set fname [lindex $fun 1]
 			set narg [expr {[llength $args]+1}] ;# including cmd name
 			set ccode "\{\n"
 			set cmdlit [my allocliteral $fname]
@@ -807,7 +830,7 @@ namespace eval vectcl {
 			set i 1
 			foreach arg $args {	
 				set objvar "cmdwords\[$i\]" 
-				append ccode "$objvar = [my symbol2c $arg];\n"
+				append ccode "$objvar = [my castsymbol2ctype $arg "Tcl_Obj *"];\n"
 				incr i
 			}
 			
@@ -824,9 +847,11 @@ namespace eval vectcl {
 			}
 
 			append ccode " if (code != TCL_OK) { return TCL_ERROR; }\n"
-			append ccode "[my symbol2c $dest] = Tcl_GetObjResult(interp);\n"
+			set cdest [my symbol2c $dest]
+			append ccode "$cdest = Tcl_GetObjResult(interp);\n"
+			append ccode "Tcl_IncrRefCount($cdest);\n"
 			append ccode "\}\n"
-			return "$code\n$ccode"
+			return $ccode
 			
 		}
 		
@@ -907,6 +932,7 @@ namespace eval vectcl {
 						}
 					}
 				}
+				default { return -code error "Unknown target type $ctype" }
 			}
 		}
 		
@@ -916,10 +942,10 @@ namespace eval vectcl {
 			set csymbol [my symbol2c $symbol]
 			set ctype [dict get $ctypetable $symbol]
 			switch $ctype {
-				{Tcl_Obj *} { return "$csymbol = $cexpr;\nTcl_IncrRefCount($csymbol);\n code = TCL_OK;\n" }
-				double { return "code = Tcl_GetDoubleFromObj(interp, $cexpr, &$csymbol);\n" }
-				NumArray_Complex { return "code = NumArray_GetComplexFromObj(interp, $cexpr, &$csymbol);\n" }
-				int { return "code = Tcl_GetLongFromObj(interp, $cexpr, &$csymbol);\n" }
+				{Tcl_Obj *} { return "$csymbol = $cexpr;\nTcl_IncrRefCount($csymbol);\n" }
+				double { return "if (Tcl_GetDoubleFromObj(interp, $cexpr, &$csymbol) != TCL_OK) { goto error; };\n" }
+				NumArray_Complex { return "if (NumArray_GetComplexFromObj(interp, $cexpr, &$csymbol) != TCL_OK) { goto error; };\n" }
+				int { return "if (Tcl_GetLongFromObj(interp, $cexpr, &$csymbol) != TCL_OK) { goto error; };\n" }
 				default { return -code error "Unknown type to unbox: $ctype" }
 			}
 		}
@@ -929,34 +955,53 @@ namespace eval vectcl {
 
 		}
 
+		variable cname
 		method codegen {rvar tac} {
 			# generate C code - for now just print three address code
-			set name "somethingCmd"
+			set cname "VECTCLJIT_[dict get $opts -name]" ;# should add type signature for overloading
 
 			my makectypetable
 
-			set code "int jit_$name (ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv) \{\n"
+			set code "int $cname (ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv) \{\n"
 			append code "Tcl_Obj ** literals; int nLiterals;\n"
-			append code "if (Tcl_ListObjGetElements(interp, (Tcl_Obj *)cdata, &objc, &literals) != TCL_OK) \{\n"
+			append code "if (Tcl_ListObjGetElements(interp, (Tcl_Obj *)cdata, &nLiterals, &literals) != TCL_OK) \{\n"
 			append code "return TCL_ERROR; /* internal error ! */\n"
 			append code "\}\n"
+			
+			set bodycode {}
+			set allocs {}
+			set cleanups {}
+
 			dict for {ip instr} $tac {
+				set output [dict get $instr output]
 				switch [dict get $instr type] {
 					call {
-						append code "[my call2c [dict get $instr code]]\n"
+						append bodycode "[my call2c [dict get $instr code]]\n"
 					}
 					load {
 						# create native type from something
-
+						lassign [lindex [dict get $instr code] 0] opcode dest src
+						set cexpr [my symbol2c $src]
+						append bodycode [my unboxtclobj $cexpr $dest]
 					}
 
 					default {
-						append code "$instr\n"
+						append bodycode "$instr\n"
 					}
 				}
+				if {$output ne ""} {
+					append allocs [my allocsymbol4c $output]
+					append cleanups [my releasesymbol4c $output]
+				}
 			}
-
+			append code $allocs
+			append code $bodycode
 			append code "\nTcl_SetObjResult(interp, [my castsymbol2ctype $rvar "Tcl_Obj *"]);\n"
+			append code $cleanups
+			append code "return TCL_OK\;\n"
+			append code "error:\n"
+			append code $cleanups
+			append code "return TCL_ERROR;\n"
 			append code "\}\n"
 		}
 
@@ -964,13 +1009,6 @@ namespace eval vectcl {
 		# machinery to traverse the parse tree
 		#######################################
 		method Program {from to sequence args} {
-			# check arguments
-			set opt {-args {}}; set nopt [dict size $opt]
-			foreach {arg val} $args {
-			    dict set opt $arg $val
-			}
-			if {[dict size $opt] != $nopt} { return -code error "Unkown option(s) $args" }
-
 			# first check if we parsed the full program
 			# if not, there was an error...
 			if {$to+1 < [string length $script]} {
@@ -1000,7 +1038,7 @@ namespace eval vectcl {
 			# add formal arguments to symbol table
 			set resultcode {}
 			set ind 0
-			foreach arg [dict get $opt -args] {
+			foreach arg [dict get $opts -args] {
 				lassign $arg name type
 				set symbol [list Argument $ind]
 				dict set typetable $symbol $type
@@ -1272,8 +1310,8 @@ namespace eval vectcl {
 		}
 
 		method allocliteral {value} {
-			incr lcount
 			set symbol [list Literal $lcount]
+			incr lcount
 			dict set literals $symbol $value
 			return $symbol
 		}
@@ -1460,7 +1498,7 @@ namespace eval vectcl {
 	}
 
 	proc testjit {} {
-		set code [vectcl::jitproc {{N {int 1}}}	{
+		vectcl::jitproc collatz {{N {int 1}}}	{
 			i=0
 			while N != 1 {
 				if (N%2 == 1) {
@@ -1471,21 +1509,19 @@ namespace eval vectcl {
 				i=i+1
 			}
 			i
-		}]
-		puts $code
+		}
 
-
-		set code [vectcl::jitproc {{xv {double n}} {yv {double n}}}	{
+		vectcl::jitproc linreg {{xv {double n}} {yv {double n}}}	{
 			xm=mean(xv); ym=mean(yv)
 			beta=sum((xv-xm).*(yv-ym))./sum((xv-xm).^2)
 			alpha=ym-beta*xm
 			list(alpha, beta)
-		}]
-		puts $code
-		set code [vectcl::jitproc {{xv {double n}} {yv {double n}}}	{
+		}
+
+		vectcl::jitproc squares {{xv {double n}} {yv {double n}}}	{
 			xv.*xv+yv.*yv
-		}]
-		puts $code
+		}
+		
 	}
 
 }
