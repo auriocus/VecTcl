@@ -753,7 +753,7 @@ namespace eval vectcl {
 					append code "Tcl_IncrRefCount($csymbol);\n"
 					return $code
 				} else {
-					append code ";\n"
+					append code " = NULL;\n"
 					return $code
 				}
 			}
@@ -949,10 +949,86 @@ namespace eval vectcl {
 				default { return -code error "Unknown type to unbox: $ctype" }
 			}
 		}
+		
+		method symbol2celement {symbol} {
+			set ctype [dict get $ctypetable $symbol]
+			set csymbol [my symbol2c $symbol]
+			lassign $symbol stype idx
+			if {[my isscalar $symbol]} {
+				if {$stype eq "Literal"} {
+					set value [dict get $literals $symbol]
+					# literals are special. For scalar ones, output literally to C
+					# complex must be wrapped. For non-scalar, they are iterated
+					switch $ctype {
+						int -
+						double { return [list $value ""] }
+						NumArray_Complex {
+							set real [vexpr {real(value)}]
+							set imag [vexpr {imag(value)}]
+							return [list "NumArray_mkComplex($real,$imag)" ""]
+						}
+						default { return -code error "Unknown ctype $ctype for literal $symbol" }
+					}
+				} else {
+					# no literal - ouput just the csymbol
+					return [list $csymbol ""]
+				}
+			} else {
+				if {$stype eq "Literal"} {	
+					# create new symbols
+					return [list "(*lit${idx}ptr)" "lit${idx}pitch"]
+				} else {
+					return [list "(*${csymbol}ptr)" "${csymbol}pitch"]
+				}
+			}
+		}
 
 		method bloop2c {bloop} {
 			# convert basic loop into C
+			# first create C symbols for all variables
+			set csymbols {}; set cpitches {}
+			set allscalar true
+			dict for {symbol _} [dict get $bloop temp] {
+				dict set csymbols $symbol [my symbol2c $symbol]
+				# temporaries are always scalar
+			}
+			set inout [dict keys [dict get $bloop input]]
+			lappend inout [dict get $bloop output]
+			puts "inout = $inout"
+			foreach symbol $inout {
+				# compute csymbol for element-wise access
+				# and corresponding increment
+				lassign [my symbol2celement $symbol] csymbol cpitch
+				dict set csymbols $symbol $csymbol
+				dict set cpitches $symbol $cpitch
+				if {![my isscalar $symbol]} { set allscalar false }
+			}
+			set ccode {}
+			if {$allscalar} {
+				# everything is scalar
+			} else {
+				# element loop - leave now
+				return $bloop
+			}
 
+			foreach instr [dict get $bloop code] {
+				set ops [lassign $instr opcode dest]
+				set cdest [dict get $csymbols $dest]
+				set cops [lmap op $ops {dict get $csymbols $op}]
+				lassign $cops cop1 cop2
+
+				switch $opcode {
+					.+ - 
+					+  { append ccode "$cdest = $cop1 + $cop2;\n" }
+					.*  { append ccode "$cdest = $cop1 * $cop2;\n" }
+					.- -
+					- { append  ccode "$cdest = $cop1 - $cop2;\n" }
+					./ { append  ccode "$cdest = $cop1 - $cop2;\n" }
+
+				}
+			}
+
+			return $ccode
 		}
 
 		method control2c {code} {
@@ -1020,7 +1096,9 @@ namespace eval vectcl {
 						# handle control constructs like if, while, (for)
 						append bodycode [my control2c [dict get $instr code]]
 					}
-
+					bloop {
+						append bodycode [my bloop2c $instr]
+					}
 					default {
 						append bodycode "$instr\n"
 					}
