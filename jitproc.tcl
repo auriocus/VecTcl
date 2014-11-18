@@ -5,6 +5,17 @@ package require tcc4tcl
 namespace eval vectcl {
 	namespace export jit
 
+	proc dict_retrieve {dict args} {
+		set keys [lrange $args 0 end-1]
+		upvar 1 [lindex $args end] var
+		if {[dict exists $dict {*}$keys]} {
+			set var [dict get $dict {*}$keys]
+			return true
+		} else {
+			return false
+		}
+	}
+
 	proc jitproc {name arg xprstring} {
 		variable parser
 		if {![info exists jitcompiler]} {
@@ -222,8 +233,17 @@ namespace eval vectcl {
 			list $rvar $resultcode
 		}
 		
+		method iscomplex {sym} {
+			my iscomplextype [dict get $typetable $sym]
+		}
+
 		method isscalar {sym} {
 			my isscalartype [dict get $typetable $sym]
+		}
+
+		method iscomplextype {stype} {
+			set type [lindex $stype 0]
+			expr {$type eq "complex"}
 		}
 
 		method isscalartype {stype} {
@@ -710,8 +730,79 @@ namespace eval vectcl {
 			return [list $rvar $bloopcode]
 		}
 
-		variable ctypetable {}
+		variable cfunctable
+		method makecfunctable {} {
+			# create a table to look up function signatures
+			set cfunctable {}
+
+			set real_binop {
+				+ +
+				.+ +
+				* *
+				.* *
+				/ /
+				./ ./
+			}
+			
+			foreach {t1 t2 tres} {
+				int int int
+				double double double
+			} {
+				set t1 [my ctype2numeric $t1]
+				set t2 [my ctype2numeric $t2]
+				set tres [my ctype2numeric $tres]
+
+				foreach {op cop} $real_binop {
+					dict lappend cfunctable $op [list binop $cop [list $t1 $t2] $tres]
+				}
+			}
+
+			set complex_binop {
+				+ NumArray_ComplexAdd
+				.+ NumArray_ComplexAdd
+				- NumArray_ComplexSubtract
+				.- NumArray_ComplexSubtract
+				* NumArray_ComplexMultiply
+				.* NumArray_ComplexMultiply
+				/ NumArray_ComplexDivide
+				./ NumArray_ComplexDivide
+			}
+			
+			set double [my ctype2numeric double]
+			set complex [my ctype2numeric NumArray_Complex]
+			# unary real & complex functions.
+			# complex results
+			foreach {op cop} $complex_binop {
+				dict lappend cfunctable $op [list fun $cop [list $complex $complex] $complex]
+			}
+			
+		    foreach {fr fc} {
+				sin NumArray_ComplexSin
+				cos NumArray_ComplexCos
+				tan NumArray_ComplexTan
+				exp NumArray_ComplexExp
+				log NumArray_ComplexLog
+			} {
+				dict lappend cfunctable [list CALL $fr] [list fun $fr $double $double]
+				dict lappend cfunctable [list CALL $fr] [list fun $fc $complex $complex]
+			}
+			
+			dict lappend cfunctable {.^} [list fun pow [list $double $double] $double]
+			dict lappend cfunctable {.^} [list fun NumArray_ComplexPow [list $complex $complex] $complex]
+			
+			dict lappend cfunctable {{CALL atan2}} [list fun atan2 [list $double $double] $double]
+		}
 		
+		method dtype2ctype {dtype} {
+			switch $dtype {
+				int - 
+				double  { return $dtype }
+				complex { return NumArray_Complex }
+				default { return -code error "Unknown data type $dtype" }
+			}
+		}
+
+		variable ctypetable {}
 		method makectypetable {} {
 			# iterate over the type table and create
 			# corresponding C data type
@@ -721,12 +812,7 @@ namespace eval vectcl {
 					set ctype "Tcl_Obj *"
 				} else {
 					# scalar
-					switch $dtype {
-						int - 
-						double  { set ctype $dtype }
-						complex { set ctype NumArray_Complex }
-						default { return -code error "Unknown data type $dtype" }
-					}
+					return [my dtype2ctype $dtype]
 				}
 				dict set ctypetable $symbol $ctype
 			}
@@ -951,6 +1037,8 @@ namespace eval vectcl {
 		}
 		
 		method symbol2celement {symbol} {
+			# input: symbol (e.g. "Tempvar 3"
+			# output: [list csymbol cpitch eltype], e.g. *temp3ptr temp3pitch double
 			set ctype [dict get $ctypetable $symbol]
 			set csymbol [my symbol2c $symbol]
 			lassign $symbol stype idx
@@ -961,72 +1049,90 @@ namespace eval vectcl {
 					# complex must be wrapped. For non-scalar, they are iterated
 					switch $ctype {
 						int -
-						double { return [list $value ""] }
+						double { return [list $value "" $ctype] }
 						NumArray_Complex {
 							set real [vexpr {real(value)}]
 							set imag [vexpr {imag(value)}]
-							return [list "NumArray_mkComplex($real,$imag)" ""]
+							return [list "NumArray_mkComplex($real,$imag)" "" $ctype]
 						}
 						default { return -code error "Unknown ctype $ctype for literal $symbol" }
 					}
 				} else {
 					# no literal - ouput just the csymbol
-					return [list $csymbol ""]
+					return [list $csymbol "" $ctype]
 				}
 			} else {
+				
 				if {$stype eq "Literal"} {	
 					# create new symbols
-					return [list "(*lit${idx}ptr)" "lit${idx}pitch"]
+					set csymbols [list "(*lit${idx}ptr)" "lit${idx}pitch"]
 				} else {
-					return [list "(*${csymbol}ptr)" "${csymbol}pitch"]
+					set csymbols [list "(*${csymbol}ptr)" "${csymbol}pitch"]
 				}
+				# append data type of elements in C form
+				lassign [dict get $typetable $symbol] dtype shape
+				lappend csymbols [my dtype2ctype $dtype]
+				return $csymbols
 			}
 		}
-
+		
+		method ctype2numeric {ctype} {
+			dict get {int 0 double 1 NumArray_Complex 2} $ctype
+		}
+		
 		method bloop2c {bloop} {
 			# convert basic loop into C
 			# first create C symbols for all variables
-			set csymbols {}; set cpitches {}
+			set cinfo {}
+
 			set allscalar true
-			dict for {symbol _} [dict get $bloop temp] {
-				dict set csymbols $symbol [my symbol2c $symbol]
-				# temporaries are always scalar
-			}
+			set tempvars [dict keys [dict get $bloop temp]]
 			set inout [dict keys [dict get $bloop input]]
+			
 			lappend inout [dict get $bloop output]
-			puts "inout = $inout"
-			foreach symbol $inout {
+			set localvars [concat $tempvars $inout]
+
+			foreach symbol $localvars {
 				# compute csymbol for element-wise access
 				# and corresponding increment
-				lassign [my symbol2celement $symbol] csymbol cpitch
-				dict set csymbols $symbol $csymbol
-				dict set cpitches $symbol $cpitch
+				lassign [my symbol2celement $symbol] csymbol cpitch eltype
+				dict set cinfo $symbol symbol $csymbol
+				dict set cinfo $symbol pitch $cpitch
+				dict set cinfo $symbol eltype [my ctype2numeric $eltype]
+
 				if {![my isscalar $symbol]} { set allscalar false }
 			}
+
 			set ccode {}
 			if {$allscalar} {
 				# everything is scalar
 			} else {
 				# element loop - leave now
+				puts stderr "Vector loop - implementation pending"
 				return $bloop
 			}
 
+			# block to enclose the temp variables
+			append ccode "\{\n"
+			foreach symbol $tempvars {
+				append ccode [my allocsymbol4c $symbol]
+			}
 			foreach instr [dict get $bloop code] {
 				set ops [lassign $instr opcode dest]
 				set cdest [dict get $csymbols $dest]
-				set cops [lmap op $ops {dict get $csymbols $op}]
-				lassign $cops cop1 cop2
-
-				switch $opcode {
-					.+ - 
-					+  { append ccode "$cdest = $cop1 + $cop2;\n" }
-					.*  { append ccode "$cdest = $cop1 * $cop2;\n" }
-					.- -
-					- { append  ccode "$cdest = $cop1 - $cop2;\n" }
-					./ { append  ccode "$cdest = $cop1 - $cop2;\n" }
-
+				
+				set candidates [dict get $cfunctable $opcode]
+				set best {}
+				foreach cand $candidates {
+					# compute argument type distance 
 				}
+				if {$best eq ""} { 
+					return -code error "Cannot resolve overload for $instr, candidates are :\n[join $candidates \n]"
+				}
+										
 			}
+			
+			append ccode "\}\n"
 
 			return $ccode
 		}
@@ -1068,6 +1174,7 @@ namespace eval vectcl {
 			set cname "VECTCLJIT_[dict get $opts -name]" ;# should add type signature for overloading
 
 			my makectypetable
+			my makecfunctable
 
 			set code "int $cname (ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv) \{\n"
 			append code "Tcl_Obj ** literals; int nLiterals;\n"
