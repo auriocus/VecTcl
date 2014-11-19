@@ -4,6 +4,8 @@ package require tcc4tcl
 
 namespace eval vectcl {
 	namespace export jit
+	
+	set ipath [file join [file dirname [info script]] generic]
 
 	proc dict_retrieve {dict args} {
 		set keys [lrange $args 0 end-1]
@@ -164,6 +166,8 @@ namespace eval vectcl {
 			# now call tcc
 			if {[catch {
 				set handle [tcc4tcl::new]
+				$handle add_include_path $vectcl::ipath
+				$handle ccode "#include <vectcl.h>"
 				$handle ccode $ccode
 				$handle linktclcommand [dict get $opts -name] $cname $litcdata
 				$handle go
@@ -748,13 +752,14 @@ namespace eval vectcl {
 				int int int
 				double double double
 			} {
-				set t1 [my ctype2numeric $t1]
-				set t2 [my ctype2numeric $t2]
-				set tres [my ctype2numeric $tres]
-
 				foreach {op cop} $real_binop {
-					dict lappend cfunctable $op [list binop $cop [list $t1 $t2] $tres]
+					dict lappend cfunctable $op [list infix $cop [list $t1 $t2] $tres]
 				}
+			}
+
+			# assignment operator
+			foreach t1 {int double NumArray_Complex} {
+				dict lappend cfunctable = [list infix "" $t1 $t1]
 			}
 
 			set complex_binop {
@@ -768,8 +773,7 @@ namespace eval vectcl {
 				./ NumArray_ComplexDivide
 			}
 			
-			set double [my ctype2numeric double]
-			set complex [my ctype2numeric NumArray_Complex]
+			set complex NumArray_Complex
 			# unary real & complex functions.
 			# complex results
 			foreach {op cop} $complex_binop {
@@ -783,14 +787,14 @@ namespace eval vectcl {
 				exp NumArray_ComplexExp
 				log NumArray_ComplexLog
 			} {
-				dict lappend cfunctable [list CALL $fr] [list fun $fr $double $double]
+				dict lappend cfunctable [list CALL $fr] [list fun $fr double double]
 				dict lappend cfunctable [list CALL $fr] [list fun $fc $complex $complex]
 			}
 			
-			dict lappend cfunctable {.^} [list fun pow [list $double $double] $double]
+			dict lappend cfunctable {.^} [list fun pow [list double double] double]
 			dict lappend cfunctable {.^} [list fun NumArray_ComplexPow [list $complex $complex] $complex]
 			
-			dict lappend cfunctable {{CALL atan2}} [list fun atan2 [list $double $double] $double]
+			dict lappend cfunctable {{CALL atan2}} [list fun atan2 [list double double] double]
 		}
 		
 		method dtype2ctype {dtype} {
@@ -802,20 +806,23 @@ namespace eval vectcl {
 			}
 		}
 
-		variable ctypetable {}
+		variable ctypetable
 		method makectypetable {} {
 			# iterate over the type table and create
 			# corresponding C data type
+			puts "building ctypetable"
+			set ctypetable {}
 			dict for {symbol type} $typetable {
 				lassign $type dtype shape
 				if {($type eq "Any") || ($shape != 1)} {
 					set ctype "Tcl_Obj *"
 				} else {
 					# scalar
-					return [my dtype2ctype $dtype]
+					set ctype [my dtype2ctype $dtype]
 				}
 				dict set ctypetable $symbol $ctype
 			}
+			puts "$ctypetable"
 		}
 
 		method allocsymbol4c {symbol {init ""}} {
@@ -941,11 +948,21 @@ namespace eval vectcl {
 			
 		}
 		
-		method castsymbol2ctype {symbol ctype} {
-			# return a Tcl_Obj*
+		method ctypediff {t1 t2} {
+			# compute "t1 - t2"
+			set t1n [my ctype2numeric $t1]
+			set t2n [my ctype2numeric $t2]
+			expr {$t1n-$t2n}
+		}
+
+		method castsymbol2ctype {symbol destctype} {
 			set csymbol [my symbol2c $symbol]
 			set srcctype [dict get $ctypetable $symbol]
-			switch $ctype {
+			my ctypecast $csymbol $srcctype $destctype
+		}
+		
+		method ctypecast {csymbol srcctype destctype} {
+			switch $destctype {
 				{Tcl_Obj *} {
 					switch $srcctype {
 						{Tcl_Obj *} {
@@ -1018,7 +1035,7 @@ namespace eval vectcl {
 						}
 					}
 				}
-				default { return -code error "Unknown target type $ctype" }
+				default { return -code error "Unknown target type $destctype" }
 			}
 		}
 		
@@ -1051,8 +1068,8 @@ namespace eval vectcl {
 						int -
 						double { return [list $value "" $ctype] }
 						NumArray_Complex {
-							set real [vexpr {real(value)}]
-							set imag [vexpr {imag(value)}]
+							set real [vectcl::vexpr {real(value)}]
+							set imag [vectcl::vexpr {imag(value)}]
 							return [list "NumArray_mkComplex($real,$imag)" "" $ctype]
 						}
 						default { return -code error "Unknown ctype $ctype for literal $symbol" }
@@ -1087,9 +1104,9 @@ namespace eval vectcl {
 
 			set allscalar true
 			set tempvars [dict keys [dict get $bloop temp]]
-			set inout [dict keys [dict get $bloop input]]
-			
-			lappend inout [dict get $bloop output]
+			set in [dict keys [dict get $bloop input]]
+			set out [dict get $bloop output]
+			set inout [list {*}$in $out]
 			set localvars [concat $tempvars $inout]
 
 			foreach symbol $localvars {
@@ -1098,37 +1115,71 @@ namespace eval vectcl {
 				lassign [my symbol2celement $symbol] csymbol cpitch eltype
 				dict set cinfo $symbol symbol $csymbol
 				dict set cinfo $symbol pitch $cpitch
-				dict set cinfo $symbol eltype [my ctype2numeric $eltype]
+				dict set cinfo $symbol eltype $eltype
 
 				if {![my isscalar $symbol]} { set allscalar false }
 			}
 
 			set ccode {}
-			if {$allscalar} {
+			append ccode "\{\n"
+			# block to enclose the temp variables
+			foreach symbol $tempvars {
+				append ccode [my allocsymbol4c $symbol]
+			}
+			
+			if {!$allscalar} {
 				# everything is scalar
-			} else {
-				# element loop - leave now
 				puts stderr "Vector loop - implementation pending"
 				return $bloop
 			}
 
-			# block to enclose the temp variables
-			append ccode "\{\n"
-			foreach symbol $tempvars {
-				append ccode [my allocsymbol4c $symbol]
-			}
 			foreach instr [dict get $bloop code] {
-				set ops [lassign $instr opcode dest]
-				set cdest [dict get $csymbols $dest]
+				set operands [lassign $instr opcode dest]
+				set cdest [dict get $cinfo $dest symbol]
 				
 				set candidates [dict get $cfunctable $opcode]
-				set best {}
+				set opctypes [lmap v $operands {dict get $cinfo $v eltype}]
+				set best {}; set bestdiff Inf
 				foreach cand $candidates {
-					# compute argument type distance 
+					# compute argument type distance
+					set diff 0
+					set skip false
+					lassign $cand cdispatch cfunc formalargs resarg
+					puts "instr $instr, Candidate $cand, formalargs $formalargs, opctypes $opctypes"
+					foreach actualtype $opctypes formaltype $formalargs {
+						set d1 [my ctypediff $formaltype $actualtype]
+						if {$d1<0} { set skip true; break }
+						incr diff $d1
+					}
+					if {$skip} { continue }
+					if {$diff < $bestdiff} { 
+						set bestdiff $diff
+						set best $cand
+					}
 				}
 				if {$best eq ""} { 
 					return -code error "Cannot resolve overload for $instr, candidates are :\n[join $candidates \n]"
 				}
+				lassign $best cdispatch cfunc formalargs resctype
+				set arglist [lmap v $operands actualtype $opctypes formaltype $formalargs {
+					set csymbol [dict get $cinfo $v symbol]
+					my ctypecast $csymbol $actualtype $formaltype
+				}]
+				
+				switch $cdispatch {
+					infix {
+						set value [join $arglist $cfunc]
+					}
+					fun {
+						set value "${cfunc}([join $arglist ,])"
+					}
+				}
+				
+				
+				set cdest [dict get $cinfo $dest symbol]
+				set destctype [dict get $cinfo $dest eltype]
+				# append ccode "apply $best $in"
+				append ccode "$cdest = [my ctypecast $value $resctype $destctype];\n"
 										
 			}
 			
