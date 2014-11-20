@@ -329,16 +329,23 @@ namespace eval vectcl {
 				* { 
 					set type [my upcast $type1 $type2]
 					if {$type eq "Any"} { return Any }
-					set shape [list {*}$shape1 {*}[lrange $shape2 1 end]]
+					if {$shape1 == 1} { 
+						set shape $shape2
+					} elseif {$shape2 == 1} {
+						set shape $shape1
+					} else {
+						set shape [list {*}$shape1 {*}[lrange $shape2 1 end]]
+					}
 					return [list $type $shape]
 				}
 					
 				/ { 
 					set type [my upcast $type1 $type2]
 					if {$type eq "Any"} { return Any }
-					if {$shape1 eq {1} && $shape2 eq {1}} { 
-						# scalar division
-						set shape 1
+					if {$shape1 == 1} { 
+						set shape $shape2
+					} elseif {$shape2 == 1} {
+						set shape $shape1
 					} else {
 						error "Non-scalar right division not implemented"
 					}
@@ -1118,6 +1125,7 @@ namespace eval vectcl {
 		method bloop2c {bloop} {
 			# convert basic loop into C
 			# first create C symbols for all variables
+			puts "Converting bloop $bloop"
 			set cinfo {}
 
 			set allscalar true
@@ -1148,15 +1156,12 @@ namespace eval vectcl {
 			set releases ""
 			
 			if {!$allscalar} {
-				# everything is scalar
-				puts stderr "Vector loop - implementation pending"
-				#return $bloop
 				# find input with the highest number of dimensions
 				set maxDim 0; set maxsymbol {}
 				foreach symbol $in {
 					lassign [dict get $typetable $symbol] dtype shape
 					set dim [llength $shape]
-					if {$dim > $maxDim} {
+					if {$dim > $maxDim && ($shape != 1)} {
 						set maxDim $dim
 						set maxsymbol $symbol
 					}
