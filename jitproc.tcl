@@ -167,7 +167,7 @@ namespace eval vectcl {
 			if {[catch {
 				set handle [tcc4tcl::new]
 				$handle add_include_path $vectcl::ipath
-				$handle ccode "#include <vectcl.h>"
+				$handle ccode "#include <vectclInt.h>"
 				$handle ccode $ccode
 				$handle linktclcommand [dict get $opts -name] $cname $litcdata
 				$handle go
@@ -1055,10 +1055,12 @@ namespace eval vectcl {
 		
 		method symbol2celement {symbol} {
 			# input: symbol (e.g. "Tempvar 3"
-			# output: [list csymbol cpitch eltype], e.g. *temp3ptr temp3pitch double
+			# output: [dict element eltype pitch alloc release iterator], 
+			# e.g. *temp3ptr, double, temp3pitch, double *temp3ptr;,temp3_it
 			set ctype [dict get $ctypetable $symbol]
 			set csymbol [my symbol2c $symbol]
 			lassign $symbol stype idx
+			set result [dict create element "" eltype "" pitch "" alloc "" release "" iterator "" csymbol $csymbol]
 			if {[my isscalar $symbol]} {
 				if {$stype eq "Literal"} {
 					set value [dict get $literals $symbol]
@@ -1066,31 +1068,47 @@ namespace eval vectcl {
 					# complex must be wrapped. For non-scalar, they are iterated
 					switch $ctype {
 						int -
-						double { return [list $value "" $ctype] }
+						double { 
+							dict set result element $value
+							dict set result eltype $ctype 
+						}
+
 						NumArray_Complex {
 							set real [vectcl::vexpr {real(value)}]
 							set imag [vectcl::vexpr {imag(value)}]
-							return [list "NumArray_mkComplex($real,$imag)" "" $ctype]
+							dict set result element "NumArray_mkComplex($real,$imag)"
+							dict set result eltype $ctype
 						}
 						default { return -code error "Unknown ctype $ctype for literal $symbol" }
 					}
 				} else {
-					# no literal - ouput just the csymbol
-					return [list $csymbol "" $ctype]
+					# scalar non literal
+					dict set result element $csymbol
+					dict set result eltype $ctype
 				}
 			} else {
-				
-				if {$stype eq "Literal"} {	
-					# create new symbols
-					set csymbols [list "(*lit${idx}ptr)" "lit${idx}pitch"]
-				} else {
-					set csymbols [list "(*${csymbol}ptr)" "${csymbol}pitch"]
-				}
-				# append data type of elements in C form
+				# non-scalar. get scalar data type
 				lassign [dict get $typetable $symbol] dtype shape
-				lappend csymbols [my dtype2ctype $dtype]
-				return $csymbols
+				set ctype [my dtype2ctype $dtype]
+				dict set result eltype $ctype
+
+				if {$stype eq "Literal"} {	
+					# non-scalar literals. Create symbols 
+					# create new symbols
+					set stem "lit${idx}"
+				} else {
+					set stem $csymbol
+				}
+				
+				set ptr "${stem}ptr"
+				dict set result ptr $ptr
+				dict set result element "(*${ptr})"
+				dict set result pitch "${stem}pitch"
+				dict set result iterator "${stem}_it"
+				dict set result alloc "$ctype * ${ptr};"
 			}
+
+			return $result
 		}
 		
 		method ctype2numeric {ctype} {
@@ -1108,14 +1126,13 @@ namespace eval vectcl {
 			set out [dict get $bloop output]
 			set inout [list {*}$in $out]
 			set localvars [concat $tempvars $inout]
-
+			
+			
 			foreach symbol $localvars {
 				# compute csymbol for element-wise access
 				# and corresponding increment
-				lassign [my symbol2celement $symbol] csymbol cpitch eltype
-				dict set cinfo $symbol symbol $csymbol
-				dict set cinfo $symbol pitch $cpitch
-				dict set cinfo $symbol eltype $eltype
+				set elprop [my symbol2celement $symbol]
+				dict set cinfo $symbol $elprop
 
 				if {![my isscalar $symbol]} { set allscalar false }
 			}
@@ -1127,15 +1144,60 @@ namespace eval vectcl {
 				append ccode [my allocsymbol4c $symbol]
 			}
 			
+			set allocs ""
+			set releases ""
+			
 			if {!$allscalar} {
 				# everything is scalar
 				puts stderr "Vector loop - implementation pending"
-				return $bloop
+				#return $bloop
+				# find input with the highest number of dimensions
+				set maxDim 0; set maxsymbol {}
+				foreach symbol $in {
+					lassign [dict get $typetable $symbol] dtype shape
+					set dim [llength $shape]
+					if {$dim > $maxDim} {
+						set maxDim $dim
+						set maxsymbol $symbol
+					}
+				}
+				
+				set outctype [dict get $cinfo $out eltype]
+				set outptr [dict get $cinfo $out ptr]
+				set maxcsymbol [my symbol2c $maxsymbol]
+				# create output buffer
+				append ccode "
+					NumArrayInfo *maxinfo = NumArrayGetInfoFromObj(interp, $maxcsymbol);
+					if (maxinfo == NULL) { goto error; }
+					NumArrayInfo *resultinfo;
+					resultinfo = CreateNumArrayInfo(maxinfo -> nDim, maxinfo -> dims, NATYPE_FROM_C($outctype));
+					
+					/* allocate buffer of this size */
+					NumArraySharedBuffer *sharedbuf = NumArrayNewSharedBuffer(resultinfo -> bufsize);
+					$outctype *$outptr = NumArrayGetPtrFromSharedBuffer(sharedbuf);\n"
+				# create iterators for all non-scalar inputs
+				foreach symbol $in {
+					dict with cinfo $symbol {
+						if {$iterator ne ""} {
+							append ccode "NumArrayIterator $iterator;\n"
+							append ccode "NumArrayIteratorInitObj(interp, ${csymbol}, &${iterator});\n"
+							append ccode "$eltype *$ptr = NumArrayIteratorDeRefPtr(&$iterator);\n"
+							append ccode "const int $pitch = NumArrayIteratorRowPitchTyped(&$iterator);\n"
+						}
+					}
+				}
+				
+				set maxit [dict get $cinfo $maxsymbol iterator]
+				set maxptr [dict get $cinfo $maxsymbol ptr]
+				append ccode "const int length = NumArrayIteratorRowLength(&$maxit);\n"
+				append ccode "while ($maxptr) \{\n"
+				append ccode "for (int i=length; i; i--) \{\n"
+				
+			
 			}
 
 			foreach instr [dict get $bloop code] {
 				set operands [lassign $instr opcode dest]
-				set cdest [dict get $cinfo $dest symbol]
 				
 				set candidates [dict get $cfunctable $opcode]
 				set opctypes [lmap v $operands {dict get $cinfo $v eltype}]
@@ -1162,7 +1224,7 @@ namespace eval vectcl {
 				}
 				lassign $best cdispatch cfunc formalargs resctype
 				set arglist [lmap v $operands actualtype $opctypes formaltype $formalargs {
-					set csymbol [dict get $cinfo $v symbol]
+					set csymbol [dict get $cinfo $v element]
 					my ctypecast $csymbol $actualtype $formaltype
 				}]
 				
@@ -1176,13 +1238,47 @@ namespace eval vectcl {
 				}
 				
 				
-				set cdest [dict get $cinfo $dest symbol]
-				set destctype [dict get $cinfo $dest eltype]
 				# append ccode "apply $best $in"
+				set cdest [dict get $cinfo $dest element]
+				set destctype [dict get $cinfo $dest eltype]
 				append ccode "$cdest = [my ctypecast $value $resctype $destctype];\n"
 										
 			}
-			
+
+			if {!$allscalar} {
+				append ccode "++$outptr;\n"
+				set ptrs {}; set pitches {}; set iterators {}
+				foreach symbol $in {
+					dict with cinfo $symbol {
+						if {$iterator ne ""} {
+							lappend ptrs $ptr
+							lappend pitches $pitch
+							lappend iterators $iterator
+						}
+					}
+				}
+				
+				foreach ptr $ptrs pitch $pitches {
+					append ccode "$ptr += $pitch; \n"
+				}
+				append ccode "\};\n"
+				
+				foreach ptr $ptrs it $iterators {
+					append ccode "$ptr = NumArrayIteratorAdvanceRow(&$it);\n"
+				}
+				
+				append ccode "\};\n"
+				
+				foreach it $iterators {
+					append ccode "NumArrayIteratorFree(&$it);\n"
+				}
+				
+				set outsymbol [my symbol2c $out]
+				append ccode "$outsymbol = Tcl_NewObj();\n"
+				append ccode "NumArraySetInternalRep($outsymbol, sharedbuf, resultinfo);\n"
+				append ccode "Tcl_IncrRefCount($outsymbol);\n"
+
+			}	
 			append ccode "\}\n"
 
 			return $ccode
