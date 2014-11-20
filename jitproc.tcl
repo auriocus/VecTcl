@@ -749,10 +749,12 @@ namespace eval vectcl {
 			set real_binop {
 				+ +
 				.+ +
+				.- -
+				- -
 				* *
 				.* *
 				/ /
-				./ ./
+				./ /
 			}
 			
 			foreach {t1 t2 tres} {
@@ -763,6 +765,13 @@ namespace eval vectcl {
 					dict lappend cfunctable $op [list infix $cop [list $t1 $t2] $tres]
 				}
 			}
+
+			foreach relop {== != < > <= >=} {
+				dict lappend cfunctable $relop [list infix $relop {int int} int]
+				dict lappend cfunctable $relop [list infix $relop {double double} int]
+			}
+			
+			dict lappend cfunctable % [list infix % {int int} int]
 
 			# assignment operator
 			foreach t1 {int double NumArray_Complex} {
@@ -1304,7 +1313,7 @@ namespace eval vectcl {
 					return "\}\n"
 				}
 				While {
-					return "while (true) \{\n"
+					return "while (1) \{\n"
 				}
 				Do {
 					return "if (![my symbol2c $src]) \{ break; \} \n"
@@ -1899,6 +1908,70 @@ namespace eval vectcl {
 			xv.*xv+yv.*yv
 		}
 		
+	}
+
+	proc benchjit {} {
+		# run a long-loop benchmark
+		set x {}; set y {}
+		for {set i 0} {$i<100} {incr i} {
+			lappend x [expr {rand()}]
+			lappend y [expr {rand()}]
+		}
+
+		vproc square_tcl {x y} {
+			x.*x+y.*y+x.*y
+		}
+
+		jitproc square_tcc {{x {double n}} {y {double n}}} {
+			x.*x+y.*y+x.*y
+		}
+		
+		set coll_code {	
+			i=0
+			while N != 1 {
+				if (N%2 == 1) {
+					N=3*N+1
+				} else {
+					N=N/2
+				}
+				i=i+1
+			}
+			i
+		}
+
+		jitproc collatz {{N {int 1}}} $coll_code
+		vproc vcollatz {N} $coll_code
+
+		proc tclcollatz {N} {
+			set i 0
+			while {$N != 1} {
+				if {$N%2 == 1} {
+					set N [expr {3*$N+1}]
+				} else {
+					set N [expr {$N/2}]
+				}
+				incr i
+			}
+			return $i
+		}
+
+		# run them once
+		set r1 [square_tcl $x $y]
+		set r2 [square_tcc $x $y]
+
+		# run timings
+		puts "Timing squares:"
+		puts "vproc [time {square_tcl $x $y} 1000]"
+		puts "jitproc [time {square_tcc $x $y} 1000]"
+
+		puts "Timing collatz:"
+		set coll_start 1537
+		set c1 [collatz $coll_start]
+		set c2 [vcollatz $coll_start]
+		set c3 [tclcollatz $coll_start]
+		puts "vproc [time {vcollatz $coll_start} 1000], result $c1"
+		puts "jitproc [time {collatz $coll_start} 1000], result $c2"
+		puts "Tcl [time {tclcollatz $coll_start} 1000], result $c3"
 	}
 
 }
