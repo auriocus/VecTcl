@@ -116,8 +116,8 @@ namespace eval vectcl {
 			# type inference
 			set TAC_annot [my infer_type {*}$TAC_opt]
 			
-			puts "Typetable $typetable"
-			puts "Code [join $TAC_annot \n]"
+			#puts "Typetable $typetable"
+			#puts "Code [join $TAC_annot \n]"
 			
 			set TAC_bloop [my infer_basic_loop {*}$TAC_annot]
 			# code generation
@@ -1221,7 +1221,7 @@ namespace eval vectcl {
 					set diff 0
 					set skip false
 					lassign $cand cdispatch cfunc formalargs resarg
-					puts "instr $instr, Candidate $cand, formalargs $formalargs, opctypes $opctypes"
+					#puts "instr $instr, Candidate $cand, formalargs $formalargs, opctypes $opctypes"
 					foreach actualtype $opctypes formaltype $formalargs {
 						set d1 [my ctypediff $formaltype $actualtype]
 						if {$d1<0} { set skip true; break }
@@ -1912,12 +1912,6 @@ namespace eval vectcl {
 
 	proc benchjit {} {
 		# run a long-loop benchmark
-		set x {}; set y {}
-		for {set i 0} {$i<100} {incr i} {
-			lappend x [expr {rand()}]
-			lappend y [expr {rand()}]
-		}
-
 		vproc square_tcl {x y} {
 			x.*x+y.*y+x.*y
 		}
@@ -1926,6 +1920,86 @@ namespace eval vectcl {
 			x.*x+y.*y+x.*y
 		}
 		
+		set manual_tcc {
+			
+		int VECTCLJIT_manual_tcc (ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv) {
+		Tcl_Obj ** literals; int nLiterals;
+		if (Tcl_ListObjGetElements(interp, (Tcl_Obj *)cdata, &nLiterals, &literals) != TCL_OK) {
+		return TCL_ERROR; /* internal error ! */
+		}
+		Tcl_Obj *temp1 = NULL;
+		Tcl_Obj *temp2 = NULL;
+		Tcl_Obj *temp7 = NULL;
+		temp1 = objv[1];
+		Tcl_IncrRefCount(temp1);
+		temp2 = objv[2];
+		Tcl_IncrRefCount(temp2);
+		{
+
+			NumArrayInfo *maxinfo = NumArrayGetInfoFromObj(interp, temp1);
+			if (maxinfo == NULL) { goto error; }
+			NumArrayInfo *resultinfo;
+			resultinfo = CreateNumArrayInfo(maxinfo -> nDim, maxinfo -> dims, NATYPE_FROM_C(double));
+			
+			/* allocate buffer of this size */
+			NumArraySharedBuffer *sharedbuf = NumArrayNewSharedBuffer(resultinfo -> bufsize);
+			double *temp7ptr = NumArrayGetPtrFromSharedBuffer(sharedbuf);
+			NumArrayIterator temp1_it;
+			NumArrayIteratorInitObj(interp, temp1, &temp1_it);
+			double *temp1ptr = NumArrayIteratorDeRefPtr(&temp1_it);
+			const int temp1pitch = NumArrayIteratorRowPitchTyped(&temp1_it);
+			NumArrayIterator temp2_it;
+			NumArrayIteratorInitObj(interp, temp2, &temp2_it);
+			double *temp2ptr = NumArrayIteratorDeRefPtr(&temp2_it);
+			const int temp2pitch = NumArrayIteratorRowPitchTyped(&temp2_it);
+			const int length = NumArrayIteratorRowLength(&temp1_it);
+			while (temp1ptr) {
+			for (int i=length; i; i--) {
+				const double x=(*temp1ptr);
+				const double y=(*temp2ptr);
+				 /* (*temp7ptr) = (*temp1ptr)*(*temp1ptr)+(*temp2ptr)*(*temp2ptr)+(*temp1ptr)*(*temp2ptr); */
+				 (*temp7ptr) = x*x+y*y+x*y;
+				++temp7ptr;
+				temp1ptr += temp1pitch; 
+				temp2ptr += temp2pitch; 
+			};
+			temp1ptr = NumArrayIteratorAdvanceRow(&temp1_it);
+			temp2ptr = NumArrayIteratorAdvanceRow(&temp2_it);
+			};
+			NumArrayIteratorFree(&temp1_it);
+			NumArrayIteratorFree(&temp2_it);
+			temp7 = Tcl_NewObj();
+			NumArraySetInternalRep(temp7, sharedbuf, resultinfo);
+			Tcl_IncrRefCount(temp7);
+			}
+
+			Tcl_SetObjResult(interp, temp7);
+			if (temp1) Tcl_DecrRefCount(temp1);
+			temp1 = NULL;
+			if (temp2) Tcl_DecrRefCount(temp2);
+			temp2 = NULL;
+			if (temp7) Tcl_DecrRefCount(temp7);
+			temp7 = NULL;
+			return TCL_OK;
+			error:
+			if (temp1) Tcl_DecrRefCount(temp1);
+			temp1 = NULL;
+			if (temp2) Tcl_DecrRefCount(temp2);
+			temp2 = NULL;
+			if (temp7) Tcl_DecrRefCount(temp7);
+			temp7 = NULL;
+			return TCL_ERROR;
+		}
+		}
+		
+		set handle [tcc4tcl::new]
+		$handle add_include_path $vectcl::ipath
+		$handle ccode "#include <vectclInt.h>"
+		$handle ccode $manual_tcc
+		$handle linktclcommand manual_tcc VECTCLJIT_manual_tcc {}
+		$handle go
+		#rename $handle ""
+
 		set coll_code {	
 			i=0
 			while N != 1 {
@@ -1955,15 +2029,24 @@ namespace eval vectcl {
 			return $i
 		}
 
-		# run them once
-		set r1 [square_tcl $x $y]
-		set r2 [square_tcc $x $y]
 
 		# run timings
 		puts "Timing squares:"
-		puts "vproc [time {square_tcl $x $y} 1000]"
-		puts "jitproc [time {square_tcc $x $y} 1000]"
-
+		foreach N {20 50 100 200 500 1000 2000 5000 10000 20000 50000 100000 200000 500000} {	
+			set x {}; set y {}
+			for {set i 0} {$i<$N} {incr i} {
+				lappend x [expr {rand()}]
+				lappend y [expr {rand()}]
+			}
+			
+			set rep [expr {10000000/$N+1}]
+			foreach benchproc {square_tcl square_tcc manual_tcc} {
+				# run once
+				set r1 [$benchproc $x $y]
+				puts "$benchproc [time {$benchproc $x $y} $rep], size $N, $rep repetitions"
+			}
+			puts ""
+		}
 		puts "Timing collatz:"
 		set coll_start 1537
 		set c1 [collatz $coll_start]
