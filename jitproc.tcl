@@ -1157,10 +1157,6 @@ namespace eval vectcl {
 			set ccode {}
 			append ccode "\{\n"
 			# block to enclose the temp variables
-			foreach symbol $tempvars {
-				append ccode [my allocsymbol4c $symbol]
-			}
-			
 			set allocs ""
 			set releases ""
 			
@@ -1210,6 +1206,10 @@ namespace eval vectcl {
 			
 			}
 
+			foreach symbol $tempvars {
+				append ccode [my allocsymbol4c $symbol]
+			}
+			
 			foreach instr [dict get $bloop code] {
 				set operands [lassign $instr opcode dest]
 				
@@ -2032,6 +2032,7 @@ namespace eval vectcl {
 
 		# run timings
 		puts "Timing squares:"
+		set fd [open squaresbench.dat w]
 		foreach N {20 50 100 200 500 1000 2000 5000 10000 20000 50000 100000 200000 500000} {	
 			set x {}; set y {}
 			for {set i 0} {$i<$N} {incr i} {
@@ -2040,13 +2041,19 @@ namespace eval vectcl {
 			}
 			
 			set rep [expr {10000000/$N+1}]
-			foreach benchproc {square_tcl square_tcc manual_tcc} {
+			set res $N
+			foreach benchproc {square_tcl square_tcc manual_tcc manual_gcc} {
 				# run once
 				set r1 [$benchproc $x $y]
-				puts "$benchproc [time {$benchproc $x $y} $rep], size $N, $rep repetitions"
+				lassign [time {$benchproc $x $y} $rep] ms
+				puts "$benchproc $ms ms size $N, $rep repetitions"
+				lappend res $ms
 			}
 			puts ""
+			puts $fd $res
 		}
+		close $fd
+
 		puts "Timing collatz:"
 		set coll_start 1537
 		set c1 [collatz $coll_start]
