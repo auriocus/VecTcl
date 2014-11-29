@@ -110,14 +110,19 @@ namespace eval vectcl {
 			# first pass: generate three-address code (SSA)
 			set TAC [my {*}$ast]
 			
+			puts "SSA code "
+			puts "[lindex $TAC 0] [join [lindex $TAC 1] \n]"	
 			# optimization
 			set TAC_opt [my optimize {*}$TAC]
+			puts "SSA code "
+			puts "[lindex $TAC_opt 0] [join [lindex $TAC_opt 1] \n]"	
 
 			# type inference
 			set TAC_annot [my infer_type {*}$TAC_opt]
 			
-			#puts "Typetable $typetable"
-			#puts "Code [join $TAC_annot \n]"
+			puts "Typetable $typetable"
+			puts "SSA code "
+			puts "[lindex $TAC_annot 0] [join [lindex $TAC_annot 1] \n]"	
 			
 			set TAC_bloop [my infer_basic_loop {*}$TAC_annot]
 			# code generation
@@ -717,7 +722,11 @@ namespace eval vectcl {
 			dict unset usage $var1
 			return [list $rvar $bloopcode]
 		}
-		
+		method print_bloop {bloopcode} {
+			dict for {ip bloop} $bloopcode {
+				puts "$ip: [dict get $bloop code]"
+			}
+		}
 		method dephi {rvar bloopcode} {
 			#puts [join $bloopcode \n]
 			set ips [dict keys $bloopcode]
@@ -729,12 +738,14 @@ namespace eval vectcl {
 				if {[dict get $bloop type] eq "phi"} {
 					set phi [lindex [dict get $bloop code] 0]
 					lassign $phi opcode dest op1 op2
-					#puts "Aliasing $op1 to $dest"
+					puts "Aliasing $op1 to $dest"
 					lassign [my alias $rvar $bloopcode $op1 $dest] rvar bloopcode
-					#puts "Aliasing $op2 to $dest"
+					my print_bloop $bloopcode
+					puts "Aliasing $op2 to $dest"
 					lassign [my alias $rvar $bloopcode $op2 $dest] rvar bloopcode
 					# kill the phi node
 					dict unset bloopcode $ip
+					my print_bloop $bloopcode
 				}
 			}		
 
@@ -1913,20 +1924,47 @@ namespace eval vectcl {
 	proc benchjit {} {
 		# run a long-loop benchmark
 		vproc square_tcl {x y} {
-			x.*x+y.*y+x.*y
+			x.*x+y.*y
 		}
 
 		jitproc square_tcc {{x {double n}} {y {double n}}} {
-			x.*x+y.*y+x.*y
+			x.*x+y.*y
 		}
 		
 		set manual_tcc {
-			
-		int VECTCLJIT_manual_tcc (ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv) {
-		Tcl_Obj ** literals; int nLiterals;
-		if (Tcl_ListObjGetElements(interp, (Tcl_Obj *)cdata, &nLiterals, &literals) != TCL_OK) {
-		return TCL_ERROR; /* internal error ! */
-		}
+		
+void inner_loop_asm(double *t1ptr, long t1pitch, double* t2ptr, long t2pitch, double* resptr, long length) {
+	/* t1ptr = rdi, t1pitch=rsi, t2ptr=rdx, t2pitch=rcx, resptr=r8, length=r9 */
+	/* Perform the equivalent of the innermost loop in SSE asm */
+	#define MOV_X_XMM0 asm(".byte 0xf3,0x0f,0x7e,0x07\n");
+	#define MOV_Y_XMM1 asm(".byte 0xf3,0x0f,0x7e,0x0a\n");
+	#define MUL_XMM0_XMM0 asm(".byte 0xf2,0x0f,0x59,0xc0\n");
+	#define MUL_XMM1_XMM1 asm(".byte 0xf2,0x0f,0x59,0xc9\n");
+	#define ADD_XMM1_XMM0 asm(".byte 0xf2,0x0f,0x58,0xc1\n");
+	#define MOV_XMM0_IR8 asm(".byte 0x66,0x41,0x0f,0xd6,0x00\n");
+	#define INC_R8 asm(".byte 0x49,0xff,0xc0\n");
+	#define ADD_R8_8 asm(".byte 0x49,0x83,0xc0,0x08\n");
+	#define DEC_R9 asm(".byte 0x49,0xff,0xc9\n");
+
+	/* Pitch is given in doubles, first convert to byte offset */
+				asm("shlq $3,%rsi\n"
+					"shlq $3,%rcx\n");
+	top:
+					MOV_X_XMM0
+					MOV_Y_XMM1
+					MUL_XMM0_XMM0
+					MUL_XMM1_XMM1
+					ADD_XMM1_XMM0
+					MOV_XMM0_IR8
+				asm("add %rsi, %rdi\n"
+					"add %rcx, %rdx\n");
+					ADD_R8_8
+					DEC_R9
+				asm("jnz top\n");
+}
+
+
+	int VECTCLJIT_manual_tcc (ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv) {
 		Tcl_Obj *temp1 = NULL;
 		Tcl_Obj *temp2 = NULL;
 		Tcl_Obj *temp7 = NULL;
@@ -1943,7 +1981,7 @@ namespace eval vectcl {
 			
 			/* allocate buffer of this size */
 			NumArraySharedBuffer *sharedbuf = NumArrayNewSharedBuffer(resultinfo -> bufsize);
-			double *temp7ptr = NumArrayGetPtrFromSharedBuffer(sharedbuf);
+			double *temp7ptr = NumArrayGetPtrFromSharedBuffer(sharedbuf); 
 			NumArrayIterator temp1_it;
 			NumArrayIteratorInitObj(interp, temp1, &temp1_it);
 			double *temp1ptr = NumArrayIteratorDeRefPtr(&temp1_it);
@@ -1953,19 +1991,13 @@ namespace eval vectcl {
 			double *temp2ptr = NumArrayIteratorDeRefPtr(&temp2_it);
 			const int temp2pitch = NumArrayIteratorRowPitchTyped(&temp2_it);
 			const int length = NumArrayIteratorRowLength(&temp1_it);
+			
 			while (temp1ptr) {
-			for (int i=length; i; i--) {
-				const double x=(*temp1ptr);
-				const double y=(*temp2ptr);
-				 /* (*temp7ptr) = (*temp1ptr)*(*temp1ptr)+(*temp2ptr)*(*temp2ptr)+(*temp1ptr)*(*temp2ptr); */
-				 (*temp7ptr) = x*x+y*y+x*y;
-				++temp7ptr;
-				temp1ptr += temp1pitch; 
-				temp2ptr += temp2pitch; 
+				inner_loop_asm(temp1ptr, temp1pitch, temp2ptr, temp2pitch,temp7ptr,length);
+				temp1ptr = NumArrayIteratorAdvanceRow(&temp1_it);
+				temp2ptr = NumArrayIteratorAdvanceRow(&temp2_it);
 			};
-			temp1ptr = NumArrayIteratorAdvanceRow(&temp1_it);
-			temp2ptr = NumArrayIteratorAdvanceRow(&temp2_it);
-			};
+			
 			NumArrayIteratorFree(&temp1_it);
 			NumArrayIteratorFree(&temp2_it);
 			temp7 = Tcl_NewObj();
@@ -1990,6 +2022,7 @@ namespace eval vectcl {
 			temp7 = NULL;
 			return TCL_ERROR;
 		}
+	
 		}
 		
 		set handle [tcc4tcl::new]
@@ -2040,7 +2073,7 @@ namespace eval vectcl {
 				lappend y [expr {rand()}]
 			}
 			
-			set rep [expr {10000000/$N+1}]
+			set rep [expr {50000000/$N+1}]
 			set res $N
 			foreach benchproc {square_tcl square_tcc manual_tcc manual_gcc} {
 				# run once
