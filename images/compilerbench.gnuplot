@@ -37,8 +37,8 @@ set out "compilerbench.eps"
 plot \
 	"squaresbench.dat" u 1:($1/$2) w lp ls 1 title "VecTcl", \
 	"" u 1:($1/$3) w lp ls 4 title "VecTcl-tcc", \
-	"" u 1:($1/$4) w lp ls 3 title "VecTcl-tcc-tweak", \
-	"" u 1:($1/$5) w lp ls 2 title "VecTcl-gcc"
+	"" u 1:($1/$5) w lp ls 2 title "VecTcl-gcc", \
+	"" u 1:($1/$4) w lp ls 3 title "VecTcl-tcc-assembly"
 set out
 
 ! convert -density 150 compilerbench.eps -flatten compilerbench.png
