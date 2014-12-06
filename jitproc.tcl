@@ -601,7 +601,9 @@ namespace eval vectcl {
 			}
 			return $result
 		}
-
+		
+		# usage and definition are dicts that map tempvars
+		# to the IPs in the code which uses them
 		variable usage
 		variable definition
 		method infer_basic_loop {rvar tac} {
@@ -609,17 +611,18 @@ namespace eval vectcl {
 			# we can infer the basic loops
 			set tac_bloop [my trivial_basic_loop $tac]
 			# now create usage tree of variables
-			set usage [dict create $rvar "return"]
+			set usage [dict create $rvar "return 1"]
 			dict for {ip loop} $tac_bloop {
 				dict for {var _} [dict get $loop input] {
-					dict lappend usage $var $ip
+					dict set usage $var $ip 1
 				}
 				dict lappend definition [dict get $loop output] $ip
 
 			}
+
 			# now go over the code and combine 
 			# - bloops with bloops
-			# - bloops with reductions
+			# - bloops with reductions (TODO)
 			# for {set iter 0} {$iter<10} {incr iter} {}
 			while true {
 				set ips [dict keys $tac_bloop]
@@ -637,7 +640,7 @@ namespace eval vectcl {
 
 					set output [dict get $loop output]
 					set uses [my dict_get_default $usage $output {}]
-					switch [llength $uses] {
+					switch [dict size $uses] {
 						0 { 
 							# dead code, remove
 							puts "Dead code: $ip"
@@ -649,7 +652,7 @@ namespace eval vectcl {
 						1 {
 							if  {($type ne "bloop")} { continue }
 							# only a single use - combine
-							set useip [lindex $uses 0]
+							set useip [lindex [dict keys $uses] 0]
 							if {$useip eq "return"} { continue }
 							set useloop [dict get $tac_bloop $useip]
 							set usetype [dict get $tac_bloop $useip type]
@@ -662,8 +665,14 @@ namespace eval vectcl {
 							# puts "->$combined_loop"
 							dict unset tac_bloop $ip
 							dict set tac_bloop $useip $combined_loop
+							# remove the usage of the output of the first loop
 							dict unset usage $output
 							dict unset definition $output
+							# transfer the inputs of the first loop to the combined loop
+							dict for {var _} [dict get $loop input] {
+								dict unset usage $var $ip
+								dict set usage $var $useip 1
+							}
 							set nochange false
 						}
 
@@ -684,7 +693,7 @@ namespace eval vectcl {
 			# replace all occurences of var1 with var2
 			if {$rvar eq $var1} {set rvar $var2}
 			# find the statements assigning to var1
-			# Note: Since we are deconstructing SSA, there can be multiple assignments!
+			# Note: Since we are deconstructing SSA, there could be multiple assignments!
 			foreach assip [dict get $definition $var1] {
 				# fix code. Only the last instruction should
 				# assign here, but who knows
@@ -704,9 +713,13 @@ namespace eval vectcl {
 			dict unset definition $var1
 
 			# find statements making use of var1
-			foreach useip [dict get $usage $var1] {
+			dict for {useip _} [dict get $usage $var1] {
 				# fix code. Only the last instruction should
 				# assign here, but who knows
+				
+				# skip the instruction if it no longer exists (BUG in dephi??)
+				# if {![dict exists $bloopcode $useip]} { continue }
+				
 				set newcode {}
 				foreach instr [dict get $bloopcode $useip code] {
 					set inp [lassign $instr opcode dest]
@@ -718,8 +731,8 @@ namespace eval vectcl {
 				# fix input declaration
 				dict unset bloopcode $useip input $var1
 				dict set bloopcode $useip input $var2 1
+				dict unset usage $var1 $useip
 			}
-			dict unset usage $var1
 			return [list $rvar $bloopcode]
 		}
 		method print_bloop {bloopcode} {
@@ -727,8 +740,13 @@ namespace eval vectcl {
 				puts "$ip: [dict get $bloop code]"
 			}
 		}
+
+		variable usage
 		method dephi {rvar bloopcode} {
-			#puts [join $bloopcode \n]
+			#
+			my print_bloop $bloopcode
+			# print usage information
+			puts $usage
 			set ips [dict keys $bloopcode]
 			foreach ip $ips {
 				# be careful, we are changing bloopcode on the way
@@ -1922,7 +1940,25 @@ namespace eval vectcl {
 	}
 
 	proc benchjit {} {
-		# run a long-loop benchmark
+		# translation of an integer benchmark
+		jitproc random_run_vecjit {{N {int 1}}} {
+			IM=139968
+			IA=3877
+			IC=29573
+			last=42
+
+			max=100.0
+			while N {
+				# gen_random_orig(100.0)
+				# function calls are very slow (TclEval)
+				last=(last * IA + IC) % IM
+				result = max * last / IM
+				N=N-1
+			}
+			puts(result)
+		}
+
+	# run a long-loop benchmark
 		vproc square_tcl {x y} {
 			x.*x+y.*y
 		}
@@ -2062,30 +2098,103 @@ void inner_loop_asm(double *t1ptr, long t1pitch, double* t2ptr, long t2pitch, do
 			return $i
 		}
 
-
-		# run timings
-		puts "Timing squares:"
-		set fd [open squaresbench.dat w]
-		foreach N {20 50 100 200 500 1000 2000 5000 10000 20000 50000 100000 200000 500000} {	
-			set x {}; set y {}
-			for {set i 0} {$i<$N} {incr i} {
-				lappend x [expr {rand()}]
-				lappend y [expr {rand()}]
-			}
-			
-			set rep [expr {50000000/$N+1}]
-			set res $N
-			foreach benchproc {square_tcl square_tcc manual_tcc manual_gcc} {
-				# run once
-				set r1 [$benchproc $x $y]
-				lassign [time {$benchproc $x $y} $rep] ms
-				puts "$benchproc $ms ms size $N, $rep repetitions"
-				lappend res $ms
-			}
-			puts ""
-			puts $fd $res
+		# http://wiki.tcl.tk/1173
+		# miguel's random number generator
+		proc rand_seed_orig {} {
+			variable IM 
+			variable IA 
+			variable IC 
+			variable last
+			set IM 139968
+			set IA 3877
+			set IC 29573
+			set last 42
 		}
-		close $fd
+
+		proc gen_random_orig {max} {
+			variable IM 
+			variable IA 
+			variable IC 
+			variable last
+			set last [expr {($last * $IA + $IC) % $IM}]
+			expr {$max * $last / $IM}
+		}
+
+		proc random_run_orig {N} {
+			set result 0.0
+			while {$N} {
+				set result [gen_random_orig 100.0]
+					incr N -1
+			}
+			puts [format "%.13f" $result]
+		}
+
+		proc rand_seed_miguel {} {
+
+			set params {IM 139968 IA 3877 IC 29573}
+			variable last
+			set last 42
+			set randBody [string map $params {
+				expr {(100.0 * [set last [expr {($last * IA + IC) % IM}]]) / IM}
+			}]
+
+			set mainBody [string map [list randBody $randBody] {
+				variable last
+				set result 0.0
+				incr N
+				while {[incr N -1]} {
+					set result [randBody]
+				}
+				puts [format "%.13f" $result]
+			}]
+			proc random_run_miguel {N} $mainBody
+		}
+
+		vproc random_run_vectcl {N} {
+			IM=139968
+			IA=3877
+			IC=29573
+			last=42
+
+			max=100.0
+			while N {
+				# gen_random_orig(100.0)
+				# function calls are very slow (TclEval)
+				last=(last * IA + IC) % IM
+				result = max * last / IM
+				N-=1
+			}
+			puts(result)
+		}
+
+		
+		# run timings
+		proc squaresbench {} {
+			puts "Timing squares:"
+			set fd [open squaresbench.dat w]
+			foreach N {20 50 100 200 500 1000 2000 5000 10000 20000 50000 100000 200000 500000} {	
+				set x {}; set y {}
+				for {set i 0} {$i<$N} {incr i} {
+					lappend x [expr {rand()}]
+					lappend y [expr {rand()}]
+				}
+				
+				set rep [expr {50000000/$N+1}]
+				set res $N
+				foreach benchproc {square_tcl square_tcc manual_tcc manual_gcc} {
+					# run once
+					set r1 [$benchproc $x $y]
+					lassign [time {$benchproc $x $y} $rep] ms
+					puts "$benchproc $ms ms size $N, $rep repetitions"
+					lappend res $ms
+				}
+				puts ""
+				puts $fd $res
+			}
+			close $fd
+		}
+
+		# squaresbench
 
 		puts "Timing collatz:"
 		set coll_start 1537
@@ -2095,6 +2204,18 @@ void inner_loop_asm(double *t1ptr, long t1pitch, double* t2ptr, long t2pitch, do
 		puts "vproc [time {vcollatz $coll_start} 1000], result $c1"
 		puts "jitproc [time {collatz $coll_start} 1000], result $c2"
 		puts "Tcl [time {tclcollatz $coll_start} 1000], result $c3"
+
+		puts "Timing random number generator"
+		set rep 1000000
+		rand_seed_orig
+		puts "Original code [time {random_run_orig $rep}]"
+		rand_seed_miguel
+		puts "Miguel's code [time {random_run_miguel $rep}]"
+		puts "VecTcl vproc [time {random_run_vectcl $rep}]"
+		puts "VecTcl jitproc [time {random_run_vecjit $rep}]"
+
+
+
 	}
 
 }
