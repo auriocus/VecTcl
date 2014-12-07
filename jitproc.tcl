@@ -2206,7 +2206,7 @@ void inner_loop_asm(double *t1ptr, long t1pitch, double* t2ptr, long t2pitch, do
 		puts "Tcl [time {tclcollatz $coll_start} 1000], result $c3"
 
 		puts "Timing random number generator"
-		set rep 1000000
+		set rep 3000000
 		rand_seed_orig
 		puts "Original code [time {random_run_orig $rep}]"
 		rand_seed_miguel
