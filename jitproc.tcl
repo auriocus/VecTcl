@@ -2166,8 +2166,51 @@ void inner_loop_asm(double *t1ptr, long t1pitch, double* t2ptr, long t2pitch, do
 			}
 			puts(result)
 		}
-
 		
+		# cosine function benchmark
+		proc cos_tcl {x n} {
+			set x [expr {double($x)}]
+			set n [expr {int($n)}]
+			set j 0
+			set s 1.0
+			set t 1.0
+			set i 0
+			while {[incr i] < $n} {
+				set t [expr {-$t*$x*$x / [incr j] / [incr j]}]
+				set s [expr {$s + $t}]
+			}
+			return $s
+		}
+
+		vproc cos_vectcl {x n} {
+			j=0
+			s=1.0
+			t=1.0
+			i=0
+			while (i < n) {
+				t=-t*x*x / (j+1) / (j+2)
+				s =s + t
+				j=j+2
+				i=i+1
+			}
+			s
+		}
+
+		jitproc cos_jit {{x {double 1}} {n {int 1}}} {
+			j=0
+			s=1.0
+			t=1.0
+			i=0
+			while (i < n) {
+				t=0-t*x*x / (j+1) / (j+2)
+				s =s + t
+				j=j+2
+				i=i+1
+			}
+			s
+		}
+
+
 		# run timings
 		proc squaresbench {} {
 			puts "Timing squares:"
@@ -2181,7 +2224,7 @@ void inner_loop_asm(double *t1ptr, long t1pitch, double* t2ptr, long t2pitch, do
 				
 				set rep [expr {50000000/$N+1}]
 				set res $N
-				foreach benchproc {square_tcl square_tcc manual_tcc manual_gcc} {
+				foreach benchproc {square_tcl square_tcc tcc_sljit manual_tcc} {
 					# run once
 					set r1 [$benchproc $x $y]
 					lassign [time {$benchproc $x $y} $rep] ms
@@ -2194,27 +2237,41 @@ void inner_loop_asm(double *t1ptr, long t1pitch, double* t2ptr, long t2pitch, do
 			close $fd
 		}
 
-		# squaresbench
+		proc collatzbench {} {
+			puts "Timing collatz:"
+			set coll_start 1537
+			set c1 [collatz $coll_start]
+			set c2 [vcollatz $coll_start]
+			set c3 [tclcollatz $coll_start]
+			puts "vproc [time {vcollatz $coll_start} 1000], result $c1"
+			puts "jitproc [time {collatz $coll_start} 1000], result $c2"
+			puts "Tcl [time {tclcollatz $coll_start} 1000], result $c3"
+		}
 
-		puts "Timing collatz:"
-		set coll_start 1537
-		set c1 [collatz $coll_start]
-		set c2 [vcollatz $coll_start]
-		set c3 [tclcollatz $coll_start]
-		puts "vproc [time {vcollatz $coll_start} 1000], result $c1"
-		puts "jitproc [time {collatz $coll_start} 1000], result $c2"
-		puts "Tcl [time {tclcollatz $coll_start} 1000], result $c3"
+		proc randombench {} {
+			puts "Timing random number generator"
+			set rep 300000
+			rand_seed_orig
+			puts "Original code [time {random_run_orig $rep}]"
+			rand_seed_miguel
+			puts "Miguel's code [time {random_run_miguel $rep}]"
+			puts "VecTcl vproc [time {random_run_vectcl $rep}]"
+			puts "VecTcl jitproc [time {random_run_vecjit $rep}]"
+		}
 
-		puts "Timing random number generator"
-		set rep 3000000
-		rand_seed_orig
-		puts "Original code [time {random_run_orig $rep}]"
-		rand_seed_miguel
-		puts "Miguel's code [time {random_run_miguel $rep}]"
-		puts "VecTcl vproc [time {random_run_vectcl $rep}]"
-		puts "VecTcl jitproc [time {random_run_vecjit $rep}]"
+		proc cosbench {} {
+			puts "Timing cosine function"
+			set rep 100000
+			puts "Original code [time {cos_tcl 0.2 16} $rep]"
+			puts "VecTcl vproc [time {cos_vectcl 0.2 16} $rep]"
+			puts "VecTcl jitproc [time {cos_jit 0.2 16} $rep]"
+		}
 
-
+		#squaresbench
+		#collatzbench
+		#randombench
+		
+		cosbench
 
 	}
 
