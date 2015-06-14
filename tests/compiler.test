@@ -217,3 +217,27 @@ test compiler whitespace-14 -body {
 fun ()
     ^} -returnCodes 1
 
+test compiler precedence-1 -body {
+	
+	vexpr {0 && 1 || 1}
+	
+} -result 1
+
+test compiler precedence-2 -body {
+	
+	vexpr {0 && (1 || 1)}
+	
+} -result 0
+
+test compiler precedence-3 -body {
+	
+	vexpr {1 || 1 && 0}
+	
+} -result 1
+
+test compiler precedence-4 -body {
+	
+	vexpr {(1 || 1) && 0}
+	
+} -result 0
+
