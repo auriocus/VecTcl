@@ -10,15 +10,82 @@ typedef unsigned char sample;
 const sample maxval=0xFF;
 
 inline sample
-real2sample(double const value) {
+real2sample(const double value) {
 	if (value >=(1.0-0.5/maxval)) return maxval;
 	if (value <=0.0) return (sample)(0);
     return (sample)(maxval*value+0.5);
 }
 
+inline double sample2real(const sample v) {
+	return ((double)(v))/((double)maxval);
+}
+
 int Photo2NumArrayCmd(ClientData dummy, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv) {
-	Tcl_SetResult(interp, "Reading photo not implemented", NULL);
-	return TCL_ERROR;
+	if (objc != 2) {
+		Tcl_WrongNumArgs(interp, 1, objv, "photo");
+		return TCL_ERROR;
+	}
+
+	Tk_PhotoHandle source = Tk_FindPhoto (interp, Tcl_GetString(objv[1]));
+	Tk_PhotoImageBlock sourceblock;
+	Tk_PhotoGetImage(source, &sourceblock);
+	int width=sourceblock.width;
+	int height=sourceblock.height;
+	int pitch=sourceblock.pitch;
+	int pixelSize=sourceblock.pixelSize;
+	int depth = 4; /* strange sourceblock.depth; */
+	
+
+	if ((depth != 1) && (depth != 3) && (depth != 4)) {
+		Tcl_SetResult(interp, "Grayscale, RGB or RGBA photo expected. WTF is this?", NULL);
+		return TCL_ERROR;
+	}
+
+	Tcl_Obj *matrix;
+
+	if (depth == 1) {
+		/* Grayscale. Alloc 2D object */
+		matrix=NumArrayNewMatrix(NumArray_Float64, height, width);
+		double *mPtr=NumArrayGetPtrFromObj(interp, matrix);
+		/* copy the data */
+		int offs = sourceblock.offset[0];
+		sample *sPtr = sourceblock.pixelPtr + offs;
+		int i,j;
+		for (i=0; i<height; i++) {
+			for (j=0; j<width; j++) {
+				*mPtr++ = sample2real(sPtr[i*pitch+j*pixelSize]);
+			}
+		}
+
+	} else {
+		/* Color. Alloc 3D object height x width x depth */
+		int dims[3];
+		dims[0]=height;
+		dims[1]=width;
+		dims[2]=depth;
+		
+		matrix = Tcl_NewObj();
+		NumArrayInfo *info = CreateNumArrayInfo(3, dims, NumArray_Float64);
+		NumArraySharedBuffer *sharedbuf = NumArrayNewSharedBuffer(info->bufsize);
+		NumArraySetInternalRep(matrix, sharedbuf, info);
+
+		double *mPtr = NumArrayGetPtrFromObj(interp, matrix);
+		/* copy the data */
+		sample *sPtr = sourceblock.pixelPtr;
+		int i,j,d;
+		for (i=0; i<height; i++) {
+			for (j=0; j<width; j++) {
+				for (d=0; d<depth; d++) {
+					*mPtr++ = sample2real(sPtr[i*pitch+j*pixelSize+sourceblock.offset[d]]);
+				}
+			}
+		}
+	}
+
+	
+	Tcl_SetObjResult(interp, matrix);
+	return TCL_OK;
+	
 }
 
 int NumArray2PhotoCmd(ClientData dummy, Tcl_Interp *interp, int objc, Tcl_Obj *const *objv) {
@@ -39,7 +106,7 @@ int NumArray2PhotoCmd(ClientData dummy, Tcl_Interp *interp, int objc, Tcl_Obj *c
 		return TCL_ERROR;
 	}
 
-	if (info->nDim != NumArray_Float64) {
+	if (info->type != NumArray_Float64) {
 		Tcl_SetResult(interp, "floating point data expected", NULL);
 		return TCL_ERROR;
 	}
@@ -91,7 +158,7 @@ int NumArray2PhotoCmd(ClientData dummy, Tcl_Interp *interp, int objc, Tcl_Obj *c
 			/* copy loop over all pixels */
 			for (i=0; i<height; i++) {
 				for (j=0; j<width; j++) {
-					*outptr++ = mPtr[i*hpitch+j];
+					*outptr++ = real2sample(mPtr[i*hpitch+j]);
 				}
 			}
 			break;
@@ -115,7 +182,7 @@ int NumArray2PhotoCmd(ClientData dummy, Tcl_Interp *interp, int objc, Tcl_Obj *c
 			for (i=0; i<height; i++) {
 				for (j=0; j<width; j++) {
 					for (d=0; d<depth; d++) {
-						*outptr++ = mPtr[i*hpitch+j*wpitch+d];
+						*outptr++ = real2sample(mPtr[i*hpitch+j*wpitch+d]);
 					}
 				}
 			}
