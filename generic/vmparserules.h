@@ -148,151 +148,161 @@ static void sym_WSob (RDE_PARAM p);
  * Precomputed table of strings (symbols, error messages, etc.).
  */
 
-static char const* p_string [144] = {
-    /*        0 = */   "n AddExpr",
-    /*        1 = */   "AddExpr",
-    /*        2 = */   "cl '+-'",
-    /*        3 = */   "str '.+'",
-    /*        4 = */   "str '.-'",
-    /*        5 = */   "n AddOp",
-    /*        6 = */   "AddOp",
-    /*        7 = */   "str '&&'",
-    /*        8 = */   "n AndOp",
-    /*        9 = */   "AndOp",
-    /*       10 = */   "t ,",
-    /*       11 = */   "t =",
-    /*       12 = */   "n Assignment",
-    /*       13 = */   "Assignment",
-    /*       14 = */   "str '+='",
-    /*       15 = */   "str '-='",
-    /*       16 = */   "str '.+='",
-    /*       17 = */   "str '.-='",
-    /*       18 = */   "str '.*='",
-    /*       19 = */   "str './='",
-    /*       20 = */   "str '.^='",
-    /*       21 = */   "str '.**='",
-    /*       22 = */   "n AssignOp",
-    /*       23 = */   "AssignOp",
-    /*       24 = */   "n BoolAndExpr",
-    /*       25 = */   "BoolAndExpr",
-    /*       26 = */   "n BoolOrExpr",
-    /*       27 = */   "BoolOrExpr",
-    /*       28 = */   "t #",
-    /*       29 = */   "dot",
-    /*       30 = */   "n Comment",
-    /*       31 = */   "Comment",
-    /*       32 = */   "n ComplexNumber",
-    /*       33 = */   "ComplexNumber",
-    /*       34 = */   "n Empty",
-    /*       35 = */   "Empty",
-    /*       36 = */   "t \n",
-    /*       37 = */   "n EOL",
-    /*       38 = */   "EOL",
-    /*       39 = */   "n Expression",
-    /*       40 = */   "Expression",
-    /*       41 = */   "n Factor",
-    /*       42 = */   "Factor",
-    /*       43 = */   "str 'for'",
-    /*       44 = */   "t \173",
-    /*       45 = */   "t \175",
-    /*       46 = */   "n ForEachLoop",
-    /*       47 = */   "ForEachLoop",
-    /*       48 = */   "n ForLoop",
-    /*       49 = */   "ForLoop",
-    /*       50 = */   "t \50",
-    /*       51 = */   "t \51",
-    /*       52 = */   "n Fragment",
-    /*       53 = */   "Fragment",
-    /*       54 = */   "n Function",
-    /*       55 = */   "Function",
-    /*       56 = */   "n FunctionName",
-    /*       57 = */   "FunctionName",
-    /*       58 = */   "t _",
-    /*       59 = */   "str '::'",
-    /*       60 = */   "alpha",
-    /*       61 = */   "alnum",
-    /*       62 = */   "n Identifier",
-    /*       63 = */   "Identifier",
-    /*       64 = */   "str 'if'",
-    /*       65 = */   "str 'else'",
-    /*       66 = */   "n IfClause",
-    /*       67 = */   "IfClause",
-    /*       68 = */   "ddigit",
-    /*       69 = */   "t .",
-    /*       70 = */   "cl 'eE'",
-    /*       71 = */   "cl 'iI'",
-    /*       72 = */   "n ImaginaryNumber",
-    /*       73 = */   "ImaginaryNumber",
-    /*       74 = */   "n Literal",
-    /*       75 = */   "Literal",
-    /*       76 = */   "cl '*%/'",
-    /*       77 = */   "str '.*'",
-    /*       78 = */   "str './'",
-    /*       79 = */   "t \134",
-    /*       80 = */   "n MulOp",
-    /*       81 = */   "MulOp",
-    /*       82 = */   "n Number",
-    /*       83 = */   "Number",
-    /*       84 = */   "n OpAssignment",
-    /*       85 = */   "OpAssignment",
-    /*       86 = */   "str '||'",
-    /*       87 = */   "n OrOp",
-    /*       88 = */   "OrOp",
-    /*       89 = */   "t ^",
-    /*       90 = */   "str '**'",
-    /*       91 = */   "str '.^'",
-    /*       92 = */   "str '.**'",
-    /*       93 = */   "n PowOp",
-    /*       94 = */   "PowOp",
-    /*       95 = */   "n Program",
-    /*       96 = */   "Program",
-    /*       97 = */   "t :",
-    /*       98 = */   "n RangeExpr",
-    /*       99 = */   "RangeExpr",
-    /*      100 = */   "n RealNumber",
-    /*      101 = */   "RealNumber",
-    /*      102 = */   "n RelExpr",
-    /*      103 = */   "RelExpr",
-    /*      104 = */   "str '=='",
-    /*      105 = */   "str '<='",
-    /*      106 = */   "str '>='",
-    /*      107 = */   "cl '<>'",
-    /*      108 = */   "str '!='",
-    /*      109 = */   "n RelOp",
-    /*      110 = */   "RelOp",
-    /*      111 = */   "t \73",
-    /*      112 = */   "n Separator",
-    /*      113 = */   "Separator",
-    /*      114 = */   "n Sequence",
-    /*      115 = */   "Sequence",
-    /*      116 = */   "cl '+-!'",
-    /*      117 = */   "n Sign",
-    /*      118 = */   "Sign",
-    /*      119 = */   "n SliceExpr",
-    /*      120 = */   "SliceExpr",
-    /*      121 = */   "n Statement",
-    /*      122 = */   "Statement",
-    /*      123 = */   "n Term",
-    /*      124 = */   "Term",
-    /*      125 = */   "n Transpose",
-    /*      126 = */   "Transpose",
-    /*      127 = */   "t '",
-    /*      128 = */   "n TransposeOp",
-    /*      129 = */   "TransposeOp",
-    /*      130 = */   "n Var",
-    /*      131 = */   "Var",
-    /*      132 = */   "t \133",
-    /*      133 = */   "t \135",
-    /*      134 = */   "n VarSlice",
-    /*      135 = */   "VarSlice",
-    /*      136 = */   "str 'while'",
-    /*      137 = */   "n WhileLoop",
-    /*      138 = */   "WhileLoop",
-    /*      139 = */   "space",
-    /*      140 = */   "n WS",
-    /*      141 = */   "WS",
-    /*      142 = */   "n WSob",
-    /*      143 = */   "WSob"
+static char const* p_string [154] = {
+    /*        0 = */   "alnum",
+    /*        1 = */   "alpha",
+    /*        2 = */   "ascii",
+    /*        3 = */   "control",
+    /*        4 = */   "ddigit",
+    /*        5 = */   "digit",
+    /*        6 = */   "graph",
+    /*        7 = */   "lower",
+    /*        8 = */   "print",
+    /*        9 = */   "punct",
+    /*       10 = */   "space",
+    /*       11 = */   "upper",
+    /*       12 = */   "wordchar",
+    /*       13 = */   "xdigit",
+    /*       14 = */   "n AddExpr",
+    /*       15 = */   "AddExpr",
+    /*       16 = */   "cl +-",
+    /*       17 = */   "str .+",
+    /*       18 = */   "str .-",
+    /*       19 = */   "n AddOp",
+    /*       20 = */   "AddOp",
+    /*       21 = */   "str &&",
+    /*       22 = */   "n AndOp",
+    /*       23 = */   "AndOp",
+    /*       24 = */   "t ,",
+    /*       25 = */   "t =",
+    /*       26 = */   "n Assignment",
+    /*       27 = */   "Assignment",
+    /*       28 = */   "str +=",
+    /*       29 = */   "str -=",
+    /*       30 = */   "str .+=",
+    /*       31 = */   "str .-=",
+    /*       32 = */   "str .*=",
+    /*       33 = */   "str ./=",
+    /*       34 = */   "str .^=",
+    /*       35 = */   "str .**=",
+    /*       36 = */   "n AssignOp",
+    /*       37 = */   "AssignOp",
+    /*       38 = */   "n BoolAndExpr",
+    /*       39 = */   "BoolAndExpr",
+    /*       40 = */   "n BoolOrExpr",
+    /*       41 = */   "BoolOrExpr",
+    /*       42 = */   "t #",
+    /*       43 = */   "dot",
+    /*       44 = */   "n Comment",
+    /*       45 = */   "Comment",
+    /*       46 = */   "n ComplexNumber",
+    /*       47 = */   "ComplexNumber",
+    /*       48 = */   "n Empty",
+    /*       49 = */   "Empty",
+    /*       50 = */   "t \173\n\175",
+    /*       51 = */   "n EOL",
+    /*       52 = */   "EOL",
+    /*       53 = */   "n Expression",
+    /*       54 = */   "Expression",
+    /*       55 = */   "n Factor",
+    /*       56 = */   "Factor",
+    /*       57 = */   "str for",
+    /*       58 = */   "t \\\173",
+    /*       59 = */   "t \\\175",
+    /*       60 = */   "n ForEachLoop",
+    /*       61 = */   "ForEachLoop",
+    /*       62 = */   "n ForLoop",
+    /*       63 = */   "ForLoop",
+    /*       64 = */   "t (",
+    /*       65 = */   "t )",
+    /*       66 = */   "n Fragment",
+    /*       67 = */   "Fragment",
+    /*       68 = */   "n Function",
+    /*       69 = */   "Function",
+    /*       70 = */   "n FunctionName",
+    /*       71 = */   "FunctionName",
+    /*       72 = */   "t _",
+    /*       73 = */   "str ::",
+    /*       74 = */   "n Identifier",
+    /*       75 = */   "Identifier",
+    /*       76 = */   "str if",
+    /*       77 = */   "str else",
+    /*       78 = */   "n IfClause",
+    /*       79 = */   "IfClause",
+    /*       80 = */   "t .",
+    /*       81 = */   "cl eE",
+    /*       82 = */   "cl iI",
+    /*       83 = */   "n ImaginaryNumber",
+    /*       84 = */   "ImaginaryNumber",
+    /*       85 = */   "n Literal",
+    /*       86 = */   "Literal",
+    /*       87 = */   "cl *%/",
+    /*       88 = */   "str .*",
+    /*       89 = */   "str ./",
+    /*       90 = */   "t \\\\",
+    /*       91 = */   "n MulOp",
+    /*       92 = */   "MulOp",
+    /*       93 = */   "n Number",
+    /*       94 = */   "Number",
+    /*       95 = */   "n OpAssignment",
+    /*       96 = */   "OpAssignment",
+    /*       97 = */   "str ||",
+    /*       98 = */   "n OrOp",
+    /*       99 = */   "OrOp",
+    /*      100 = */   "t ^",
+    /*      101 = */   "str **",
+    /*      102 = */   "str .^",
+    /*      103 = */   "str .**",
+    /*      104 = */   "n PowOp",
+    /*      105 = */   "PowOp",
+    /*      106 = */   "n Program",
+    /*      107 = */   "Program",
+    /*      108 = */   "t :",
+    /*      109 = */   "n RangeExpr",
+    /*      110 = */   "RangeExpr",
+    /*      111 = */   "n RealNumber",
+    /*      112 = */   "RealNumber",
+    /*      113 = */   "n RelExpr",
+    /*      114 = */   "RelExpr",
+    /*      115 = */   "str ==",
+    /*      116 = */   "str <=",
+    /*      117 = */   "str >=",
+    /*      118 = */   "cl <>",
+    /*      119 = */   "str !=",
+    /*      120 = */   "n RelOp",
+    /*      121 = */   "RelOp",
+    /*      122 = */   "t \173;\175",
+    /*      123 = */   "n Separator",
+    /*      124 = */   "Separator",
+    /*      125 = */   "n Sequence",
+    /*      126 = */   "Sequence",
+    /*      127 = */   "cl +-!",
+    /*      128 = */   "n Sign",
+    /*      129 = */   "Sign",
+    /*      130 = */   "n SliceExpr",
+    /*      131 = */   "SliceExpr",
+    /*      132 = */   "n Statement",
+    /*      133 = */   "Statement",
+    /*      134 = */   "n Term",
+    /*      135 = */   "Term",
+    /*      136 = */   "n Transpose",
+    /*      137 = */   "Transpose",
+    /*      138 = */   "t '",
+    /*      139 = */   "n TransposeOp",
+    /*      140 = */   "TransposeOp",
+    /*      141 = */   "n Var",
+    /*      142 = */   "Var",
+    /*      143 = */   "t \173[\175",
+    /*      144 = */   "t \\]",
+    /*      145 = */   "n VarSlice",
+    /*      146 = */   "VarSlice",
+    /*      147 = */   "str while",
+    /*      148 = */   "n WhileLoop",
+    /*      149 = */   "WhileLoop",
+    /*      150 = */   "n WS",
+    /*      151 = */   "WS",
+    /*      152 = */   "n WSob",
+    /*      153 = */   "WSob"
 };
 
 /*
@@ -320,9 +330,9 @@ static void sym_AddExpr (RDE_PARAM p) {
     *             (Term)
     */
 
-    if (rde_param_i_symbol_start_d (p, 1)) return ;
+    if (rde_param_i_symbol_start_d (p, 15)) return ;
     sequence_11 (p);
-    rde_param_i_symbol_done_d_reduce (p, 1, 0);
+    rde_param_i_symbol_done_d_reduce (p, 15, 14);
     return;
 }
 
@@ -397,9 +407,9 @@ static void sym_AddOp (RDE_PARAM p) {
     *     ".-"
     */
 
-    if (rde_param_i_symbol_start (p, 6)) return ;
+    if (rde_param_i_symbol_start (p, 20)) return ;
     choice_17 (p);
-    rde_param_i_symbol_done_leaf (p, 6, 5);
+    rde_param_i_symbol_done_leaf (p, 20, 19);
     return;
 }
 
@@ -412,11 +422,11 @@ static void choice_17 (RDE_PARAM p) {
     */
 
     rde_param_i_state_push_void (p);
-    rde_param_i_next_class (p, "+-", 2);
+    rde_param_i_next_class (p, "+-", 16);
     if (rde_param_i_bra_void2void(p)) return;
-    rde_param_i_next_str (p, ".+", 3);
+    rde_param_i_next_str (p, ".+", 17);
     if (rde_param_i_bra_void2void(p)) return;
-    rde_param_i_next_str (p, ".-", 4);
+    rde_param_i_next_str (p, ".-", 18);
     rde_param_i_state_merge_void (p);
     return;
 }
@@ -430,9 +440,9 @@ static void sym_AndOp (RDE_PARAM p) {
     * "&&"
     */
 
-    if (rde_param_i_symbol_start (p, 9)) return ;
-    rde_param_i_next_str (p, "&&", 7);
-    rde_param_i_symbol_done_leaf (p, 9, 8);
+    if (rde_param_i_symbol_start (p, 23)) return ;
+    rde_param_i_next_str (p, "&&", 21);
+    rde_param_i_symbol_done_leaf (p, 23, 22);
     return;
 }
 
@@ -456,9 +466,9 @@ static void sym_Assignment (RDE_PARAM p) {
     *     (Expression)
     */
 
-    if (rde_param_i_symbol_start_d (p, 13)) return ;
+    if (rde_param_i_symbol_start_d (p, 27)) return ;
     sequence_35 (p);
-    rde_param_i_symbol_done_d_reduce (p, 13, 12);
+    rde_param_i_symbol_done_d_reduce (p, 27, 26);
     return;
 }
 
@@ -485,7 +495,7 @@ static void sequence_35 (RDE_PARAM p) {
     if (rde_param_i_seq_value2value(p)) return;
     sym_WS (p);
     if (rde_param_i_seq_value2value(p)) return;
-    rde_param_i_next_char (p, "=", 11);
+    rde_param_i_next_char (p, "=", 25);
     if (rde_param_i_seq_value2value(p)) return;
     sym_WS (p);
     if (rde_param_i_seq_value2value(p)) return;
@@ -524,7 +534,7 @@ static void sequence_27 (RDE_PARAM p) {
     rde_param_i_state_push_void (p);
     sym_WS (p);
     if (rde_param_i_seq_void2void(p)) return;
-    rde_param_i_next_char (p, ",", 10);
+    rde_param_i_next_char (p, ",", 24);
     if (rde_param_i_seq_void2void(p)) return;
     sym_WS (p);
     if (rde_param_i_seq_void2value(p)) return;
@@ -551,9 +561,9 @@ static void sym_AssignOp (RDE_PARAM p) {
     *     ".**="
     */
 
-    if (rde_param_i_symbol_start (p, 23)) return ;
+    if (rde_param_i_symbol_start (p, 37)) return ;
     choice_47 (p);
-    rde_param_i_symbol_done_leaf (p, 23, 22);
+    rde_param_i_symbol_done_leaf (p, 37, 36);
     return;
 }
 
@@ -572,23 +582,23 @@ static void choice_47 (RDE_PARAM p) {
     */
 
     rde_param_i_state_push_void (p);
-    rde_param_i_next_char (p, "=", 11);
+    rde_param_i_next_char (p, "=", 25);
     if (rde_param_i_bra_void2void(p)) return;
-    rde_param_i_next_str (p, "+=", 14);
+    rde_param_i_next_str (p, "+=", 28);
     if (rde_param_i_bra_void2void(p)) return;
-    rde_param_i_next_str (p, "-=", 15);
+    rde_param_i_next_str (p, "-=", 29);
     if (rde_param_i_bra_void2void(p)) return;
-    rde_param_i_next_str (p, ".+=", 16);
+    rde_param_i_next_str (p, ".+=", 30);
     if (rde_param_i_bra_void2void(p)) return;
-    rde_param_i_next_str (p, ".-=", 17);
+    rde_param_i_next_str (p, ".-=", 31);
     if (rde_param_i_bra_void2void(p)) return;
-    rde_param_i_next_str (p, ".*=", 18);
+    rde_param_i_next_str (p, ".*=", 32);
     if (rde_param_i_bra_void2void(p)) return;
-    rde_param_i_next_str (p, "./=", 19);
+    rde_param_i_next_str (p, "./=", 33);
     if (rde_param_i_bra_void2void(p)) return;
-    rde_param_i_next_str (p, ".^=", 20);
+    rde_param_i_next_str (p, ".^=", 34);
     if (rde_param_i_bra_void2void(p)) return;
-    rde_param_i_next_str (p, ".**=", 21);
+    rde_param_i_next_str (p, ".**=", 35);
     rde_param_i_state_merge_void (p);
     return;
 }
@@ -604,14 +614,14 @@ static void sym_BoolAndExpr (RDE_PARAM p) {
     *     *
     *         x
     *             (WS)
-    *             (OrOp)
+    *             (AndOp)
     *             (WS)
     *             (RelExpr)
     */
 
-    if (rde_param_i_symbol_start_d (p, 25)) return ;
+    if (rde_param_i_symbol_start_d (p, 39)) return ;
     sequence_59 (p);
-    rde_param_i_symbol_done_d_reduce (p, 25, 24);
+    rde_param_i_symbol_done_d_reduce (p, 39, 38);
     return;
 }
 
@@ -622,7 +632,7 @@ static void sequence_59 (RDE_PARAM p) {
     *     *
     *         x
     *             (WS)
-    *             (OrOp)
+    *             (AndOp)
     *             (WS)
     *             (RelExpr)
     */
@@ -640,7 +650,7 @@ static void kleene_57 (RDE_PARAM p) {
     * *
     *     x
     *         (WS)
-    *         (OrOp)
+    *         (AndOp)
     *         (WS)
     *         (RelExpr)
     */
@@ -657,7 +667,7 @@ static void sequence_55 (RDE_PARAM p) {
    /*
     * x
     *     (WS)
-    *     (OrOp)
+    *     (AndOp)
     *     (WS)
     *     (RelExpr)
     */
@@ -665,7 +675,7 @@ static void sequence_55 (RDE_PARAM p) {
     rde_param_i_state_push_void (p);
     sym_WS (p);
     if (rde_param_i_seq_void2value(p)) return;
-    sym_OrOp (p);
+    sym_AndOp (p);
     if (rde_param_i_seq_value2value(p)) return;
     sym_WS (p);
     if (rde_param_i_seq_value2value(p)) return;
@@ -685,14 +695,14 @@ static void sym_BoolOrExpr (RDE_PARAM p) {
     *     *
     *         x
     *             (WS)
-    *             (AndOp)
+    *             (OrOp)
     *             (WS)
     *             (BoolAndExpr)
     */
 
-    if (rde_param_i_symbol_start_d (p, 27)) return ;
+    if (rde_param_i_symbol_start_d (p, 41)) return ;
     sequence_71 (p);
-    rde_param_i_symbol_done_d_reduce (p, 27, 26);
+    rde_param_i_symbol_done_d_reduce (p, 41, 40);
     return;
 }
 
@@ -703,7 +713,7 @@ static void sequence_71 (RDE_PARAM p) {
     *     *
     *         x
     *             (WS)
-    *             (AndOp)
+    *             (OrOp)
     *             (WS)
     *             (BoolAndExpr)
     */
@@ -721,7 +731,7 @@ static void kleene_69 (RDE_PARAM p) {
     * *
     *     x
     *         (WS)
-    *         (AndOp)
+    *         (OrOp)
     *         (WS)
     *         (BoolAndExpr)
     */
@@ -738,7 +748,7 @@ static void sequence_67 (RDE_PARAM p) {
    /*
     * x
     *     (WS)
-    *     (AndOp)
+    *     (OrOp)
     *     (WS)
     *     (BoolAndExpr)
     */
@@ -746,7 +756,7 @@ static void sequence_67 (RDE_PARAM p) {
     rde_param_i_state_push_void (p);
     sym_WS (p);
     if (rde_param_i_seq_void2value(p)) return;
-    sym_AndOp (p);
+    sym_OrOp (p);
     if (rde_param_i_seq_value2value(p)) return;
     sym_WS (p);
     if (rde_param_i_seq_value2value(p)) return;
@@ -770,9 +780,9 @@ static void sym_Comment (RDE_PARAM p) {
     *             <dot>
     */
 
-    if (rde_param_i_symbol_void_start (p, 31)) return ;
+    if (rde_param_i_symbol_void_start (p, 45)) return ;
     sequence_83 (p);
-    rde_param_i_symbol_done_void (p, 31, 30);
+    rde_param_i_symbol_done_void (p, 45, 44);
     return;
 }
 
@@ -788,7 +798,7 @@ static void sequence_83 (RDE_PARAM p) {
     */
 
     rde_param_i_state_push_void (p);
-    rde_param_i_next_char (p, "#", 28);
+    rde_param_i_next_char (p, "#", 42);
     if (rde_param_i_seq_void2void(p)) return;
     kleene_81 (p);
     rde_param_i_state_merge_void (p);
@@ -823,7 +833,7 @@ static void sequence_79 (RDE_PARAM p) {
     rde_param_i_state_push_void (p);
     notahead_76 (p);
     if (rde_param_i_seq_void2void(p)) return;
-    rde_param_i_input_next (p, 29);
+    rde_param_i_input_next (p, 43);
     rde_param_i_state_merge_void (p);
     return;
 }
@@ -856,9 +866,9 @@ static void sym_ComplexNumber (RDE_PARAM p) {
     *             (ImaginaryNumber)
     */
 
-    if (rde_param_i_symbol_start_d (p, 33)) return ;
+    if (rde_param_i_symbol_start_d (p, 47)) return ;
     sequence_96 (p);
-    rde_param_i_symbol_done_d_reduce (p, 33, 32);
+    rde_param_i_symbol_done_d_reduce (p, 47, 46);
     return;
 }
 
@@ -934,9 +944,9 @@ static void sym_Empty (RDE_PARAM p) {
     * (WS)
     */
 
-    if (rde_param_i_symbol_start (p, 35)) return ;
+    if (rde_param_i_symbol_start (p, 49)) return ;
     sym_WS (p);
-    rde_param_i_symbol_done_leaf (p, 35, 34);
+    rde_param_i_symbol_done_leaf (p, 49, 48);
     return;
 }
 
@@ -949,9 +959,9 @@ static void sym_EOL (RDE_PARAM p) {
     * '\n'
     */
 
-    if (rde_param_i_symbol_void_start (p, 38)) return ;
-    rde_param_i_next_char (p, "\n", 36);
-    rde_param_i_symbol_done_void (p, 38, 37);
+    if (rde_param_i_symbol_void_start (p, 52)) return ;
+    rde_param_i_next_char (p, "\n", 50);
+    rde_param_i_symbol_done_void (p, 52, 51);
     return;
 }
 
@@ -964,9 +974,9 @@ static void sym_Expression (RDE_PARAM p) {
     * (BoolOrExpr)
     */
 
-    if (rde_param_i_symbol_start_d (p, 40)) return ;
+    if (rde_param_i_symbol_start_d (p, 54)) return ;
     sym_BoolOrExpr (p);
-    rde_param_i_symbol_done_d_reduce (p, 40, 39);
+    rde_param_i_symbol_done_d_reduce (p, 54, 53);
     return;
 }
 
@@ -986,9 +996,9 @@ static void sym_Factor (RDE_PARAM p) {
     *     (Transpose)
     */
 
-    if (rde_param_i_symbol_start_d (p, 42)) return ;
+    if (rde_param_i_symbol_start_d (p, 56)) return ;
     choice_113 (p);
-    rde_param_i_symbol_done_d_reduce (p, 42, 41);
+    rde_param_i_symbol_done_d_reduce (p, 56, 55);
     return;
 }
 
@@ -1056,9 +1066,9 @@ static void sym_ForEachLoop (RDE_PARAM p) {
     *     '\}'
     */
 
-    if (rde_param_i_symbol_start_d (p, 47)) return ;
+    if (rde_param_i_symbol_start_d (p, 61)) return ;
     sequence_127 (p);
-    rde_param_i_symbol_done_d_reduce (p, 47, 46);
+    rde_param_i_symbol_done_d_reduce (p, 61, 60);
     return;
 }
 
@@ -1079,7 +1089,7 @@ static void sequence_127 (RDE_PARAM p) {
     */
 
     rde_param_i_state_push_void (p);
-    rde_param_i_next_str (p, "for", 43);
+    rde_param_i_next_str (p, "for", 57);
     if (rde_param_i_seq_void2void(p)) return;
     sym_WSob (p);
     if (rde_param_i_seq_void2value(p)) return;
@@ -1087,7 +1097,7 @@ static void sequence_127 (RDE_PARAM p) {
     if (rde_param_i_seq_value2value(p)) return;
     sym_WS (p);
     if (rde_param_i_seq_value2value(p)) return;
-    rde_param_i_next_char (p, "=", 11);
+    rde_param_i_next_char (p, "=", 25);
     if (rde_param_i_seq_value2value(p)) return;
     sym_WS (p);
     if (rde_param_i_seq_value2value(p)) return;
@@ -1095,11 +1105,11 @@ static void sequence_127 (RDE_PARAM p) {
     if (rde_param_i_seq_value2value(p)) return;
     sym_WSob (p);
     if (rde_param_i_seq_value2value(p)) return;
-    rde_param_i_next_char (p, "\173", 44);
+    rde_param_i_next_char (p, "\173", 58);
     if (rde_param_i_seq_value2value(p)) return;
     sym_Sequence (p);
     if (rde_param_i_seq_value2value(p)) return;
-    rde_param_i_next_char (p, "\175", 45);
+    rde_param_i_next_char (p, "\175", 59);
     rde_param_i_state_merge_value (p);
     return;
 }
@@ -1124,9 +1134,9 @@ static void sym_ForLoop (RDE_PARAM p) {
     *     '\}'
     */
 
-    if (rde_param_i_symbol_start_d (p, 49)) return ;
+    if (rde_param_i_symbol_start_d (p, 63)) return ;
     sequence_141 (p);
-    rde_param_i_symbol_done_d_reduce (p, 49, 48);
+    rde_param_i_symbol_done_d_reduce (p, 63, 62);
     return;
 }
 
@@ -1147,7 +1157,7 @@ static void sequence_141 (RDE_PARAM p) {
     */
 
     rde_param_i_state_push_void (p);
-    rde_param_i_next_str (p, "for", 43);
+    rde_param_i_next_str (p, "for", 57);
     if (rde_param_i_seq_void2void(p)) return;
     sym_WSob (p);
     if (rde_param_i_seq_void2value(p)) return;
@@ -1155,7 +1165,7 @@ static void sequence_141 (RDE_PARAM p) {
     if (rde_param_i_seq_value2value(p)) return;
     sym_WS (p);
     if (rde_param_i_seq_value2value(p)) return;
-    rde_param_i_next_char (p, "=", 11);
+    rde_param_i_next_char (p, "=", 25);
     if (rde_param_i_seq_value2value(p)) return;
     sym_WS (p);
     if (rde_param_i_seq_value2value(p)) return;
@@ -1163,11 +1173,11 @@ static void sequence_141 (RDE_PARAM p) {
     if (rde_param_i_seq_value2value(p)) return;
     sym_WSob (p);
     if (rde_param_i_seq_value2value(p)) return;
-    rde_param_i_next_char (p, "\173", 44);
+    rde_param_i_next_char (p, "\173", 58);
     if (rde_param_i_seq_value2value(p)) return;
     sym_Sequence (p);
     if (rde_param_i_seq_value2value(p)) return;
-    rde_param_i_next_char (p, "\175", 45);
+    rde_param_i_next_char (p, "\175", 59);
     rde_param_i_state_merge_value (p);
     return;
 }
@@ -1191,9 +1201,9 @@ static void sym_Fragment (RDE_PARAM p) {
     *     (Literal)
     */
 
-    if (rde_param_i_symbol_start_d (p, 53)) return ;
+    if (rde_param_i_symbol_start_d (p, 67)) return ;
     choice_155 (p);
-    rde_param_i_symbol_done_d_reduce (p, 53, 52);
+    rde_param_i_symbol_done_d_reduce (p, 67, 66);
     return;
 }
 
@@ -1237,7 +1247,7 @@ static void sequence_150 (RDE_PARAM p) {
     */
 
     rde_param_i_state_push_void (p);
-    rde_param_i_next_char (p, "\50", 50);
+    rde_param_i_next_char (p, "(", 64);
     if (rde_param_i_seq_void2void(p)) return;
     sym_WS (p);
     if (rde_param_i_seq_void2value(p)) return;
@@ -1245,7 +1255,7 @@ static void sequence_150 (RDE_PARAM p) {
     if (rde_param_i_seq_value2value(p)) return;
     sym_WS (p);
     if (rde_param_i_seq_value2value(p)) return;
-    rde_param_i_next_char (p, "\51", 51);
+    rde_param_i_next_char (p, ")", 65);
     rde_param_i_state_merge_value (p);
     return;
 }
@@ -1273,9 +1283,9 @@ static void sym_Function (RDE_PARAM p) {
     *     '\)'
     */
 
-    if (rde_param_i_symbol_start_d (p, 55)) return ;
+    if (rde_param_i_symbol_start_d (p, 69)) return ;
     sequence_176 (p);
-    rde_param_i_symbol_done_d_reduce (p, 55, 54);
+    rde_param_i_symbol_done_d_reduce (p, 69, 68);
     return;
 }
 
@@ -1301,11 +1311,11 @@ static void sequence_176 (RDE_PARAM p) {
     rde_param_i_state_push_value (p);
     sym_FunctionName (p);
     if (rde_param_i_seq_value2value(p)) return;
-    rde_param_i_next_char (p, "\50", 50);
+    rde_param_i_next_char (p, "(", 64);
     if (rde_param_i_seq_value2value(p)) return;
     optional_173 (p);
     if (rde_param_i_seq_value2value(p)) return;
-    rde_param_i_next_char (p, "\51", 51);
+    rde_param_i_next_char (p, ")", 65);
     rde_param_i_state_merge_value (p);
     return;
 }
@@ -1385,7 +1395,7 @@ static void sequence_167 (RDE_PARAM p) {
     */
 
     rde_param_i_state_push_void (p);
-    rde_param_i_next_char (p, ",", 10);
+    rde_param_i_next_char (p, ",", 24);
     if (rde_param_i_seq_void2void(p)) return;
     sym_WS (p);
     if (rde_param_i_seq_void2value(p)) return;
@@ -1405,9 +1415,9 @@ static void sym_FunctionName (RDE_PARAM p) {
     * (Identifier)
     */
 
-    if (rde_param_i_symbol_start_d (p, 57)) return ;
+    if (rde_param_i_symbol_start_d (p, 71)) return ;
     sym_Identifier (p);
-    rde_param_i_symbol_done_d_leaf (p, 57, 56);
+    rde_param_i_symbol_done_d_leaf (p, 71, 70);
     return;
 }
 
@@ -1429,9 +1439,9 @@ static void sym_Identifier (RDE_PARAM p) {
     *             <alnum>
     */
 
-    if (rde_param_i_symbol_start (p, 63)) return ;
+    if (rde_param_i_symbol_start (p, 75)) return ;
     sequence_193 (p);
-    rde_param_i_symbol_done_leaf (p, 63, 62);
+    rde_param_i_symbol_done_leaf (p, 75, 74);
     return;
 }
 
@@ -1466,11 +1476,11 @@ static void choice_184 (RDE_PARAM p) {
     */
 
     rde_param_i_state_push_void (p);
-    rde_param_i_next_char (p, "_", 58);
+    rde_param_i_next_char (p, "_", 72);
     if (rde_param_i_bra_void2void(p)) return;
-    rde_param_i_next_str (p, "::", 59);
+    rde_param_i_next_str (p, "::", 73);
     if (rde_param_i_bra_void2void(p)) return;
-    rde_param_i_next_alpha (p, 60);
+    rde_param_i_next_alpha (p, 1);
     rde_param_i_state_merge_void (p);
     return;
 }
@@ -1501,11 +1511,11 @@ static void choice_189 (RDE_PARAM p) {
     */
 
     rde_param_i_state_push_void (p);
-    rde_param_i_next_char (p, "_", 58);
+    rde_param_i_next_char (p, "_", 72);
     if (rde_param_i_bra_void2void(p)) return;
-    rde_param_i_next_str (p, "::", 59);
+    rde_param_i_next_str (p, "::", 73);
     if (rde_param_i_bra_void2void(p)) return;
-    rde_param_i_next_alnum (p, 61);
+    rde_param_i_next_alnum (p, 0);
     rde_param_i_state_merge_void (p);
     return;
 }
@@ -1534,9 +1544,9 @@ static void sym_IfClause (RDE_PARAM p) {
     *             '\}'
     */
 
-    if (rde_param_i_symbol_start_d (p, 67)) return ;
+    if (rde_param_i_symbol_start_d (p, 79)) return ;
     sequence_213 (p);
-    rde_param_i_symbol_done_d_reduce (p, 67, 66);
+    rde_param_i_symbol_done_d_reduce (p, 79, 78);
     return;
 }
 
@@ -1561,7 +1571,7 @@ static void sequence_213 (RDE_PARAM p) {
     */
 
     rde_param_i_state_push_void (p);
-    rde_param_i_next_str (p, "if", 64);
+    rde_param_i_next_str (p, "if", 76);
     if (rde_param_i_seq_void2void(p)) return;
     sym_WSob (p);
     if (rde_param_i_seq_void2value(p)) return;
@@ -1569,11 +1579,11 @@ static void sequence_213 (RDE_PARAM p) {
     if (rde_param_i_seq_value2value(p)) return;
     sym_WSob (p);
     if (rde_param_i_seq_value2value(p)) return;
-    rde_param_i_next_char (p, "\173", 44);
+    rde_param_i_next_char (p, "\173", 58);
     if (rde_param_i_seq_value2value(p)) return;
     sym_Sequence (p);
     if (rde_param_i_seq_value2value(p)) return;
-    rde_param_i_next_char (p, "\175", 45);
+    rde_param_i_next_char (p, "\175", 59);
     if (rde_param_i_seq_value2value(p)) return;
     optional_211 (p);
     rde_param_i_state_merge_value (p);
@@ -1612,15 +1622,15 @@ static void sequence_209 (RDE_PARAM p) {
     rde_param_i_state_push_void (p);
     sym_WSob (p);
     if (rde_param_i_seq_void2void(p)) return;
-    rde_param_i_next_str (p, "else", 65);
+    rde_param_i_next_str (p, "else", 77);
     if (rde_param_i_seq_void2void(p)) return;
     sym_WSob (p);
     if (rde_param_i_seq_void2void(p)) return;
-    rde_param_i_next_char (p, "\173", 44);
+    rde_param_i_next_char (p, "\173", 58);
     if (rde_param_i_seq_void2value(p)) return;
     sym_Sequence (p);
     if (rde_param_i_seq_value2value(p)) return;
-    rde_param_i_next_char (p, "\175", 45);
+    rde_param_i_next_char (p, "\175", 59);
     rde_param_i_state_merge_value (p);
     return;
 }
@@ -1649,9 +1659,9 @@ static void sym_ImaginaryNumber (RDE_PARAM p) {
     *     [iI]
     */
 
-    if (rde_param_i_symbol_start (p, 73)) return ;
+    if (rde_param_i_symbol_start (p, 84)) return ;
     sequence_237 (p);
-    rde_param_i_symbol_done_leaf (p, 73, 72);
+    rde_param_i_symbol_done_leaf (p, 84, 83);
     return;
 }
 
@@ -1682,7 +1692,7 @@ static void sequence_237 (RDE_PARAM p) {
     if (rde_param_i_seq_void2void(p)) return;
     optional_234 (p);
     if (rde_param_i_seq_void2void(p)) return;
-    rde_param_i_next_class (p, "iI", 71);
+    rde_param_i_next_class (p, "iI", 82);
     rde_param_i_state_merge_void (p);
     return;
 }
@@ -1694,11 +1704,11 @@ static void poskleene_217 (RDE_PARAM p) {
     */
 
     rde_param_i_loc_push (p);
-    rde_param_i_next_ddigit (p, 68);
+    rde_param_i_next_ddigit (p, 4);
     if (rde_param_i_kleene_abort(p)) return;
     while (1) {
         rde_param_i_state_push_2 (p);
-        rde_param_i_next_ddigit (p, 68);
+        rde_param_i_next_ddigit (p, 4);
         if (rde_param_i_kleene_close(p)) return;
     }
     return;
@@ -1728,7 +1738,7 @@ static void sequence_222 (RDE_PARAM p) {
     */
 
     rde_param_i_state_push_void (p);
-    rde_param_i_next_char (p, ".", 69);
+    rde_param_i_next_char (p, ".", 80);
     if (rde_param_i_seq_void2void(p)) return;
     poskleene_217 (p);
     rde_param_i_state_merge_void (p);
@@ -1763,7 +1773,7 @@ static void sequence_232 (RDE_PARAM p) {
     */
 
     rde_param_i_state_push_void (p);
-    rde_param_i_next_class (p, "eE", 70);
+    rde_param_i_next_class (p, "eE", 81);
     if (rde_param_i_seq_void2void(p)) return;
     optional_228 (p);
     if (rde_param_i_seq_void2void(p)) return;
@@ -1779,7 +1789,7 @@ static void optional_228 (RDE_PARAM p) {
     */
 
     rde_param_i_state_push_2 (p);
-    rde_param_i_next_class (p, "+-", 2);
+    rde_param_i_next_class (p, "+-", 16);
     rde_param_i_state_merge_ok (p);
     return;
 }
@@ -1808,9 +1818,9 @@ static void sym_Literal (RDE_PARAM p) {
     *     '\}'
     */
 
-    if (rde_param_i_symbol_start_d (p, 75)) return ;
+    if (rde_param_i_symbol_start_d (p, 86)) return ;
     sequence_260 (p);
-    rde_param_i_symbol_done_d_reduce (p, 75, 74);
+    rde_param_i_symbol_done_d_reduce (p, 86, 85);
     return;
 }
 
@@ -1835,13 +1845,13 @@ static void sequence_260 (RDE_PARAM p) {
     */
 
     rde_param_i_state_push_void (p);
-    rde_param_i_next_char (p, "\173", 44);
+    rde_param_i_next_char (p, "\173", 58);
     if (rde_param_i_seq_void2void(p)) return;
     sym_WS (p);
     if (rde_param_i_seq_void2value(p)) return;
     optional_257 (p);
     if (rde_param_i_seq_value2value(p)) return;
-    rde_param_i_next_char (p, "\175", 45);
+    rde_param_i_next_char (p, "\175", 59);
     rde_param_i_state_merge_value (p);
     return;
 }
@@ -1956,9 +1966,9 @@ static void sym_MulOp (RDE_PARAM p) {
     *     '\'
     */
 
-    if (rde_param_i_symbol_start (p, 81)) return ;
+    if (rde_param_i_symbol_start (p, 92)) return ;
     choice_267 (p);
-    rde_param_i_symbol_done_leaf (p, 81, 80);
+    rde_param_i_symbol_done_leaf (p, 92, 91);
     return;
 }
 
@@ -1972,13 +1982,13 @@ static void choice_267 (RDE_PARAM p) {
     */
 
     rde_param_i_state_push_void (p);
-    rde_param_i_next_class (p, "*%/", 76);
+    rde_param_i_next_class (p, "*%/", 87);
     if (rde_param_i_bra_void2void(p)) return;
-    rde_param_i_next_str (p, ".*", 77);
+    rde_param_i_next_str (p, ".*", 88);
     if (rde_param_i_bra_void2void(p)) return;
-    rde_param_i_next_str (p, "./", 78);
+    rde_param_i_next_str (p, "./", 89);
     if (rde_param_i_bra_void2void(p)) return;
-    rde_param_i_next_char (p, "\134", 79);
+    rde_param_i_next_char (p, "\\", 90);
     rde_param_i_state_merge_void (p);
     return;
 }
@@ -1994,9 +2004,9 @@ static void sym_Number (RDE_PARAM p) {
     *     (RealNumber)
     */
 
-    if (rde_param_i_symbol_start_d (p, 83)) return ;
+    if (rde_param_i_symbol_start_d (p, 94)) return ;
     choice_272 (p);
-    rde_param_i_symbol_done_d_leaf (p, 83, 82);
+    rde_param_i_symbol_done_d_leaf (p, 94, 93);
     return;
 }
 
@@ -2029,9 +2039,9 @@ static void sym_OpAssignment (RDE_PARAM p) {
     *     (Expression)
     */
 
-    if (rde_param_i_symbol_start_d (p, 85)) return ;
+    if (rde_param_i_symbol_start_d (p, 96)) return ;
     sequence_280 (p);
-    rde_param_i_symbol_done_d_reduce (p, 85, 84);
+    rde_param_i_symbol_done_d_reduce (p, 96, 95);
     return;
 }
 
@@ -2068,9 +2078,9 @@ static void sym_OrOp (RDE_PARAM p) {
     * "||"
     */
 
-    if (rde_param_i_symbol_start (p, 88)) return ;
-    rde_param_i_next_str (p, "||", 86);
-    rde_param_i_symbol_done_leaf (p, 88, 87);
+    if (rde_param_i_symbol_start (p, 99)) return ;
+    rde_param_i_next_str (p, "||", 97);
+    rde_param_i_symbol_done_leaf (p, 99, 98);
     return;
 }
 
@@ -2087,9 +2097,9 @@ static void sym_PowOp (RDE_PARAM p) {
     *     ".**"
     */
 
-    if (rde_param_i_symbol_start (p, 94)) return ;
+    if (rde_param_i_symbol_start (p, 105)) return ;
     choice_289 (p);
-    rde_param_i_symbol_done_leaf (p, 94, 93);
+    rde_param_i_symbol_done_leaf (p, 105, 104);
     return;
 }
 
@@ -2103,13 +2113,13 @@ static void choice_289 (RDE_PARAM p) {
     */
 
     rde_param_i_state_push_void (p);
-    rde_param_i_next_char (p, "^", 89);
+    rde_param_i_next_char (p, "^", 100);
     if (rde_param_i_bra_void2void(p)) return;
-    rde_param_i_next_str (p, "**", 90);
+    rde_param_i_next_str (p, "**", 101);
     if (rde_param_i_bra_void2void(p)) return;
-    rde_param_i_next_str (p, ".^", 91);
+    rde_param_i_next_str (p, ".^", 102);
     if (rde_param_i_bra_void2void(p)) return;
-    rde_param_i_next_str (p, ".**", 92);
+    rde_param_i_next_str (p, ".**", 103);
     rde_param_i_state_merge_void (p);
     return;
 }
@@ -2123,9 +2133,9 @@ static void sym_Program (RDE_PARAM p) {
     * (Sequence)
     */
 
-    if (rde_param_i_symbol_start_d (p, 96)) return ;
+    if (rde_param_i_symbol_start_d (p, 107)) return ;
     sym_Sequence (p);
-    rde_param_i_symbol_done_d_reduce (p, 96, 95);
+    rde_param_i_symbol_done_d_reduce (p, 107, 106);
     return;
 }
 
@@ -2149,9 +2159,9 @@ static void sym_RangeExpr (RDE_PARAM p) {
     *             (Expression)
     */
 
-    if (rde_param_i_symbol_start_d (p, 99)) return ;
+    if (rde_param_i_symbol_start_d (p, 110)) return ;
     sequence_307 (p);
-    rde_param_i_symbol_done_d_reduce (p, 99, 98);
+    rde_param_i_symbol_done_d_reduce (p, 110, 109);
     return;
 }
 
@@ -2176,7 +2186,7 @@ static void sequence_307 (RDE_PARAM p) {
     if (rde_param_i_seq_value2value(p)) return;
     sym_WS (p);
     if (rde_param_i_seq_value2value(p)) return;
-    rde_param_i_next_char (p, ":", 97);
+    rde_param_i_next_char (p, ":", 108);
     if (rde_param_i_seq_value2value(p)) return;
     sym_WS (p);
     if (rde_param_i_seq_value2value(p)) return;
@@ -2215,7 +2225,7 @@ static void sequence_303 (RDE_PARAM p) {
     rde_param_i_state_push_void (p);
     sym_WS (p);
     if (rde_param_i_seq_void2void(p)) return;
-    rde_param_i_next_char (p, ":", 97);
+    rde_param_i_next_char (p, ":", 108);
     if (rde_param_i_seq_void2void(p)) return;
     sym_WS (p);
     if (rde_param_i_seq_void2value(p)) return;
@@ -2247,9 +2257,9 @@ static void sym_RealNumber (RDE_PARAM p) {
     *                 <ddigit>
     */
 
-    if (rde_param_i_symbol_start (p, 101)) return ;
+    if (rde_param_i_symbol_start (p, 112)) return ;
     sequence_324 (p);
-    rde_param_i_symbol_done_leaf (p, 101, 100);
+    rde_param_i_symbol_done_leaf (p, 112, 111);
     return;
 }
 
@@ -2298,9 +2308,9 @@ static void sym_RelExpr (RDE_PARAM p) {
     *             (AddExpr)
     */
 
-    if (rde_param_i_symbol_start_d (p, 103)) return ;
+    if (rde_param_i_symbol_start_d (p, 114)) return ;
     sequence_336 (p);
-    rde_param_i_symbol_done_d_reduce (p, 103, 102);
+    rde_param_i_symbol_done_d_reduce (p, 114, 113);
     return;
 }
 
@@ -2375,9 +2385,9 @@ static void sym_RelOp (RDE_PARAM p) {
     *     "!="
     */
 
-    if (rde_param_i_symbol_start (p, 110)) return ;
+    if (rde_param_i_symbol_start (p, 121)) return ;
     choice_344 (p);
-    rde_param_i_symbol_done_leaf (p, 110, 109);
+    rde_param_i_symbol_done_leaf (p, 121, 120);
     return;
 }
 
@@ -2392,15 +2402,15 @@ static void choice_344 (RDE_PARAM p) {
     */
 
     rde_param_i_state_push_void (p);
-    rde_param_i_next_str (p, "==", 104);
+    rde_param_i_next_str (p, "==", 115);
     if (rde_param_i_bra_void2void(p)) return;
-    rde_param_i_next_str (p, "<=", 105);
+    rde_param_i_next_str (p, "<=", 116);
     if (rde_param_i_bra_void2void(p)) return;
-    rde_param_i_next_str (p, ">=", 106);
+    rde_param_i_next_str (p, ">=", 117);
     if (rde_param_i_bra_void2void(p)) return;
-    rde_param_i_next_class (p, "<>", 107);
+    rde_param_i_next_class (p, "<>", 118);
     if (rde_param_i_bra_void2void(p)) return;
-    rde_param_i_next_str (p, "!=", 108);
+    rde_param_i_next_str (p, "!=", 119);
     rde_param_i_state_merge_void (p);
     return;
 }
@@ -2419,9 +2429,9 @@ static void sym_Separator (RDE_PARAM p) {
     *     ';'
     */
 
-    if (rde_param_i_symbol_void_start (p, 113)) return ;
+    if (rde_param_i_symbol_void_start (p, 124)) return ;
     choice_354 (p);
-    rde_param_i_symbol_done_void (p, 113, 112);
+    rde_param_i_symbol_done_void (p, 124, 123);
     return;
 }
 
@@ -2438,7 +2448,7 @@ static void choice_354 (RDE_PARAM p) {
     rde_param_i_state_push_void (p);
     sequence_351 (p);
     if (rde_param_i_bra_void2void(p)) return;
-    rde_param_i_next_char (p, "\73", 111);
+    rde_param_i_next_char (p, ";", 122);
     rde_param_i_state_merge_void (p);
     return;
 }
@@ -2489,9 +2499,9 @@ static void sym_Sequence (RDE_PARAM p) {
     *     (WS)
     */
 
-    if (rde_param_i_symbol_start_d (p, 115)) return ;
+    if (rde_param_i_symbol_start_d (p, 126)) return ;
     sequence_368 (p);
-    rde_param_i_symbol_done_d_reduce (p, 115, 114);
+    rde_param_i_symbol_done_d_reduce (p, 126, 125);
     return;
 }
 
@@ -2569,9 +2579,9 @@ static void sym_Sign (RDE_PARAM p) {
     * [+-!]
     */
 
-    if (rde_param_i_symbol_start (p, 118)) return ;
-    rde_param_i_next_class (p, "+-!", 116);
-    rde_param_i_symbol_done_leaf (p, 118, 117);
+    if (rde_param_i_symbol_start (p, 129)) return ;
+    rde_param_i_next_class (p, "+-!", 127);
+    rde_param_i_symbol_done_leaf (p, 129, 128);
     return;
 }
 
@@ -2599,9 +2609,9 @@ static void sym_SliceExpr (RDE_PARAM p) {
     *     ':'
     */
 
-    if (rde_param_i_symbol_start_d (p, 120)) return ;
+    if (rde_param_i_symbol_start_d (p, 131)) return ;
     choice_393 (p);
-    rde_param_i_symbol_done_d_reduce (p, 120, 119);
+    rde_param_i_symbol_done_d_reduce (p, 131, 130);
     return;
 }
 
@@ -2628,7 +2638,7 @@ static void choice_393 (RDE_PARAM p) {
     rde_param_i_state_push_value (p);
     sequence_390 (p);
     if (rde_param_i_bra_value2void(p)) return;
-    rde_param_i_next_char (p, ":", 97);
+    rde_param_i_next_char (p, ":", 108);
     rde_param_i_state_merge_void (p);
     return;
 }
@@ -2697,7 +2707,7 @@ static void sequence_386 (RDE_PARAM p) {
     */
 
     rde_param_i_state_push_void (p);
-    rde_param_i_next_char (p, ":", 97);
+    rde_param_i_next_char (p, ":", 108);
     if (rde_param_i_seq_void2void(p)) return;
     sym_WS (p);
     if (rde_param_i_seq_void2value(p)) return;
@@ -2734,7 +2744,7 @@ static void sequence_382 (RDE_PARAM p) {
     */
 
     rde_param_i_state_push_void (p);
-    rde_param_i_next_char (p, ":", 97);
+    rde_param_i_next_char (p, ":", 108);
     if (rde_param_i_seq_void2void(p)) return;
     sym_WS (p);
     if (rde_param_i_seq_void2value(p)) return;
@@ -2760,9 +2770,9 @@ static void sym_Statement (RDE_PARAM p) {
     *     (Empty)
     */
 
-    if (rde_param_i_symbol_start_d (p, 122)) return ;
+    if (rde_param_i_symbol_start_d (p, 133)) return ;
     choice_404 (p);
-    rde_param_i_symbol_done_d_reduce (p, 122, 121);
+    rde_param_i_symbol_done_d_reduce (p, 133, 132);
     return;
 }
 
@@ -2825,9 +2835,9 @@ static void sym_Term (RDE_PARAM p) {
     *                 (Factor)
     */
 
-    if (rde_param_i_symbol_start_d (p, 124)) return ;
+    if (rde_param_i_symbol_start_d (p, 135)) return ;
     choice_428 (p);
-    rde_param_i_symbol_done_d_reduce (p, 124, 123);
+    rde_param_i_symbol_done_d_reduce (p, 135, 134);
     return;
 }
 
@@ -2956,9 +2966,9 @@ static void sym_Transpose (RDE_PARAM p) {
     *     (Fragment)
     */
 
-    if (rde_param_i_symbol_start_d (p, 126)) return ;
+    if (rde_param_i_symbol_start_d (p, 137)) return ;
     choice_436 (p);
-    rde_param_i_symbol_done_d_reduce (p, 126, 125);
+    rde_param_i_symbol_done_d_reduce (p, 137, 136);
     return;
 }
 
@@ -3003,9 +3013,9 @@ static void sym_TransposeOp (RDE_PARAM p) {
     * '''
     */
 
-    if (rde_param_i_symbol_start (p, 129)) return ;
-    rde_param_i_next_char (p, "'", 127);
-    rde_param_i_symbol_done_leaf (p, 129, 128);
+    if (rde_param_i_symbol_start (p, 140)) return ;
+    rde_param_i_next_char (p, "'", 138);
+    rde_param_i_symbol_done_leaf (p, 140, 139);
     return;
 }
 
@@ -3018,9 +3028,9 @@ static void sym_Var (RDE_PARAM p) {
     * (Identifier)
     */
 
-    if (rde_param_i_symbol_start_d (p, 131)) return ;
+    if (rde_param_i_symbol_start_d (p, 142)) return ;
     sym_Identifier (p);
-    rde_param_i_symbol_done_d_leaf (p, 131, 130);
+    rde_param_i_symbol_done_d_leaf (p, 142, 141);
     return;
 }
 
@@ -3047,9 +3057,9 @@ static void sym_VarSlice (RDE_PARAM p) {
     *             ']'
     */
 
-    if (rde_param_i_symbol_start_d (p, 135)) return ;
+    if (rde_param_i_symbol_start_d (p, 146)) return ;
     sequence_461 (p);
-    rde_param_i_symbol_done_d_reduce (p, 135, 134);
+    rde_param_i_symbol_done_d_reduce (p, 146, 145);
     return;
 }
 
@@ -3122,7 +3132,7 @@ static void sequence_457 (RDE_PARAM p) {
     rde_param_i_state_push_void (p);
     sym_WS (p);
     if (rde_param_i_seq_void2void(p)) return;
-    rde_param_i_next_char (p, "\133", 132);
+    rde_param_i_next_char (p, "[", 143);
     if (rde_param_i_seq_void2void(p)) return;
     sym_WS (p);
     if (rde_param_i_seq_void2value(p)) return;
@@ -3132,7 +3142,7 @@ static void sequence_457 (RDE_PARAM p) {
     if (rde_param_i_seq_value2value(p)) return;
     sym_WS (p);
     if (rde_param_i_seq_value2value(p)) return;
-    rde_param_i_next_char (p, "\135", 133);
+    rde_param_i_next_char (p, "]", 144);
     rde_param_i_state_merge_value (p);
     return;
 }
@@ -3163,7 +3173,7 @@ static void sequence_451 (RDE_PARAM p) {
     */
 
     rde_param_i_state_push_void (p);
-    rde_param_i_next_char (p, ",", 10);
+    rde_param_i_next_char (p, ",", 24);
     if (rde_param_i_seq_void2void(p)) return;
     sym_WS (p);
     if (rde_param_i_seq_void2value(p)) return;
@@ -3188,9 +3198,9 @@ static void sym_WhileLoop (RDE_PARAM p) {
     *     '\}'
     */
 
-    if (rde_param_i_symbol_start_d (p, 138)) return ;
+    if (rde_param_i_symbol_start_d (p, 149)) return ;
     sequence_471 (p);
-    rde_param_i_symbol_done_d_reduce (p, 138, 137);
+    rde_param_i_symbol_done_d_reduce (p, 149, 148);
     return;
 }
 
@@ -3207,7 +3217,7 @@ static void sequence_471 (RDE_PARAM p) {
     */
 
     rde_param_i_state_push_void (p);
-    rde_param_i_next_str (p, "while", 136);
+    rde_param_i_next_str (p, "while", 147);
     if (rde_param_i_seq_void2void(p)) return;
     sym_WSob (p);
     if (rde_param_i_seq_void2value(p)) return;
@@ -3215,11 +3225,11 @@ static void sequence_471 (RDE_PARAM p) {
     if (rde_param_i_seq_value2value(p)) return;
     sym_WSob (p);
     if (rde_param_i_seq_value2value(p)) return;
-    rde_param_i_next_char (p, "\173", 44);
+    rde_param_i_next_char (p, "\173", 58);
     if (rde_param_i_seq_value2value(p)) return;
     sym_Sequence (p);
     if (rde_param_i_seq_value2value(p)) return;
-    rde_param_i_next_char (p, "\175", 45);
+    rde_param_i_next_char (p, "\175", 59);
     rde_param_i_state_merge_value (p);
     return;
 }
@@ -3241,9 +3251,9 @@ static void sym_WS (RDE_PARAM p) {
     *             <space>
     */
 
-    if (rde_param_i_symbol_void_start (p, 141)) return ;
+    if (rde_param_i_symbol_void_start (p, 151)) return ;
     kleene_485 (p);
-    rde_param_i_symbol_done_void (p, 141, 140);
+    rde_param_i_symbol_done_void (p, 151, 150);
     return;
 }
 
@@ -3296,7 +3306,7 @@ static void sequence_476 (RDE_PARAM p) {
     */
 
     rde_param_i_state_push_void (p);
-    rde_param_i_next_char (p, "\134", 79);
+    rde_param_i_next_char (p, "\\", 90);
     if (rde_param_i_seq_void2void(p)) return;
     sym_EOL (p);
     rde_param_i_state_merge_void (p);
@@ -3314,7 +3324,7 @@ static void sequence_481 (RDE_PARAM p) {
     rde_param_i_state_push_void (p);
     notahead_76 (p);
     if (rde_param_i_seq_void2void(p)) return;
-    rde_param_i_next_space (p, 139);
+    rde_param_i_next_space (p, 10);
     rde_param_i_state_merge_void (p);
     return;
 }
@@ -3336,9 +3346,9 @@ static void sym_WSob (RDE_PARAM p) {
     *             <space>
     */
 
-    if (rde_param_i_symbol_void_start (p, 143)) return ;
+    if (rde_param_i_symbol_void_start (p, 153)) return ;
     poskleene_496 (p);
-    rde_param_i_symbol_done_void (p, 143, 142);
+    rde_param_i_symbol_done_void (p, 153, 152);
     return;
 }
 

@@ -24,8 +24,8 @@ PEG VMath (Program)
 		# and function calls
 		
 		Expression   <- BoolOrExpr;
-		BoolOrExpr   <- BoolAndExpr (WS AndOp WS BoolAndExpr)*;
-		BoolAndExpr  <- RelExpr (WS OrOp WS RelExpr)*;
+		BoolOrExpr   <- BoolAndExpr (WS OrOp WS BoolAndExpr)*;
+		BoolAndExpr  <- RelExpr (WS AndOp WS RelExpr)*;
 		
 		RelExpr      <- AddExpr (WS RelOp WS AddExpr)?;
 
