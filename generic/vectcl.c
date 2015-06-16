@@ -172,6 +172,7 @@ static const EnsembleMap implementationMap[] = {
 	{"concat", NumArrayConcatCmd, NULL},
 	{"diag", NumArrayDiagCmd, NULL},
 	/* data type conversion operators */
+	{"int", NumArrayConvIntCmd, NULL},
 	{"double", NumArrayConvDoubleCmd, NULL},
 	{"complex", NumArrayConvComplexCmd, NULL},
 	/* elementary manipulations of complex values*/
@@ -2216,6 +2217,13 @@ static inline double fsign(double x) {
 /* Implement unary functions/operators */
 
 /* Data type conversion */
+#define CMD NumArrayConvInt
+#define INTRES NaWideInt
+#define INTOP *result = op;
+#define DBLRES NaWideInt
+#define DBLOP *result = (NaWideInt)op;
+#include "uniop.h"
+
 #define CMD NumArrayConvDouble
 #define INTRES double
 #define INTOP *result = op;

@@ -85,6 +85,7 @@ SUBCOMMAND(NumArrayGetCmd);
 SUBCOMMAND(NumArrayFastCopyCmd);
 SUBCOMMAND(NumArrayFastAddCmd);
 SUBCOMMAND(NumArrayLinRegCmd);
+SUBCOMMAND(NumArrayConvIntCmd);
 SUBCOMMAND(NumArrayConvDoubleCmd);
 SUBCOMMAND(NumArrayConvComplexCmd);
 SUBCOMMAND(NumArrayAbsCmd);
