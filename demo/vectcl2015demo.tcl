@@ -131,6 +131,8 @@ snit::widgetadaptor ImgCalculator {
 	component slider2
 	component slider3
 
+	variable playbuttons
+
 	constructor {args} {
 		installhull $win
 
@@ -200,7 +202,8 @@ snit::widgetadaptor ImgCalculator {
 			ttk::entry $slfr.rmax$sl -textvariable [myvar r${sl}max] -width 10
 			install slider$sl using ttk::scale $slfr.$sl -from 0.0 -to 1.0 \
 				-variable [myvar r${sl}raw] -command [mymethod Run]
-			grid $slfr.rmin$sl $slfr.$sl $slfr.rmax$sl -sticky nsew 
+			lappend playbuttons [ttk::button $slfr.ranim$sl -text "\u25b6" -command [mymethod AnimateSwitch r${sl}] -style Toolbutton]
+			grid $slfr.rmin$sl $slfr.$sl $slfr.ranim$sl $slfr.rmax$sl -sticky nsew 
 		}
 		grid columnconfigure $slfr 1 -weight 1
 
@@ -291,20 +294,35 @@ snit::widgetadaptor ImgCalculator {
 		$codeedit highlight 1.0 end
 	}
 
-	variable AnimateID
+	variable AnimateID {}
 	method Animate {register} {
 		upvar 0 ${register}raw reg
 		set reg [expr {$reg+0.01}]
 		if {$reg > 1.0} { set reg 0.0 }
 		set AnimateID [after 50 [mymethod Animate $register]]
 		if {[catch {$self Run} err]} {
-			after cancel $AnimateID
+			$self AnimateStop
 			error $err
 		}
 	}
 	
 	method AnimateStop {} {
 		after cancel $AnimateID
+		set AnimateID {}
+	}
+
+	method AnimateSwitch {reg} {
+		if {$AnimateID eq {}} {
+			foreach btn $playbuttons {
+				$btn configure -text "\u2161"
+			}
+			$self Animate $reg
+		} else {
+			$self AnimateStop
+			foreach btn $playbuttons {
+				$btn configure -text \u25b6
+			}
+		}
 	}
 }
 
