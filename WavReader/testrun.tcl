@@ -1,33 +1,75 @@
 lappend auto_path .. .
 package require vectcl
 package require WavReader
+package require fileutil
 
 namespace import vectcl::*
 
-set wavinput [numarray::readwav /Users/chris/Audio/tinnitus1.wav]
-set data [dict get $wavinput data]
+proc loudness {fn} {
+	set wavinput [numarray::readwav $fn]
+	set data [dict get $wavinput data]
 
-puts "Read data, [numarray info $data]"
+	puts "Read data, [numarray info $data]"
 
-set samplerate [dict get $wavinput samplerate]
-set nsamples [dict get $wavinput nsamples]
+	set samplerate [dict get $wavinput samplerate]
+	set nsamples [dict get $wavinput nsamples]
+	set channels [dict get $wavinput channels]
+	set framesize 20 ;# milliseconds
 
-set framesize 20 ;# milliseconds
+	set framesamples [expr {$framesize*$samplerate/1000}]
 
-set framesamples [expr {$framesize*$samplerate/1000}]
+	puts "samplerate=$samplerate, framesamples=$framesamples, channels=$channels, nsamples=$nsamples"
+
+	vexpr {
+		# create vector to hold result
+		rms=zeros(nsamples/framesamples+1)
+		j=0
+		for i=0:nsamples-framesamples-1:framesamples {
+			frame=data[i:i+framesamples-1,0]
+			loud=sqrt(frame'*frame)/framesamples
+			rms[j]=loud
+			j=j+1
+		}
+	}
+	set ::data $data
+	return $rms
+}
+
+if {0} {
+	set fd [open loudness.dat w]
+	puts $fd [join $rms \n]
+	close $fd
+}
+
+set zoomdata [loudness /Users/chris/Video/EuroTcl2015/TCTRoast/SR001XY.WAV]
+fileutil::writeFile zoomloud.dat [join $zoomdata \n]
+set vid1data [loudness /Users/chris/Video/EuroTcl2015/TCTRoast/vid2.wav]
+fileutil::writeFile vid1loud.dat [join $vid1data \n]
+
+# computing the crosscorrelation
+set corrsize 1000 ;# 1000 frames = 20 seconds
+set offset 500 ;# ten seconds after start, to remove powering noises
 
 vexpr {
-	# create vector to hold result
-	rms=zeros(nsamples/framesamples+1)
-	j=0
-	for i=0:nsamples-framesamples-1:framesamples {
-		frame=data[i:i+framesamples-1,0]
-		loud=frame'*frame
-		rms[j]=loud
-		j=j+1
+	fingerprint = (vid1data[offset:offset+corrsize-1])'
+	fingerprint ./= sqrt(fingerprint*fingerprint')
+	
+	maxind=0
+	max=0
+	corrdata=zeros(rows(zoomdata))
+	for i=0:rows(zoomdata)-offset-corrsize-1 {
+		test=zoomdata[i+offset:i+offset+corrsize-1]
+		# normalized correlation
+		crosscorr=fingerprint*test / sqrt(test'*test)
+		corrdata[i]=crosscorr
+		if crosscorr > max {
+			max = crosscorr
+			maxind=i
+		}
 	}
 }
 
-set fd [open loudness.dat w]
-puts $fd [join $rms \n]
-close $fd
+
+fileutil::writeFile crosscorr.dat [join $corrdata \n]
+
+puts "Offset: [expr {$maxind*0.02}] s"

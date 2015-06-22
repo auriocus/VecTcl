@@ -165,7 +165,7 @@ int ReadWavCmd(ClientData dummy, Tcl_Interp *interp, int objc, Tcl_Obj *const *o
 			expected_samples = samplesleft;
 		}
 
-		ssize_t samplesread = fread(samples, samplesize, BLOCKSIZE, wfile);
+		ssize_t samplesread = fread(samples, samplesize, expected_samples, wfile);
 		
 		if (samplesread < expected_samples) {
 			/* file was truncated */
@@ -180,7 +180,7 @@ int ReadWavCmd(ClientData dummy, Tcl_Interp *interp, int objc, Tcl_Obj *const *o
 		samplesleft -= samplesread;
 
 		size_t i;
-		for (i=0; i<samplesread; i++) {
+		for (i=0; i<samplesread*channels; i++) {
 			*mPtr++ = ((double)(samples[i]))/smaxval;
 		}
 
