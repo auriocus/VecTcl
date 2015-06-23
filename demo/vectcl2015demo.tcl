@@ -69,7 +69,7 @@ set samplecode {
 			z
 		}
 		r1min 0.0 r1max 10.0 r1raw 0.2 r2min 0.05 r2max 0.5
-		r3min 0.0 r3max 62.832
+		r3min 0.0 r3max 62.832 normalize 0
 
 	}
 	
@@ -80,7 +80,7 @@ set samplecode {
 			z=input
 			z[:,:,3].*=r1
 		}
-		r1min 0.0 r1max 2.0
+		r1min 0.0 r1max 2.0 normalize 0
 	}
 
 	Daytime {
@@ -90,7 +90,7 @@ set samplecode {
 			z=input
 			z[:,:,0:1].*=r1
 		}
-		r1min 0.0 r1max 2.0
+		r1min 0.0 r1max 2.0 normalize 0
 	}
 }
 
@@ -319,6 +319,7 @@ snit::widgetadaptor ImgCalculator {
 			$self AnimateStop
 			error $err
 		}
+		update idletask
 	}
 	
 	method AnimateStop {} {
