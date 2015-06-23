@@ -10,17 +10,10 @@ package require snit
 package require ctext
 
 set samplecode {
-	Plot {
-		code {
-			sin(x).*sin(y)
-		}
-		xmin -5 xmax 5
-		ymin -5 ymax 5
-		normalize 1
-	}
-
 	ParametricPlot {
 		code {
+			# square grid. Pull the sliders 1 and 2
+			# to change the wavelength
 			sin(r1.*x).*sin(r2.*y)
 		}
 		xmin -5 xmax 5
@@ -31,8 +24,11 @@ set samplecode {
 
 	PlotComplex {
 		code {
-			z=exp(x/r1+y/r1*1i)
 			# plotting the complex square root
+			# as red and green channels. Pull slider 1
+			# to adjust the size
+			
+			z=sqrt(x/r1+y/r1*1i)
 			display=ones(height,width,3)
 			display[:,:,0]=real(z)
 			display[:,:,1]=imag(z)
@@ -47,6 +43,12 @@ set samplecode {
 
 	Polkadots {
 		code {
+			# Same plot as Parametric
+			# Plot, but thresholded pull
+			# slider 3 to change from
+			# square grid to polka dot
+			# pattern, and sliders 1 and
+			# for wavelength
 			double(sin(r1.*x).*sin(r2.*y) > r3)
 		}
 		xmin -10 xmax 10
@@ -57,6 +59,8 @@ set samplecode {
 
 	Wiggle {
 		code {
+			# simulate water waves. Try
+			# animating slider 2 or 3.
 			z=input
 			for i=0:height-1 {
 				xt=max(0,int(r1*(1+sin(r2*i+r3))))
@@ -64,13 +68,15 @@ set samplecode {
 			}
 			z
 		}
-		r1min 0.0 r1max 10.0 r2min 0.05 r2max 0.5
+		r1min 0.0 r1max 10.0 r1raw 0.2 r2min 0.05 r2max 0.5
 		r3min 0.0 r3max 62.832
 
 	}
 	
 	Alpha {
 		code {
+			# fading an image out using
+			# the alpha channel
 			z=input
 			z[:,:,3].*=r1
 		}
@@ -79,6 +85,8 @@ set samplecode {
 
 	Daytime {
 		code {
+			# simulate sunshine and
+			# night shadow. 
 			z=input
 			z[:,:,0:1].*=r1
 		}
@@ -162,6 +170,7 @@ snit::widgetadaptor ImgCalculator {
 		ctext::addHighlightClass $codeedit keywords {#00A000} {if while for}
 		ctext::addHighlightClassForRegexp $codeedit number {#FF80FF} {\y\d+(\.\d+)?((e|E)(\+|-)?\d+)?(i|I)?\y}
 		ctext::addHighlightClassForRegexp $codeedit operator {#A02000} {(\.?[-+*/\\])|==|<|>|!=|<=|>=|%|not|\|\||&&}
+		ctext::addHighlightClassForRegexp $codeedit comment {#3030A0} {#[^\n]*}
 		ctext::addHighlightClassForRegexp $codeedit builtins {#3030FF} {\y(create|constfill|eye|info|dimensions|shape|reshape|transpose|adjoint|slice|concat|diag|int|double|complex|abs|sign|real|imag|arg|conj|sin|cos|tan|exp|log|log10|sqrt|sinh|cosh|tanh|asin|acos|atan|asinh|acosh|atanh|qreco|eigv|eig|svd1|svd|schur|sum|min|max|mean|std|std1|all|any|fft|ifft)\y}
 		# color linenumbers
 		$codeedit configure -linemapfg #B06000 -linemapbg grey90 -highlightthickness 0 -padx 3
@@ -169,7 +178,7 @@ snit::widgetadaptor ImgCalculator {
 		set btnbar [ttk::frame $cntfr.btnbar]
 		# also show a run button
 		set runBtn [ttk::button $btnbar.runbtn -text "Run!" -command [mymethod Run]]
-		set loadBtn [ttk::button $btnbar.loadbtn -text "Open..." -command [mymethod Open]]
+		set loadBtn [ttk::button $btnbar.loadbtn -text "Open..." -command [mymethod OpenGUI]]
 		set normBtn [ttk::checkbutton $btnbar.norm -text "Normalize" -variable [myvar normalize]]
 		pack $runBtn $loadBtn $normBtn -side left
 
@@ -216,7 +225,8 @@ snit::widgetadaptor ImgCalculator {
 		grid columnconfigure $cntfr 0 -weight 1
 		grid rowconfigure $cntfr $codeedit -weight 1
 		
-
+		# now load the hugarian desert image
+		$self Open [file join [file dirname [info script]] somloi_galuska.png]
 	}
 
 	method Run {args} {
@@ -249,9 +259,9 @@ snit::widgetadaptor ImgCalculator {
 	}
 
 
-	method Open {} {
+	method Open {fn} {
 		$imgdisp configure -width 0 -height 0
-		$imgdisp read -shrink somloi_galuska.png
+		$imgdisp read -shrink $fn
 		set input [numarray::fromPhoto $imgdisp]
 
 		set width [image width $imgdisp]
@@ -266,6 +276,11 @@ snit::widgetadaptor ImgCalculator {
 		}
 	}
 
+	method OpenGUI {} {
+		set fn [tk_getOpenFile -message {select any image, it should fit on the screen}]
+		if {$fn ne {}} { $self Open $fn }
+	}	
+
 	method loadsamplecode {} {
 		set codelet [dict get $::samplecode $codeletname]
 		# assign all variables from this code - I like the danger :)
@@ -277,14 +292,13 @@ snit::widgetadaptor ImgCalculator {
 		set codeline [lrange [split $code \n] 1 end]
 		regexp {^\s+} [lindex $codeline 0] ws
 		set skiplen [string length $ws]
-		puts "skiplen = $skiplen, ws=>$ws<"
 		set code {}
 		foreach line $codeline {
 			set wstart [string range $line 0 $skiplen-1]
 			if {$wstart eq $ws} {
 				set line [string range $line $skiplen end]
 			} else {
-				puts ">$wstart< != >$ws<"
+				# puts ">$wstart< != >$ws<"
 			}
 			append code "$line\n"
 		}
@@ -292,6 +306,7 @@ snit::widgetadaptor ImgCalculator {
 		$codeedit delete 1.0 end
 		$codeedit insert end $code
 		$codeedit highlight 1.0 end
+		$self Run
 	}
 
 	variable AnimateID {}

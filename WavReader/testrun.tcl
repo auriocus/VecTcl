@@ -37,7 +37,7 @@ proc loudness {fn} {
 
 set zoomdata [loudness /Users/chris/Video/EuroTcl2015/05-AlexandruDadalau/SR001XY.WAV]
 fileutil::writeFile zoomloud.dat [join $zoomdata \n]
-set vid1data [loudness /Users/chris/Video/EuroTcl2015/05-AlexandruDadalau/MVI_9904.wav]
+set vid1data [loudness /Users/chris/Video/EuroTcl2015/05-AlexandruDadalau/MVI_9905.wav]
 fileutil::writeFile vid1loud.dat [join $vid1data \n]
 
 # computing the crosscorrelation
