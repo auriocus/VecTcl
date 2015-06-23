@@ -22,7 +22,7 @@ discover possible limitations.
 For the talk, a [demo application](https://github.com/auriocus/VecTcl/blob/master/demo/vectcl2015demo.tcl) was prepared
 which allows to manipulate an image by a VecTcl expression. To try it, open a
 small image, select a code preset (e.g. Daytime or Wiggle) and pull the sliders
-at the bottom underneath the code window. Click the image below link below for a video
+at the bottom underneath the code window. Click the image below for a video
 demonstration of the program.
 [![Screenshot of the image processing demonstration]({{site.baseurl}}/images/EuroTcl_2015_image_processing_demo.png)](http://youtu.be/88J0tVFE_ic)
 
@@ -30,7 +30,7 @@ In order to read and write image data, a bridge was created between a Tk photo i
 array as a VecTcl extension
 ([vectk](https://github.com/auriocus/VecTcl/blob/master/TkBridge/)). This
 extension must be loaded after VecTcl and Tk. In this
-way, VecTcl itself does not link against Tk and continues to work in a pure Tcl.
+way, VecTcl itself does not link against Tk and continues to work in a pure Tcl environment.
 The extension provides two new commands, `numarray::fromPhoto` and
 `numarray::toPhoto`, which convert numerical arrays to and from a Tk photo
 image. A grayscale image is stored as a 2D array of doubles, ranging from 0 to
@@ -81,14 +81,14 @@ enough, but doesn't generalize for arbitrary deformations, for instance it
 would not be possible to have the waves travel diagonally or do magnifications
 and such. Implementing indexing would require a major rethinking of the slicing
 infrastructure, but is certainly worth it. A Tcl level loop running over all
-pixels would be an order of magnitude slower than this. 
+pixels would be an order of magnitude slower than that. 
 
 ## Sound processing
 At the [EuroTcl 2015 event](http://www.eurotcl.tcl3d.org/), the talks have been
 recorded using a Canon EOS 550D DSLR. Sound was additionally captured by a
 portable Zoom H2n recorder, attached to the speaker using a belt clip. While the
 DLSR provides excellent video quality, the sound is poor due to the large
-distance to the speaker. Additionally, recording stops after ~15 min and resumes
+distance to the speaker. Additionally, the recording stops after ~15 min and resumes
 only a few seconds later. In order to synchronize the externally recorded sound
 with the video, almost 40 movies need to be aligned to the soundtrack. 
 
@@ -104,16 +104,16 @@ PCM wave files, however that is the most common case.
 Pattern matching in signal processing is usually done using some kind of
 correlation function. In this case, it makes no sense to do a direct
 cross-correlation of the raw audio data, because the phase of the sound between both microphones
-is necessarily different. Instead, 
-[the matching program](https://github.com/auriocus/VecTcl/blob/master/WavReader/testrun.tcl)
+is different. Instead, 
+[the sound matching program](https://github.com/auriocus/VecTcl/blob/master/WavReader/testrun.tcl)
 first reduces the audio data into a loudness profile, by dividing the track into
 frames of 20 ms and computing the RMS value of each frame. The RMS data is then
 matched (with an accuracy of 20 ms) between both recorded tracks using shifted
-normalized cross-correlation. This works extremely well for the setting.
+normalized cross-correlation. It works extremely well for this setting.
 
 ![cross correlation between two sound snippets]({{site.baseurl}}/images/crosscorr_sound.png)
 
-The above figure displays the cross correlation of one of the recorded movies
+The above figure displays the cross correlation of one of the recorded movie
 fragments to the separate soundtrack. The sharp spike at 1104 s corresponds to
 the shift to match both sound tracks. It can be easily detected by finding the
 maximum, and is accurate to within one frame. 
@@ -130,12 +130,12 @@ thus cutting down the memory requirements by a factor of four. It would also
 allow more general file handling of polymorphic files. For example, a wave file
 can also contain 32bit floating point data instead of 16bit integers. The TIFF
 file format can contain almost any standard integer and floating point data from
-8bit up to 64bit. Support for more integer and floating point data type would
+8bit up to 64bit. Support for more integer and floating point data types would
 enable VecTcl to read and write such files in a lossless way.
 
 However, in the current code base, polymorphic data is handled by preprocessor
 macros, which push the C preprocessor to its limits. Scaling up the data types
-from currently 4 (64bit integer, double, complex double) to a large number of
+from currently 3 (64bit integer, double, complex double) to a large number of
 signed and unsigned integers of different size, real and complex floating
 point of different size, would drastically increase these tables until they
 become unmanageable. Another solution, using either a Tcl script to generate the
@@ -147,7 +147,7 @@ reconsidered.
 * VecTcl is suitable for multimedia processing in its current state. However, a
   bit functionality is still missing
 * Most pressing would be indexing, to allow for fast distortion/interpolation
-  options
+  operations
 * Finite width data types and bignums are next on the wishlist, however this
   calls for an architectural change
 * Minor missing functionality, like standard math functions, cross correlation
