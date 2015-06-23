@@ -66,10 +66,13 @@ indexing like in `a[3]` by translating it into a slice reaching from 3 to 3
 no way to express an arbitrary sequence of non-contiguous indices. Such a
 feature is provided by other array languages and could be used to implement
 image distortion very easily, like in the Wiggle example
-```matlab
+
+{% highlight matlab %}
+{% raw %}
 	ind=int(x+10*sin(y))
 	input[ind]
-```
+{% endraw %}
+{% endhighlight %}
 
 The current code uses a for loop to iterate over the lines. It is still fast
 enough, but doesn't generalize for arbitrary deformations, for instance it
@@ -87,3 +90,28 @@ distance to the speaker. Additionally, recording stops after ~15 min and resumes
 only a few seconds later. In order to synchronize the externally recorded sound
 with the video, almost 40 movies need to be aligned to the soundtrack. 
 
+As an experiment, a program was developed using VecTcl which automatically
+synchronizes the videos to the external soundtrack based on the matching to
+the internal sound. 
+Before the computation can be done, the sound data must be converted into a
+VecTcl array. This is accomplished by another extension, which reads in WAVE
+files, [WavReader](https://github.com/auriocus/VecTcl/blob/master/WavReader/).
+This is extension is currently restricted to little endian machines and 16 bit
+PCM wave files, however that is the most common case.
+
+Pattern matching in signal processing is usually done using some kind of
+correlation function. In this case, it makes no sense to do a direct
+cross-correlation of the raw audio data, because the phase of the sound between both microphones
+is necessarily different. Instead, 
+[the matching program](https://github.com/auriocus/VecTcl/blob/master/WavReader/testrun.tcl)
+first reduces the audio data into a loudness profile, by dividing the track into
+frames of 20 ms and computing the RMS value of each frame. The RMS data is then
+matched (with an accuracy of 20 ms) between both recorded tracks using shifted
+normalized cross-correlation. This works extremely well for the setting.
+
+![cross correlation between two sound snippets]({{site.baseurl}}/images/crosscorr_sound.png)
+
+The above figure displays the cross correlation of one of the recorded movies
+fragments to the separate soundtrack. The sharp spike at 1104 s corresponds to
+the shift to match both sound tracks. It can be easily detected by finding the
+maximum, and is accurate to within one frame. 
