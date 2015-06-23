@@ -22,7 +22,9 @@ discover possible limitations.
 For the talk, a [demo application](https://github.com/auriocus/VecTcl/blob/master/demo/vectcl2015demo.tcl) was prepared
 which allows to manipulate an image by a VecTcl expression. To try it, open a
 small image, select a code preset (e.g. Daytime or Wiggle) and pull the sliders
-at the bottom underneath the code window. 
+at the bottom underneath the code window. Click the image below link below for a video
+demonstration of the program.
+[![Screenshot of the image processing demonstration]({{site.baseurl}}/images/EuroTcl_2015_image_processing_demo.png)](https://www.youtube.com/watch?v=VwWEelYt5K8)
 
 In order to read and write image data, a bridge was created between a Tk photo image and a VecTcl
 array as a VecTcl extension
@@ -115,3 +117,38 @@ The above figure displays the cross correlation of one of the recorded movies
 fragments to the separate soundtrack. The sharp spike at 1104 s corresponds to
 the shift to match both sound tracks. It can be easily detected by finding the
 maximum, and is accurate to within one frame. 
+
+### Missing functionality and bugs
+Implementing the sound processing revealed a bug in basic VecTcl, an integer
+overflow for arrays larger than 2GB on 64bit systems. That bug was fixed.
+Extensions to VecTcl need to be recompiled. 
+
+A more general missing feature is the availability of fixed-width integer
+arrays. If VecTcl could handle 16 bit integers natively, there would be no need
+to convert the whole soundfile to double precision floating point upon loading,
+thus cutting down the memory requirements by a factor of four. It would also
+allow more general file handling of polymorphic files. For example, a wave file
+can also contain 32bit floating point data instead of 16bit integers. The TIFF
+file format can contain almost any standard integer and floating point data from
+8bit up to 64bit. Support for more integer and floating point data type would
+enable VecTcl to read and write such files in a lossless way.
+
+However, in the current code base, polymorphic data is handled by preprocessor
+macros, which push the C preprocessor to its limits. Scaling up the data types
+from currently 4 (64bit integer, double, complex double) to a large number of
+signed and unsigned integers of different size, real and complex floating
+point of different size, would drastically increase these tables until they
+become unmanageable. Another solution, using either a Tcl script to generate the
+C code or C++ templates, must be sought. So far, VecTcl refrained from using the
+C++ compiler, but if this provides the best options, this decision needs to be
+reconsidered.
+
+## Conclusion
+* VecTcl is suitable for multimedia processing in its current state. However, a
+  bit functionality is still missing
+* Most pressing would be indexing, to allow for fast distortion/interpolation
+  options
+* Finite width data types and bignums are next on the wishlist, however this
+  calls for an architectural change
+* Minor missing functionality, like standard math functions, cross correlation
+  primitives or I/O for multimedia files can be added with a few lines of code
