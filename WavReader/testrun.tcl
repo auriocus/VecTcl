@@ -35,9 +35,9 @@ proc loudness {fn} {
 	return $rms
 }
 
-set zoomdata [loudness /Users/chris/Video/EuroTcl2015/01-CsabaNemethi/SR001XY.WAV]
+set zoomdata [loudness /Users/chris/Video/EuroTcl2015/05-AlexandruDadalau/SR001XY.WAV]
 fileutil::writeFile zoomloud.dat [join $zoomdata \n]
-set vid1data [loudness /Users/chris/Video/EuroTcl2015/01-CsabaNemethi/MVI_9888.wav]
+set vid1data [loudness /Users/chris/Video/EuroTcl2015/05-AlexandruDadalau/MVI_9904.wav]
 fileutil::writeFile vid1loud.dat [join $vid1data \n]
 
 # computing the crosscorrelation
@@ -46,6 +46,7 @@ set offset 500 ;# ten seconds after start, to remove powering noises
 
 vexpr {
 	fingerprint = (vid1data[offset:offset+corrsize-1])'
+	fingerprint -= mean(fingerprint,1)
 	fingerprint ./= sqrt(fingerprint*fingerprint')
 	
 	maxind=0
@@ -53,9 +54,12 @@ vexpr {
 	corrdata=zeros(rows(zoomdata))
 	for i=0:rows(zoomdata)-offset-corrsize-1 {
 		test=zoomdata[i+offset:i+offset+corrsize-1]
+		test-=mean(test)
 		# normalized correlation
-		crosscorr=fingerprint*test / sqrt(test'*test)
-		corrdata[i]=crosscorr
+		n=sqrt(test'*test)
+		if n==0 { puts(test) } else {
+		crosscorr=fingerprint*test ./ sqrt(test'*test)
+		corrdata[i]=crosscorr }
 		if crosscorr > max {
 			max = crosscorr
 			maxind=i
