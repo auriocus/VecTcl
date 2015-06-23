@@ -187,6 +187,7 @@ int ReadWavCmd(ClientData dummy, Tcl_Interp *interp, int objc, Tcl_Obj *const *o
 	}
 
 	fclose(wfile);
+	ckfree(samples);
 	/* build up dictionary with metadata */
 	Tcl_Obj *result = Tcl_NewObj();
 	
@@ -227,7 +228,11 @@ int Wavreader_Init(Tcl_Interp *interp) {
 		return TCL_ERROR;
 	}
 
-	Tcl_CreateObjCommand(interp, "numarray::readwav", ReadWavCmd, NULL, NULL);
+	if (Tcl_Eval(interp, "namespace eval wavreader {}") != TCL_OK) {
+		return TCL_ERROR;
+	}
+
+	Tcl_CreateObjCommand(interp, "wavreader::readwav", ReadWavCmd, NULL, NULL);
 
 	Tcl_PkgProvide(interp, PACKAGE_NAME, PACKAGE_VERSION);
 

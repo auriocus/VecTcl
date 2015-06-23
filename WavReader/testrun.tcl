@@ -6,7 +6,7 @@ package require fileutil
 namespace import vectcl::*
 
 proc loudness {fn} {
-	set wavinput [numarray::readwav $fn]
+	set wavinput [wavreader::readwav $fn]
 	set data [dict get $wavinput data]
 
 	puts "Read data, [numarray info $data]"
@@ -35,15 +35,9 @@ proc loudness {fn} {
 	return $rms
 }
 
-if {0} {
-	set fd [open loudness.dat w]
-	puts $fd [join $rms \n]
-	close $fd
-}
-
-set zoomdata [loudness /Users/chris/Video/EuroTcl2015/TCTRoast/SR001XY.WAV]
+set zoomdata [loudness /Users/chris/Video/EuroTcl2015/01-CsabaNemethi/MVI_9888.wav]
 fileutil::writeFile zoomloud.dat [join $zoomdata \n]
-set vid1data [loudness /Users/chris/Video/EuroTcl2015/TCTRoast/vid2.wav]
+set vid1data [loudness /Users/chris/Video/EuroTcl2015/01-CsabaNemethi/SR001XY.WAV]
 fileutil::writeFile vid1loud.dat [join $vid1data \n]
 
 # computing the crosscorrelation
@@ -73,3 +67,4 @@ vexpr {
 fileutil::writeFile crosscorr.dat [join $corrdata \n]
 
 puts "Offset: [expr {$maxind*0.02}] s"
+puts "Length: [vexpr {rows(vid1data)*0.02}]
