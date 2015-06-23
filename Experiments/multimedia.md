@@ -24,7 +24,7 @@ which allows to manipulate an image by a VecTcl expression. To try it, open a
 small image, select a code preset (e.g. Daytime or Wiggle) and pull the sliders
 at the bottom underneath the code window. Click the image below link below for a video
 demonstration of the program.
-[![Screenshot of the image processing demonstration]({{site.baseurl}}/images/EuroTcl_2015_image_processing_demo.png)](https://www.youtube.com/watch?v=VwWEelYt5K8)
+[![Screenshot of the image processing demonstration]({{site.baseurl}}/images/EuroTcl_2015_image_processing_demo.png)](http://youtu.be/88J0tVFE_ic)
 
 In order to read and write image data, a bridge was created between a Tk photo image and a VecTcl
 array as a VecTcl extension
