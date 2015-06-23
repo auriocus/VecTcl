@@ -133,7 +133,7 @@ static inline NumArrayInfo * AllocNumArrayInfo(int nDim) {
 	NumArrayInfo* result = (NumArrayInfo *)allocptr;
 	result -> nDim = nDim;
 	result -> dims = (int*) (allocptr+sizeof(NumArrayInfo));
-	result -> pitches = (int*) (allocptr+sizeof(NumArrayInfo)+sizeof(int)*nDim);
+	result -> pitches = (ssize_t*) (allocptr+sizeof(NumArrayInfo)+sizeof(int)*nDim);
 	return result;
 }
 

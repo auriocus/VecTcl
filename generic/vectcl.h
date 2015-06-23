@@ -53,11 +53,11 @@ int NumArrayType_SizeOf(NumArrayType type);
 typedef struct  {
 	NumArrayType type;
 	int nDim;
-	int bufsize;
-	int offset;
+	size_t bufsize;
+	ssize_t offset;
 	int canonical;
 	int *dims;
-	int *pitches;
+	ssize_t *pitches;
 } NumArrayInfo;
 
 /* Constructor, destructor, copy constructor for NumArrayInfo */

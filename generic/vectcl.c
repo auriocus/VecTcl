@@ -577,16 +577,16 @@ NumArrayInfoCmd(
 	}
 	Tcl_DictObjPut(interp, infodict, Tcl_NewStringObj("dimensions", -1), plist);
 	
-	Tcl_DictObjPut(interp, infodict, Tcl_NewStringObj("offset", -1), Tcl_NewIntObj(info->offset));
+	Tcl_DictObjPut(interp, infodict, Tcl_NewStringObj("offset", -1), Tcl_NewWideIntObj(info->offset));
 
 	plist = Tcl_NewObj();
 	for (i=0; i<info->nDim; i++) {
-		Tcl_ListObjAppendElement(interp, plist,  Tcl_NewIntObj(info->pitches[i]));
+		Tcl_ListObjAppendElement(interp, plist,  Tcl_NewWideIntObj(info->pitches[i]));
 	}
 	Tcl_DictObjPut(interp, infodict, Tcl_NewStringObj("pitches", -1), plist);
 	
 	Tcl_DictObjPut(interp, infodict, Tcl_NewStringObj("canonical", -1), Tcl_NewBooleanObj(info->canonical));
-	Tcl_DictObjPut(interp, infodict, Tcl_NewStringObj("bufsize", -1), Tcl_NewIntObj(info->bufsize));
+	Tcl_DictObjPut(interp, infodict, Tcl_NewStringObj("bufsize", -1), Tcl_NewWideIntObj(info->bufsize));
 	Tcl_DictObjPut(interp, infodict, Tcl_NewStringObj("refcount", -1), Tcl_NewIntObj(sharedbuf->refcount));
 	Tcl_DictObjPut(interp, infodict, Tcl_NewStringObj("type", -1), Tcl_NewIntObj(info->type));
 

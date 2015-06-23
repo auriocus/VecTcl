@@ -35,9 +35,9 @@ proc loudness {fn} {
 	return $rms
 }
 
-set zoomdata [loudness /Users/chris/Video/EuroTcl2015/01-CsabaNemethi/MVI_9888.wav]
+set zoomdata [loudness /Users/chris/Video/EuroTcl2015/01-CsabaNemethi/SR001XY.WAV]
 fileutil::writeFile zoomloud.dat [join $zoomdata \n]
-set vid1data [loudness /Users/chris/Video/EuroTcl2015/01-CsabaNemethi/SR001XY.WAV]
+set vid1data [loudness /Users/chris/Video/EuroTcl2015/01-CsabaNemethi/MVI_9888.wav]
 fileutil::writeFile vid1loud.dat [join $vid1data \n]
 
 # computing the crosscorrelation
@@ -67,4 +67,4 @@ vexpr {
 fileutil::writeFile crosscorr.dat [join $corrdata \n]
 
 puts "Offset: [expr {$maxind*0.02}] s"
-puts "Length: [vexpr {rows(vid1data)*0.02}]
+puts "Length: [vexpr {rows(vid1data)*0.02}]"
