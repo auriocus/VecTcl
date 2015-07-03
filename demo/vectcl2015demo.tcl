@@ -277,7 +277,7 @@ snit::widgetadaptor ImgCalculator {
 	}
 
 	method OpenGUI {} {
-		set fn [tk_getOpenFile -message {select any image, it should fit on the screen}]
+		set fn [tk_getOpenFile -title {select any image, it should fit on the screen}]
 		if {$fn ne {}} { $self Open $fn }
 	}	
 
