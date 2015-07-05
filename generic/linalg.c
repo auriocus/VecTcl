@@ -123,8 +123,8 @@ int QRDecompositionColMaj(Tcl_Interp * interp, Tcl_Obj *matrix, Tcl_Obj **qr, Tc
 	}
 
 	/* get dimensions */
-	const int m = minfo -> dims[0];
-	const int n = minfo -> dims[1];
+	const index_t m = minfo -> dims[0];
+	const index_t n = minfo -> dims[1];
 
 	if (m < n) {
 		Tcl_SetResult(interp, "matrix has more columns than rows in QR", NULL);
@@ -161,11 +161,11 @@ int QRDecompositionColMaj(Tcl_Interp * interp, Tcl_Obj *matrix, Tcl_Obj **qr, Tc
 	double *Rdiag = (double *)NumArrayGetPtrFromSharedBuffer(rsharedbuf);
 
 	/* Main loop. */
-	int k;
+	index_t k;
 	for (k = 0; k < n; k++) {
 		/* Compute 2-norm of k-th column without under/overflow. */
 		double nrm = 0;
-		int i;
+		index_t i;
 		/* Use direct formula ? */
 		for (i = k; i < m; i++) {
 			nrm +=QR(i,k)*QR(i,k);
@@ -177,17 +177,17 @@ int QRDecompositionColMaj(Tcl_Interp * interp, Tcl_Obj *matrix, Tcl_Obj **qr, Tc
 			if (QR(k,k) < 0) {	
 				nrm = -nrm;
 			}
-			int i;
+			index_t i;
 			for (i = k; i < m; i++) {
 				QR(i,k) /= nrm;
 			}
 			QR(k,k) += 1.0;
 
 			/* Apply transformation to remaining columns. */
-			int j;
+			index_t j;
 			for (j = k+1; j < n; j++) {
 				double s = 0.0; 
-				int i;
+				index_t i;
 				for (i = k; i < m; i++) {
 					s += QR(i,k)*QR(i,j);
 				}
@@ -208,8 +208,8 @@ int QRDecompositionColMaj(Tcl_Interp * interp, Tcl_Obj *matrix, Tcl_Obj **qr, Tc
 int QRsolveColMaj(Tcl_Interp *interp, Tcl_Obj *qr, Tcl_Obj *rdiag, Tcl_Obj *B) {
 	
 	NumArrayInfo *QRinfo = qr -> internalRep.twoPtrValue.ptr2;
-	const int m = QRinfo -> dims[0];
-	const int n = QRinfo -> dims[1];
+	const index_t m = QRinfo -> dims[0];
+	const index_t n = QRinfo -> dims[1];
 
 	if (Tcl_ConvertToType(interp, B, &NumArrayTclType) != TCL_OK) {
 		return TCL_ERROR;
@@ -236,7 +236,7 @@ int QRsolveColMaj(Tcl_Interp *interp, Tcl_Obj *qr, Tcl_Obj *rdiag, Tcl_Obj *B) {
 
 	
 	/* Copy right hand side in column major format */
-	const int nx = Binfo -> nDim == 1 ? 1 : Binfo -> dims[1];
+	const index_t nx = Binfo -> nDim == 1 ? 1 : Binfo -> dims[1];
 	Tcl_Obj *Xobj = Tcl_NewObj();
 	NumArrayInfo *Xinfo = CreateNumArrayInfoColMaj(Binfo->nDim, Binfo->dims, NumArray_Float64);
 	NumArraySharedBuffer *Xsharedbuf = NumArrayNewSharedBuffer(Xinfo->bufsize);
@@ -261,12 +261,12 @@ int QRsolveColMaj(Tcl_Interp *interp, Tcl_Obj *qr, Tcl_Obj *rdiag, Tcl_Obj *B) {
 	#define QR(i, j) (QRbuf[i+j*m])
 
 	/* Compute Y = transpose(Q)*B */
-	int k;
+	index_t k;
 	for (k = 0; k < n; k++) {
-		int j;
+		index_t j;
 		for (j = 0; j < nx; j++) {
 			double s = 0.0;
-			int i;
+			index_t i;
 			for (i = k; i < m; i++) {
 				s += QR(i,k)*X(i,j);
 			}
@@ -278,13 +278,13 @@ int QRsolveColMaj(Tcl_Interp *interp, Tcl_Obj *qr, Tcl_Obj *rdiag, Tcl_Obj *B) {
 	}
 	/* Solve R*X = Y */
 	for (k = n-1; k >= 0; k--) {
-		int j;
+		index_t j;
 		for (j = 0; j < nx; j++) {
 			X(k,j) /= Rdiag[k];
 		}
-		int i;
+		index_t i;
 		for (i = 0; i < k; i++) {
-			int j;
+			index_t j;
 			for (j = 0; j < nx; j++) {
 				X(i,j) -= X(k,j)*QR(i,k);
 			}
@@ -319,8 +319,8 @@ int QRDecompositionColMajC(Tcl_Interp * interp, Tcl_Obj *matrix, Tcl_Obj **qr, T
 	}
 
 	/* get dimensions */
-	const int m = minfo -> dims[0];
-	const int n = minfo -> dims[1];
+	const index_t m = minfo -> dims[0];
+	const index_t n = minfo -> dims[1];
 
 	if (m < n) {
 		Tcl_SetResult(interp, "matrix has more columns than rows in QR", NULL);
@@ -357,11 +357,11 @@ int QRDecompositionColMajC(Tcl_Interp * interp, Tcl_Obj *matrix, Tcl_Obj **qr, T
 	NumArray_Complex *Rdiag = (NumArray_Complex *)NumArrayGetPtrFromSharedBuffer(rsharedbuf);
 
 	/* Main loop. */
-	int k;
+	index_t k;
 	for (k = 0; k < n; k++) {
 		/* Compute 2-norm of k-th column without under/overflow. */
 		double nrm = 0;
-		int i;
+		index_t i;
 		/* Use direct formula ? */
 		for (i = k; i < m; i++) {
 			NumArray_Complex v = QR(i, k);
@@ -381,17 +381,17 @@ int QRDecompositionColMajC(Tcl_Interp * interp, Tcl_Obj *matrix, Tcl_Obj **qr, T
 				alpha=NumArray_mkComplex(nrm, 0);
 			}
 			
-			int i;
+			index_t i;
 			for (i = k; i < m; i++) {
 				QR(i,k) = NumArray_ComplexDivide(QR(i, k), alpha);
 			}
 			QR(k,k).re += 1.0;
 
 			/* Apply transformation to remaining columns. */
-			int j;
+			index_t j;
 			for (j = k+1; j < n; j++) {
 				NumArray_Complex s = NumArray_mkComplex(0,0); 
-				int i;
+				index_t i;
 				for (i = k; i < m; i++) {
 					s = NumArray_ComplexAdd(s, NumArray_ComplexMultiply(NumArray_ComplexConj(QR(i,k)),QR(i,j)));
 				}
@@ -414,8 +414,8 @@ int QRDecompositionColMajC(Tcl_Interp * interp, Tcl_Obj *matrix, Tcl_Obj **qr, T
 int QRsolveColMajC(Tcl_Interp *interp, Tcl_Obj *qr, Tcl_Obj *rdiag, Tcl_Obj *B) {
 	
 	NumArrayInfo *QRinfo = qr -> internalRep.twoPtrValue.ptr2;
-	const int m = QRinfo -> dims[0];
-	const int n = QRinfo -> dims[1];
+	const index_t m = QRinfo -> dims[0];
+	const index_t n = QRinfo -> dims[1];
 
 	if (Tcl_ConvertToType(interp, B, &NumArrayTclType) != TCL_OK) {
 		return TCL_ERROR;
@@ -442,7 +442,7 @@ int QRsolveColMajC(Tcl_Interp *interp, Tcl_Obj *qr, Tcl_Obj *rdiag, Tcl_Obj *B) 
 
 	
 	/* Copy right hand side in column major format */
-	const int nx = Binfo -> nDim == 1 ? 1 : Binfo -> dims[1];
+	const index_t nx = Binfo -> nDim == 1 ? 1 : Binfo -> dims[1];
 	Tcl_Obj *Xobj = Tcl_NewObj();
 	NumArrayInfo *Xinfo = CreateNumArrayInfoColMaj(Binfo->nDim, Binfo->dims, NumArray_Complex128);
 	NumArraySharedBuffer *Xsharedbuf = NumArrayNewSharedBuffer(Xinfo->bufsize);
@@ -467,12 +467,12 @@ int QRsolveColMajC(Tcl_Interp *interp, Tcl_Obj *qr, Tcl_Obj *rdiag, Tcl_Obj *B) 
 	#define QR(i, j) (QRbuf[i+j*m])
 
 	/* Compute Y = transpose(Q)*B */
-	int k;
+	index_t k;
 	for (k = 0; k < n; k++) {
-		int j;
+		index_t j;
 		for (j = 0; j < nx; j++) {
 			NumArray_Complex s = NumArray_mkComplex(0,0); 
-			int i;
+			index_t i;
 			for (i = k; i < m; i++) {
 				s = NumArray_ComplexAdd(s, NumArray_ComplexMultiply(NumArray_ComplexConj(QR(i,k)),X(i,j)));
 			}
@@ -484,13 +484,13 @@ int QRsolveColMajC(Tcl_Interp *interp, Tcl_Obj *qr, Tcl_Obj *rdiag, Tcl_Obj *B) 
 	}
 	/* Solve R*X = Y */
 	for (k = n-1; k >= 0; k--) {
-		int j;
+		index_t j;
 		for (j = 0; j < nx; j++) {
 			X(k,j) = NumArray_ComplexDivide(X(k, j), Rdiag[k]);
 		}
-		int i;
+		index_t i;
 		for (i = 0; i < k; i++) {
-			int j;
+			index_t j;
 			for (j = 0; j < nx; j++) {
 				X(i,j) = NumArray_ComplexSubtract(X(i, j), NumArray_ComplexMultiply(X(k,j),QR(i,k)));
 			}
@@ -615,7 +615,7 @@ MODULE_SCOPE int solvedQRP(Tcl_Interp *interp, Tcl_Obj *A, Tcl_Obj *y, Tcl_Obj *
     double rcond=DBL_EPSILON*2;
 
     integer rank;
-    int mn=MAX(m, n);
+    index_t mn=MAX(m, n);
     integer lwork = MAX( mn+3*n+1, 2*mn+nrhs );
     doublereal *work = ckalloc(sizeof(doublereal)*lwork);
     integer info;

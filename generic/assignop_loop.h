@@ -16,10 +16,10 @@ static int ASSIGNOP_LOOP_FUN(CMD, TRES, T) (Tcl_Interp *interp, NumArraySharedBu
 
 		NumArrayIteratorInit(sliceinfo, sharedbuf, &cpyit);
 		TRES *result = NumArrayIteratorDeRefPtr(&cpyit);
-		const int cpypitch=NumArrayIteratorRowPitchTyped(&cpyit);
-		const int length = NumArrayIteratorRowLength(&cpyit);
+		const index_t cpypitch=NumArrayIteratorRowPitchTyped(&cpyit);
+		const index_t length = NumArrayIteratorRowLength(&cpyit);
 		while (result) {
-			int i;
+			index_t i;
 			for (i=0; i<length; i++) {
 				OP
 				result+=cpypitch;
@@ -37,13 +37,13 @@ static int ASSIGNOP_LOOP_FUN(CMD, TRES, T) (Tcl_Interp *interp, NumArraySharedBu
 		NumArrayIteratorInit(sliceinfo, sharedbuf, &cpyit);
 		NumArrayIteratorInitObj(NULL, value, &srcit); /* can't fail anymore */
 
-		const int srcpitch=NumArrayIteratorRowPitchTyped(&srcit);
-		const int cpypitch=NumArrayIteratorRowPitchTyped(&cpyit);
-		const int length = NumArrayIteratorRowLength(&srcit);
+		const index_t srcpitch=NumArrayIteratorRowPitchTyped(&srcit);
+		const index_t cpypitch=NumArrayIteratorRowPitchTyped(&cpyit);
+		const index_t length = NumArrayIteratorRowLength(&srcit);
 		TRES *result = NumArrayIteratorDeRefPtr(&cpyit);
 		T* opptr = NumArrayIteratorDeRefPtr(&srcit);
 		while (result) {
-			int i;
+			index_t i;
 			for (i=0; i<length; i++) {
 				TRES op = UPCAST(T, TRES, *opptr);
 				OP

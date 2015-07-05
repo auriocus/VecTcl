@@ -73,7 +73,7 @@ static int CreateNumArrayInfoFromList(Tcl_Interp *interp, Tcl_Obj* dimlist, NumA
 	 * TODO catch out of memory */
 	int d = 0;
 	int nDim;
-	int *dims = NULL;
+	index_t *dims = NULL;
 	
 	if (Tcl_ListObjLength(interp, dimlist, &nDim) != TCL_OK) {
 		return TCL_ERROR;
@@ -84,13 +84,13 @@ static int CreateNumArrayInfoFromList(Tcl_Interp *interp, Tcl_Obj* dimlist, NumA
 		return TCL_ERROR;
 	}
 	
-	dims = ckalloc(sizeof(int)*nDim);
+	dims = malloc(sizeof(index_t)*nDim);
 
 	for (d=0; d<nDim; d++) {
-		int dim;
+		Tcl_WideInt dim;
 		Tcl_Obj *dimObj;
 		Tcl_ListObjIndex(NULL, dimlist, d, &dimObj); /* can't fail */
-		if (Tcl_GetIntFromObj(interp, dimObj, &dim) != TCL_OK) {
+		if (Tcl_GetWideIntFromObj(interp, dimObj, &dim) != TCL_OK) {
 			goto cleandims;
 		}
 		
@@ -109,7 +109,7 @@ static int CreateNumArrayInfoFromList(Tcl_Interp *interp, Tcl_Obj* dimlist, NumA
 	}
 
 	*infoptr = CreateNumArrayInfo(nDim, dims, dtype);
-	ckfree(dims);
+	free(dims);
 	return TCL_OK;
 cleandims:
 	if (dims) ckfree(dims);
@@ -441,12 +441,12 @@ NumArrayConstFillCmd(
 	}
 	
 	int ndim = objc-2;
-	int *dims = ckalloc(sizeof(int)*ndim);
-	int nelem = 1;
+	index_t *dims = ckalloc(sizeof(index_t)*ndim);
+	index_t nelem = 1;
 	int d;
 	for (d=0; d<ndim; d++) {
-		int dim;
-		if (Tcl_GetIntFromObj(interp, objv[2+d], &dim) != TCL_OK) {
+		Tcl_WideInt dim;
+		if (Tcl_GetWideIntFromObj(interp, objv[2+d], &dim) != TCL_OK) {
 			goto cleandims;
 		}
 		/* only the first dim can be zero (for empty vector) */
@@ -468,7 +468,7 @@ NumArrayConstFillCmd(
 
 	/* Fill the buffer */
 	double *bufptr = (double*) NumArrayGetPtrFromSharedBuffer(sharedbuf);
-	int i;
+	index_t i;
 	for (i=0; i<nelem; i++) {
 		bufptr[i] = value;
 	}
@@ -482,7 +482,7 @@ NumArrayConstFillCmd(
 	return TCL_OK;
 
 cleandims:
-	ckfree(dims);
+	free(dims);
 	return TCL_ERROR;
 }
 
@@ -494,7 +494,7 @@ NumArrayEyeCmd(
 		Tcl_Obj *const *objv)
 {
 	Tcl_Obj *naObj;
-	int m, n;
+	index_t m, n;
 	NumArrayInfo *info; 
 	NumArraySharedBuffer *sharedbuf;
 
@@ -503,16 +503,19 @@ NumArrayEyeCmd(
 		return TCL_ERROR;
 	}
 	
-	if (Tcl_GetIntFromObj(interp, objv[1], &m) != TCL_OK) {
+	Tcl_WideInt temp;
+	if (Tcl_GetWideIntFromObj(interp, objv[1], &temp) != TCL_OK) {
 		return TCL_ERROR;
 	}
+	m=temp;
 
 	if (objc == 2) {
 		n=m; 
 	} else {
-		if (Tcl_GetIntFromObj(interp, objv[2], &n) != TCL_OK) {
+		if (Tcl_GetWideIntFromObj(interp, objv[2], &temp) != TCL_OK) {
 			return TCL_ERROR;
 		}
+		n=temp;
 	}
 
 	if (m<0 || n<0) {
@@ -520,16 +523,16 @@ NumArrayEyeCmd(
 		return TCL_ERROR;
 	}
 
-	int *dims = ckalloc(sizeof(int)*2);
+	index_t *dims = ckalloc(sizeof(index_t)*2);
 	dims[0]=m; dims[1]=n;
 	info = CreateNumArrayInfo((n==1)? 1:2, dims, NumArray_Float64);
 	sharedbuf = NumArrayNewSharedBuffer(info->bufsize);
 
 	/* Fill the buffer */
 	double *bufptr = (double*) NumArrayGetPtrFromSharedBuffer(sharedbuf);
-	int i;
+	index_t i;
 	for (i=0; i<m; i++) {
-		int j; 
+		index_t j; 
 		for (j=0; j<n; j++) {
 			*bufptr++ = ((i==j)?1.0:0.0);
 		}
@@ -573,7 +576,7 @@ NumArrayInfoCmd(
 
 	plist = Tcl_NewObj();
 	for (i=0; i<info->nDim; i++) {
-		Tcl_ListObjAppendElement(interp, plist,  Tcl_NewIntObj(info->dims[i]));
+		Tcl_ListObjAppendElement(interp, plist,  Tcl_NewWideIntObj(info->dims[i]));
 	}
 	Tcl_DictObjPut(interp, infodict, Tcl_NewStringObj("dimensions", -1), plist);
 	
@@ -624,11 +627,15 @@ NumArrayGetCmd(
 		return TCL_ERROR;
 	}
 
+	
 	for (d=0; d < info->nDim; d++) {
-		int ind;
-		if (Tcl_GetIntFromObj(interp, objv[d+2], &ind) != TCL_OK) {
+		index_t ind;
+		Tcl_WideInt temp;
+		if (Tcl_GetWideIntFromObj(interp, objv[d+2], &temp) != TCL_OK) {
 			return TCL_ERROR;
 		}
+		ind=temp;
+
 		/* negative index counts backward from the end */
 		if (ind < 0) {
 			ind += info->dims[d];
@@ -718,10 +725,12 @@ NumArraySetCmd(
 
 	/* compute index into buffer */
 	for (d=0; d<info->nDim; d++) {
-		int index;
-		if (Tcl_GetIntFromObj(interp, objv[d+2], &index) != TCL_OK) { 
+		index_t index;
+		Tcl_WideInt temp;
+		if (Tcl_GetWideIntFromObj(interp, objv[d+2], &temp) != TCL_OK) { 
 			goto cleanobj;
 		}
+		index=temp;
 
 		if (index<0 || index >= info->dims[d]) {
 			Tcl_SetResult(interp, "Index out of range.", NULL);
@@ -744,8 +753,8 @@ NumArraySetCmd(
 			break;
 		}
 		case NumArray_Int: {
-			long temp;
-			if (Tcl_GetLongFromObj(interp, objv[objc-1], &temp) != TCL_OK) {
+			Tcl_WideInt temp;
+			if (Tcl_GetWideIntFromObj(interp, objv[objc-1], &temp) != TCL_OK) {
 				goto cleanobj;
 			}
 
@@ -931,16 +940,16 @@ int NumArrayLinRegCmd(
 		return TCL_ERROR;
 	}	
 
-	int length = xvalinfo->dims[0];
-	int xpitch = xvalinfo->pitches[0]/sizeof(double);
-	int ypitch = yvalinfo->pitches[0]/sizeof(double);
+	index_t length = xvalinfo->dims[0];
+	index_t xpitch = xvalinfo->pitches[0]/sizeof(double);
+	index_t ypitch = yvalinfo->pitches[0]/sizeof(double);
 
 	/* add value to dest by simple loop */
 	double *x= (double *)NumArrayGetPtrFromSharedBuffer(xbuf);
 	double *y= (double *)NumArrayGetPtrFromSharedBuffer(ybuf);
 	
 	/* Now compute the mean values */
-	int i;
+	index_t i;
 	double xm=0.0; double ym=0.0;
 	for (i=0; i<length; i++) {
 		xm+=x[i*xpitch]; 
@@ -1051,7 +1060,7 @@ int NumArrayFastAddCmd(
 	}
 
 	/* Compute number of elements */
-	int nelem=1;
+	index_t nelem=1;
 	for (d=0; d<info->nDim; d++) {
 		nelem *= info->dims[d];
 	}
@@ -1060,7 +1069,7 @@ int NumArrayFastAddCmd(
 	double *dest= (double *)NumArrayGetPtrFromSharedBuffer(sharedbuf);
 	double *src= (double *)NumArrayGetPtrFromSharedBuffer(valuebuf);
 	
-	int i;
+	index_t i;
 	for (i=0; i<nelem; i++) {
 		(*dest++)+=*src++;
 	}
@@ -1089,7 +1098,7 @@ NumArrayReshapeCmd(
 {
 	Tcl_Obj *naObj;
 	NumArrayInfo *info; NumArrayInfo *reshapeinfo;
-	int i; int nelem=1; int reshapenelem=1; int reshapedim;
+	int i; index_t nelem=1; index_t reshapenelem=1; int reshapedim;
 	int allocobj = 0;
 
 	if (objc < 3) {
@@ -1211,7 +1220,7 @@ ScanNumArrayDimensionsFromValue(Tcl_Interp *interp, Tcl_Obj* valobj, Tcl_Obj **r
 		int d;
 		NumArrayInfo *info = valobj -> internalRep.twoPtrValue.ptr2;
 		for (d=0; d<info->nDim; d++) {
-			Tcl_ListObjAppendElement(interp, dimlist, Tcl_NewIntObj(info->dims[d]));
+			Tcl_ListObjAppendElement(interp, dimlist, Tcl_NewWideIntObj(info->dims[d]));
 		}
 		*result=dimlist;
 		*dtype = info->type;
@@ -1224,7 +1233,7 @@ ScanNumArrayDimensionsFromValue(Tcl_Interp *interp, Tcl_Obj* valobj, Tcl_Obj **r
 	}
 
 	if (firstdim == 0) {
-		Tcl_ListObjAppendElement(interp, dimlist, Tcl_NewIntObj(0));
+		Tcl_ListObjAppendElement(interp, dimlist, Tcl_NewWideIntObj(0));
 		*result=dimlist;
 		*dtype=NumArray_Int;
 		return TCL_OK;
@@ -1248,7 +1257,7 @@ ScanNumArrayDimensionsFromValue(Tcl_Interp *interp, Tcl_Obj* valobj, Tcl_Obj **r
 			/* else just break out of the loop */
 			if (nDim==0) {
 				nDim=1;
-				Tcl_ListObjAppendElement(interp, dimlist, Tcl_NewIntObj(1));
+				Tcl_ListObjAppendElement(interp, dimlist, Tcl_NewWideIntObj(1));
 			}
 			if (itobj -> typePtr == tclDoubleType) {
 				*dtype = NumArray_Float64;
@@ -1392,7 +1401,7 @@ NumArrayShapeCmd(
 	Tcl_Obj *result = Tcl_NewObj();
 	int d;
 	for (d=0; d<info->nDim; d++) {
-		Tcl_ListObjAppendElement(interp, result,  Tcl_NewIntObj(info->dims[d]));
+		Tcl_ListObjAppendElement(interp, result,  Tcl_NewWideIntObj(info->dims[d]));
 	}
 	Tcl_SetObjResult(interp, result);
 	return TCL_OK;
@@ -1666,10 +1675,10 @@ static int createNumArraySharedBufferFromTypedList(Tcl_Interp *interp, Tcl_Obj *
 
 	/* in a canonical array, the innermost pitch 
 	 * is space between adjacent elements */
-	int pitch = info -> pitches[nDim-1];
+	index_t pitch = info -> pitches[nDim-1];
 
 	/* loop over data. Create a counter */
-	int *counter = ckalloc(sizeof(int)*nDim);
+	index_t *counter = ckalloc(sizeof(index_t)*nDim);
 	int d;
 	for (d=0; d<nDim; d++) { counter[d]=0; }
 	
@@ -1693,8 +1702,8 @@ static int createNumArraySharedBufferFromTypedList(Tcl_Interp *interp, Tcl_Obj *
 		/* store the current element to shared buffer */
 		switch (info->type) {
 			case NumArray_Int: {
-				long temp;
-				if (Tcl_GetLongFromObj(interp, matroska[nDim], &temp) != TCL_OK) {
+				Tcl_WideInt temp;
+				if (Tcl_GetWideIntFromObj(interp, matroska[nDim], &temp) != TCL_OK) {
 					goto cleanbuffer;
 				}
 				*(NaWideInt *) bufptr = temp;
@@ -1815,7 +1824,7 @@ static void UpdateStringOfNumArray(Tcl_Obj *naPtr) {
 	char *buffer=NULL;
 
 	int nDim = info -> nDim;
-	int *counter = ckalloc(sizeof(int)*nDim);
+	index_t *counter = ckalloc(sizeof(index_t)*nDim);
 	char **baseptr = ckalloc(sizeof(char*)*nDim);
 
 	int d=0; /* d is the dimension counter */
@@ -1976,8 +1985,8 @@ static int SetListFromNumArray(Tcl_Interp *interp, Tcl_Obj *objPtr) {
 	} else {
 		/* multidimensional case: create slices for each 
 		 * row and add to list */
-		int i;
-		int nelem = info -> dims[0];
+		index_t i;
+		index_t nelem = info -> dims[0];
 		for (i=0; i< nelem; i++) {
 			Tcl_Obj *slice=Tcl_NewObj();
 			NumArrayInfo *sliceinfo=DupNumArrayInfo(info);

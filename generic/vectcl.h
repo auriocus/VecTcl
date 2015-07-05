@@ -3,6 +3,7 @@
 #include <tcl.h>
 #include "nacomplex.h"
 
+
 #ifdef VALGRIND
 #include <stdlib.h>
 #undef ckalloc
@@ -10,6 +11,11 @@
 #define ckalloc malloc
 #define ckfree free
 #endif
+
+#include <stdlib.h>
+#include <stddef.h>
+
+typedef ptrdiff_t index_t;
 
 /* data type for VecTcl objects */
 
@@ -47,22 +53,22 @@ NumArrayType NumArray_UpcastType(NumArrayType base);
 NumArrayType NumArray_UpcastCommonType(NumArrayType type1, NumArrayType type2);
 
 int NumArrayConvertToType(Tcl_Interp *interp, Tcl_Obj *naObj, NumArrayType type, Tcl_Obj **dest);
-int NumArrayType_SizeOf(NumArrayType type);
+size_t NumArrayType_SizeOf(NumArrayType type);
 
 /* Metadata to describe the raw buffer */
 typedef struct  {
 	NumArrayType type;
 	int nDim;
 	size_t bufsize;
-	ssize_t offset;
+	index_t offset;
 	int canonical;
-	int *dims;
-	ssize_t *pitches;
+	index_t *dims;
+	index_t *pitches;
 } NumArrayInfo;
 
 /* Constructor, destructor, copy constructor for NumArrayInfo */
-NumArrayInfo* CreateNumArrayInfo(int nDim, const int *dims, NumArrayType dtype);
-NumArrayInfo* CreateNumArrayInfoColMaj(int nDim, const int *dims, NumArrayType dtype);
+NumArrayInfo* CreateNumArrayInfo(int nDim, const index_t *dims, NumArrayType dtype);
+NumArrayInfo* CreateNumArrayInfoColMaj(int nDim, const index_t *dims, NumArrayType dtype);
 void DeleteNumArrayInfo(NumArrayInfo* info);
 NumArrayInfo* DupNumArrayInfo(NumArrayInfo* src);
 
@@ -71,7 +77,7 @@ NumArrayInfo* DupNumArrayInfo(NumArrayInfo* src);
 
 /* Create an array slice */
 int NumArrayInfoSlice(Tcl_Interp *interp, NumArrayInfo *info, Tcl_Obj *slicelist, NumArrayInfo **resultPtr);
-int NumArrayInfoSlice1Axis(Tcl_Interp *interp, NumArrayInfo *info, int axis, int start, int stop, int incr);
+int NumArrayInfoSlice1Axis(Tcl_Interp *interp, NumArrayInfo *info, int axis, index_t start, index_t stop, index_t incr);
 
 /* A refcounted buffer */
 typedef struct {
@@ -79,15 +85,15 @@ typedef struct {
 	char *buffer;
 } NumArraySharedBuffer;
 
-NumArraySharedBuffer *NumArrayNewSharedBuffer (int size);
+NumArraySharedBuffer *NumArrayNewSharedBuffer (size_t size);
 void *NumArrayGetPtrFromSharedBuffer(NumArraySharedBuffer *sharedbuf);
 void NumArraySharedBufferDecrRefcount(NumArraySharedBuffer *sharedbuf);
 void NumArraySharedBufferIncrRefcount(NumArraySharedBuffer *sharedbuf);
 
 /* Convenience to create a vector and 2D matrix */
-Tcl_Obj *NumArrayNewVector(NumArrayType type, int m);
-Tcl_Obj *NumArrayNewMatrix(NumArrayType type, int m, int n);
-Tcl_Obj *NumArrayNewMatrixColMaj(NumArrayType type, int m, int n);
+Tcl_Obj *NumArrayNewVector(NumArrayType type, index_t m);
+Tcl_Obj *NumArrayNewMatrix(NumArrayType type, index_t m, index_t n);
+Tcl_Obj *NumArrayNewMatrixColMaj(NumArrayType type, index_t m, index_t n);
 
 /* Assemble / retrieve info and data storage into a Tcl_Obj */
 void NumArraySetInternalRep(Tcl_Obj *naObj, NumArraySharedBuffer *sharedbuf, NumArrayInfo *info);
@@ -102,9 +108,9 @@ void NumArrayUnshareBuffer(Tcl_Obj *naObj);
 
 /* Iterator to loop over all elements in an array */
 typedef struct {
-	int counter;
-	int pitch;
-	int dim;
+	index_t counter;
+	index_t pitch;
+	index_t dim;
 } NumArrayIteratorDimension;
 
 typedef struct {
@@ -131,9 +137,9 @@ int NumArrayIteratorFinished(NumArrayIterator *it);
 void* NumArrayIteratorAdvanceRow(NumArrayIterator *it);
 /* Retrieve pitch and
  * number of elements in the innermost loop */
-int NumArrayIteratorRowPitchTyped(NumArrayIterator *it);
-int NumArrayIteratorRowPitch(NumArrayIterator *it);
-int NumArrayIteratorRowLength(NumArrayIterator *it);
+index_t NumArrayIteratorRowPitchTyped(NumArrayIterator *it);
+index_t NumArrayIteratorRowPitch(NumArrayIterator *it);
+index_t NumArrayIteratorRowLength(NumArrayIterator *it);
 
 /* Retrieve value from iterator */
 /* Pointer */
@@ -164,14 +170,14 @@ int NumArraySetValue(NumArrayInfo *destinfo, NumArraySharedBuffer *destbuf, NumA
 int NumArrayGetScalarValueFromObj(Tcl_Interp *interp, Tcl_Obj* naObj, NumArray_ValueType *value);
 /* Index object for simple 1D, 2D and 3D indexing */
 typedef struct {
-	int pitches[3];
+	index_t pitches[3];
 	char *baseptr;
 } NumArrayIndex;
 
 void NumArrayIndexInit(NumArrayInfo *info, NumArraySharedBuffer *sharedbuf, NumArrayIndex *ind);
 int NumArrayIndexInitObj(Tcl_Interp *interp, Tcl_Obj *naObj, NumArrayIndex *ind);
-void* NumArrayIndex1DGetPtr(NumArrayIndex *ind, int i);
-void* NumArrayIndex2DGetPtr(NumArrayIndex *ind, int i, int j);
-void *NumArrayIndex3DGetPtr(NumArrayIndex *ind, int i, int j, int k);
+void* NumArrayIndex1DGetPtr(NumArrayIndex *ind, index_t i);
+void* NumArrayIndex2DGetPtr(NumArrayIndex *ind, index_t i, index_t j);
+void *NumArrayIndex3DGetPtr(NumArrayIndex *ind, index_t i, index_t j, index_t k);
 
 #endif

@@ -58,11 +58,11 @@ int CMD(Tcl_Obj* naObj, Tcl_Obj **resultObj) {
 			resultbuf = NumArrayNewSharedBuffer(resultinfo -> bufsize);
 			DBLRES *result = (DBLRES*) NumArrayGetPtrFromSharedBuffer(resultbuf);
 		
-			const int srcpitch=NumArrayIteratorRowPitchTyped(&it);
-			const int length = NumArrayIteratorRowLength(&it);
+			const index_t srcpitch=NumArrayIteratorRowPitchTyped(&it);
+			const index_t length = NumArrayIteratorRowLength(&it);
 			double* opptr = NumArrayIteratorDeRefPtr(&it);
 			while (opptr) {
-				int i;
+				index_t i;
 				for (i=0; i<length; i++) {
 					double op = *opptr;
 					DBLOP;
@@ -85,11 +85,11 @@ int CMD(Tcl_Obj* naObj, Tcl_Obj **resultObj) {
 			resultbuf = NumArrayNewSharedBuffer(resultinfo -> bufsize);
 			INTRES *result = (INTRES*) NumArrayGetPtrFromSharedBuffer(resultbuf);
 
-			const int srcpitch=NumArrayIteratorRowPitchTyped(&it);
-			const int length = NumArrayIteratorRowLength(&it);
+			const index_t srcpitch=NumArrayIteratorRowPitchTyped(&it);
+			const index_t length = NumArrayIteratorRowLength(&it);
 			NaWideInt* opptr = NumArrayIteratorDeRefPtr(&it);
 			while (opptr) {
-				int i;
+				index_t i;
 				for (i=0; i<length; i++) {
 					NaWideInt op = *opptr;
 					INTOP;
@@ -112,11 +112,11 @@ int CMD(Tcl_Obj* naObj, Tcl_Obj **resultObj) {
 			resultbuf = NumArrayNewSharedBuffer(resultinfo -> bufsize);
 			CPLXRES *result = (CPLXRES*) NumArrayGetPtrFromSharedBuffer(resultbuf);
 		
-			const int srcpitch=NumArrayIteratorRowPitchTyped(&it);
-			const int length = NumArrayIteratorRowLength(&it);
+			const index_t srcpitch=NumArrayIteratorRowPitchTyped(&it);
+			const index_t length = NumArrayIteratorRowLength(&it);
 			NumArray_Complex* opptr = NumArrayIteratorDeRefPtr(&it);
 			while (opptr) {
-				int i;
+				index_t i;
 				for (i=0; i<length; i++) {
 					NumArray_Complex op = *opptr;
 					CPLXOP;

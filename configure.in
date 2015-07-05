@@ -61,8 +61,9 @@ TEA_PREFIX
 
 TEA_SETUP_COMPILER
 
-# figure out a type for intptr_t
+# figure out a type for intptr_t and ptrdiff_t
 AC_TYPE_INTPTR_T
+AC_CHECK_TYPES([ptrdiff_t]) 
 
 #-----------------------------------------------------------------------
 # __CHANGE__

@@ -5339,7 +5339,7 @@ done
     fi
 
 
-# figure out a type for intptr_t
+# figure out a type for intptr_t and ptrdiff_t
 
   ac_fn_c_check_type "$LINENO" "intptr_t" "ac_cv_type_intptr_t" "$ac_includes_default"
 if test "x$ac_cv_type_intptr_t" = xyes; then :
@@ -5375,6 +5375,16 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
      done
 fi
 
+
+ac_fn_c_check_type "$LINENO" "ptrdiff_t" "ac_cv_type_ptrdiff_t" "$ac_includes_default"
+if test "x$ac_cv_type_ptrdiff_t" = xyes; then :
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_PTRDIFF_T 1
+_ACEOF
+
+
+fi
 
 
 #-----------------------------------------------------------------------

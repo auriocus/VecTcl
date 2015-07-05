@@ -45,15 +45,15 @@ static int BINOP_LOOP_FUN(CMD, T1, T2) (Tcl_Obj *naObj1, Tcl_Obj *naObj2, Tcl_Ob
 	NumArrayIteratorInitObj(NULL, naObj1, &it1);
 	NumArrayIteratorInitObj(NULL, naObj2, &it2);
 	
-	const int pitch = sizeof(TRES);
+	const index_t pitch = sizeof(TRES);
 	if (ISSCALARINFO(info1)) {
 		T1 *op1ptr = NumArrayIteratorDeRefPtr(&it1);
 		TUP op1 = UPCAST(T1, TUP, *op1ptr);
 		T2 *op2ptr = NumArrayIteratorDeRefPtr(&it2);
-		const int op2pitch = NumArrayIteratorRowPitchTyped(&it2);
-		const int length = NumArrayIteratorRowLength(&it2);
+		const index_t op2pitch = NumArrayIteratorRowPitchTyped(&it2);
+		const index_t length = NumArrayIteratorRowLength(&it2);
 		while (op2ptr) {
-			int i;
+			index_t i;
 			for (i=0; i<length; i++) {
 				TRES *result = (TRES *)bufptr;
 				bufptr += pitch;
@@ -67,10 +67,10 @@ static int BINOP_LOOP_FUN(CMD, T1, T2) (Tcl_Obj *naObj1, Tcl_Obj *naObj2, Tcl_Ob
 		T1 *op1ptr = NumArrayIteratorDeRefPtr(&it1);
 		T2 *op2ptr = NumArrayIteratorDeRefPtr(&it2);
 		TUP op2 = UPCAST(T2, TUP, *op2ptr);
-		const int op1pitch = NumArrayIteratorRowPitchTyped(&it1);
-		const int length = NumArrayIteratorRowLength(&it1);
+		const index_t op1pitch = NumArrayIteratorRowPitchTyped(&it1);
+		const index_t length = NumArrayIteratorRowLength(&it1);
 		while (op1ptr) {
-			int i;
+			index_t i;
 			for (i=0; i<length; i++) {
 				TRES *result = (TRES *)bufptr;
 				bufptr += pitch;
@@ -84,13 +84,13 @@ static int BINOP_LOOP_FUN(CMD, T1, T2) (Tcl_Obj *naObj1, Tcl_Obj *naObj2, Tcl_Ob
 	} else {
 
 		T1 *op1ptr = NumArrayIteratorDeRefPtr(&it1);
-		const int op1pitch = NumArrayIteratorRowPitchTyped(&it1);
+		const index_t op1pitch = NumArrayIteratorRowPitchTyped(&it1);
 		T2 *op2ptr = NumArrayIteratorDeRefPtr(&it2);
-		const int op2pitch = NumArrayIteratorRowPitchTyped(&it2);
-		const int length = NumArrayIteratorRowLength(&it1);
+		const index_t op2pitch = NumArrayIteratorRowPitchTyped(&it2);
+		const index_t length = NumArrayIteratorRowLength(&it1);
 		
 		while (op1ptr) {
-			int i;
+			index_t i;
 			for (i=0; i<length; i++) {
 				TRES *result = (TRES *)bufptr;
 				bufptr += pitch;
