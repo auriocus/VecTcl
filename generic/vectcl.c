@@ -84,7 +84,7 @@ static int CreateNumArrayInfoFromList(Tcl_Interp *interp, Tcl_Obj* dimlist, NumA
 		return TCL_ERROR;
 	}
 	
-	dims = malloc(sizeof(index_t)*nDim);
+	dims = ckalloc(sizeof(index_t)*nDim);
 
 	for (d=0; d<nDim; d++) {
 		Tcl_WideInt dim;
@@ -109,7 +109,7 @@ static int CreateNumArrayInfoFromList(Tcl_Interp *interp, Tcl_Obj* dimlist, NumA
 	}
 
 	*infoptr = CreateNumArrayInfo(nDim, dims, dtype);
-	free(dims);
+	ckfree(dims);
 	return TCL_OK;
 cleandims:
 	if (dims) ckfree(dims);
@@ -482,7 +482,7 @@ NumArrayConstFillCmd(
 	return TCL_OK;
 
 cleandims:
-	free(dims);
+	ckfree(dims);
 	return TCL_ERROR;
 }
 
