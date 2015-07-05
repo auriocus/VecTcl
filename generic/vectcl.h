@@ -3,15 +3,6 @@
 #include <tcl.h>
 #include "nacomplex.h"
 
-
-#ifdef VALGRIND
-#include <stdlib.h>
-#undef ckalloc
-#undef ckfree
-#define ckalloc malloc
-#define ckfree free
-#endif
-
 #include <stdlib.h>
 #include <stddef.h>
 
