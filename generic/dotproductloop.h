@@ -25,7 +25,7 @@ if (info1->type == NATYPE_FROM_C(T1) && info2->type == NATYPE_FROM_C(T2)) {
 /* check if the operands have compatible dimensions */
 /* could be Kronecker product of two vectors */
 if (info1->nDim == 1 && info2->nDim ==2 && info2->dims[0] == 1) {
-	int resultdims[2];
+	index_t resultdims[2];
 	resultdims[0] = info1->dims[0];
 	resultdims[1] = info2->dims[1];
 	resultinfo = CreateNumArrayInfo(2, resultdims, info1->type);
@@ -58,10 +58,10 @@ if (info1->nDim == 1 && info2->nDim ==2 && info2->dims[0] == 1) {
 	/* standard matrix multiplikation */
 
 	info2 = DupNumArrayInfo(info2);
-	const int op2pitch = info2->pitches[0];
+	const index_t op2pitch = info2->pitches[0];
 
 	int resultndim = info1->nDim + info2->nDim - 2;
-	int *dims=ckalloc(sizeof(int)*resultndim);
+	index_t *dims=ckalloc(sizeof(index_t)*resultndim);
 	int d;
 
 	for (d=0; d<info1->nDim-1; d++) {	
@@ -89,17 +89,17 @@ if (info1->nDim == 1 && info2->nDim ==2 && info2->dims[0] == 1) {
 	NumArrayIteratorInit(info2, buf2, &it2);
 
 	/* Now run nested loop, outer = op1, inner = op2 */
-	const int op1pitch = NumArrayIteratorRowPitch(&it1);
+	const index_t op1pitch = NumArrayIteratorRowPitch(&it1);
 	TRES *result = (TRES *) NumArrayGetPtrFromSharedBuffer(sharedbuf);
 	char *op1ptr = NumArrayIteratorDeRefPtr(&it1);
 	
-	const int length = NumArrayIteratorRowLength(&it1);
+	const index_t length = NumArrayIteratorRowLength(&it1);
 
 	while (op1ptr) {
 		char *op2ptr = NumArrayIteratorReset(&it2);
 		while (op2ptr) {
 			INIT;
-			int i;
+			index_t i;
 			for (i=0; i<length; i++) {
 				TRES v1 = UPCAST(T1, TRES, *(T1 *) op1ptr);
 				TRES v2 = UPCAST(T2, TRES, *(T2 *) op2ptr);

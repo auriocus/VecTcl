@@ -26,7 +26,7 @@ NumArrayConcatCmd(
 	int allocobj2 = 0;
 
 	int axis;
-	int *resultdims=NULL;
+	index_t *resultdims=NULL;
 
 	if (objc < 4) {
 		Tcl_WrongNumArgs(interp, 1, objv, "numarray1 numarray2 axis");
@@ -114,8 +114,8 @@ NumArrayConcatCmd(
 			goto cleanobj;
 		}
 
-		resultdims = ckalloc(sizeof(int)*(nDim+1));
-		memcpy(resultdims, info2->dims, sizeof(int)*nDim);
+		resultdims = ckalloc(sizeof(index_t)*(nDim+1));
+		memcpy(resultdims, info2->dims, sizeof(index_t)*nDim);
 		if (axis == nDim) {
 			/* append scalar as extra dimension at the end */
 			resultdims[axis]=2;
@@ -153,8 +153,8 @@ NumArrayConcatCmd(
 			goto cleanobj;
 		}
 
-		resultdims = ckalloc(sizeof(int)*(nDim+1));
-		memcpy(resultdims, info1->dims, sizeof(int)*nDim);
+		resultdims = ckalloc(sizeof(index_t)*(nDim+1));
+		memcpy(resultdims, info1->dims, sizeof(index_t)*nDim);
 		if (axis == nDim) {
 			/* append scalar as extra dimension at the end */
 			resultdims[axis]=2;
@@ -214,13 +214,13 @@ NumArrayConcatCmd(
 			}
 		}
 		
-		resultdims = ckalloc(sizeof(int)*(MAX(nDim1,nDim2)+extradim));
+		resultdims = ckalloc(sizeof(index_t)*(MAX(nDim1,nDim2)+extradim));
 		int nDim;
 		if (nDim1 > nDim2) {
-			memcpy(resultdims, info1->dims, sizeof(int)*nDim1);
+			memcpy(resultdims, info1->dims, sizeof(index_t)*nDim1);
 			nDim = nDim1;
 		} else {
-			memcpy(resultdims, info2->dims, sizeof(int)*nDim2);
+			memcpy(resultdims, info2->dims, sizeof(index_t)*nDim2);
 			nDim = nDim2;
 		}
 
@@ -287,7 +287,7 @@ cleanobj:
 
 /* extract diagonal / put back */
 
-int NumArrayDiagMatrix(Tcl_Interp *interp, Tcl_Obj *din, int diag, Tcl_Obj **dout) {
+int NumArrayDiagMatrix(Tcl_Interp *interp, Tcl_Obj *din, index_t diag, Tcl_Obj **dout) {
 	
 	if (Tcl_ConvertToType(interp, din, &NumArrayTclType) != TCL_OK) {
 		return TCL_ERROR;
@@ -304,7 +304,7 @@ int NumArrayDiagMatrix(Tcl_Interp *interp, Tcl_Obj *din, int diag, Tcl_Obj **dou
 
 	if (info->nDim == 1 || (info->nDim == 2 && info->dims[0]==1)) {
 		/* Row- or columnvector */
-		int nelem = info->dims[info->nDim-1];
+		index_t nelem = info->dims[info->nDim-1];
 		/* Handle trivial cases, empty and scalar */
 		if (nelem == 0) {
 			*dout = Tcl_NewObj();
@@ -320,7 +320,7 @@ int NumArrayDiagMatrix(Tcl_Interp *interp, Tcl_Obj *din, int diag, Tcl_Obj **dou
 
 		/* Here we have a row- or columnvector with nelem >= 1 
 		 * Create a square matrix with the appropriate size */
-		int nsize = nelem + abs(diag);
+		index_t nsize = nelem + abs(diag);
 		*dout = NumArrayNewMatrix(info->type, nsize, nsize);
 		
 		NumArrayIterator it;
@@ -328,7 +328,7 @@ int NumArrayDiagMatrix(Tcl_Interp *interp, Tcl_Obj *din, int diag, Tcl_Obj **dou
 
 		switch (info->type) {
 			case NumArray_Int: {
-				int i, j;
+				index_t i, j;
 				NaWideInt *cpyPtr = NumArrayGetPtrFromObj(NULL, *dout); /* can't fail */
 
 				for (i=0; i<nsize; i++) {
@@ -345,7 +345,7 @@ int NumArrayDiagMatrix(Tcl_Interp *interp, Tcl_Obj *din, int diag, Tcl_Obj **dou
 			}
 
 			case NumArray_Float64: {
-				int i, j;
+				index_t i, j;
 				double *cpyPtr = NumArrayGetPtrFromObj(NULL, *dout); /* can't fail */
 
 				for (i=0; i<nsize; i++) {
@@ -362,7 +362,7 @@ int NumArrayDiagMatrix(Tcl_Interp *interp, Tcl_Obj *din, int diag, Tcl_Obj **dou
 			}
 
 			case NumArray_Complex128: {
-				int i, j;
+				index_t i, j;
 				NumArray_Complex *cpyPtr = NumArrayGetPtrFromObj(NULL, *dout); /* can't fail */
 
 				for (i=0; i<nsize; i++) {
@@ -390,8 +390,8 @@ int NumArrayDiagMatrix(Tcl_Interp *interp, Tcl_Obj *din, int diag, Tcl_Obj **dou
 
 	} else {
 		/* 2D-input - we must extract the diagonal into a vector */
-		const int m=info->dims[0];
-		const int n=info->dims[1];
+		const index_t m=info->dims[0];
+		const index_t n=info->dims[1];
 
 		if (diag <= -m || diag >=n) {
 			Tcl_SetResult(interp, "requested diagonal out of range", NULL);
@@ -401,8 +401,8 @@ int NumArrayDiagMatrix(Tcl_Interp *interp, Tcl_Obj *din, int diag, Tcl_Obj **dou
 		
 		NumArrayIndex ind;
 		NumArrayIndexInitObj(interp, din, &ind);
-		int dlength;
-		int i, j;
+		index_t dlength;
+		index_t i, j;
 		if (diag >= 0) {
 			i=0; j=diag;
 			dlength = MIN(n-diag, m);
@@ -413,9 +413,9 @@ int NumArrayDiagMatrix(Tcl_Interp *interp, Tcl_Obj *din, int diag, Tcl_Obj **dou
 		
 		*dout = NumArrayNewVector(info->type, dlength);
 		char *destptr = NumArrayGetPtrFromObj(NULL, *dout);
-		const int elsize = NumArrayType_SizeOf(info->type);
+		const index_t elsize = NumArrayType_SizeOf(info->type);
 
-		int k;
+		index_t k;
 		for (k=0; k<dlength; k++) {
 			char *srcptr = NumArrayIndex2DGetPtr(&ind, i++, j++);
 			memcpy(destptr, srcptr, elsize);
@@ -439,13 +439,15 @@ int NumArrayDiagCmd(
 
 	Tcl_Obj *matrix=objv[1];
 	
-	int diag=0;
+	index_t diag=0;
 	if (objc==2) {
 		diag = 0;
 	} else {
-		if (Tcl_GetIntFromObj(interp, objv[2], &diag) != TCL_OK) {
+		Tcl_WideInt temp;
+		if (Tcl_GetWideIntFromObj(interp, objv[2], &temp) != TCL_OK) {
 			return TCL_ERROR;
 		}
+		diag=temp;
 	}
 
 	Tcl_Obj *result;

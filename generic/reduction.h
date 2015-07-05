@@ -101,7 +101,7 @@ int CMD(Tcl_Obj* naObj, int axis, Tcl_Obj **resultObj) {
 
 	NumArrayInfo *info, *resultinfo, *sliceinfo;
 	NumArraySharedBuffer *sharedbuf, *resultbuf;
-	int *resultdims;
+	index_t *resultdims;
 	int resultnDim;
 	int d;
 	
@@ -120,7 +120,7 @@ int CMD(Tcl_Obj* naObj, int axis, Tcl_Obj **resultObj) {
 
 	/* cut down dimension list by removing the axis
 	 * over which the reduction is performed*/
-	resultdims = ckalloc(sizeof(int)*info->nDim);
+	resultdims = ckalloc(sizeof(index_t)*info->nDim);
 	if (info->nDim == 1) {
 		/* Reduction to scalar value */
 		resultnDim=1;
@@ -181,8 +181,8 @@ int CMD(Tcl_Obj* naObj, int axis, Tcl_Obj **resultObj) {
 	NumArrayIterator it;
 	NumArrayIteratorInit(sliceinfo, sharedbuf, &it);
 
-	const int nlength = info -> dims[axis];
-	const int increment = info -> pitches[axis];
+	const index_t nlength = info -> dims[axis];
+	const index_t increment = info -> pitches[axis];
 	switch (info -> type) {
 		#ifdef DBLOP
 		case NumArray_Float64: {
@@ -195,7 +195,7 @@ int CMD(Tcl_Obj* naObj, int axis, Tcl_Obj **resultObj) {
 				const double op = *((double *) opptr);
 				DBLFIRST; 
 				opptr += increment;
-				int i;
+				index_t i;
 				for (i=0; i<nlength-1; i++) {
 					const double op = *((double *) opptr);
 					DBLOP;
@@ -220,7 +220,7 @@ int CMD(Tcl_Obj* naObj, int axis, Tcl_Obj **resultObj) {
 				const NaWideInt op = *((NaWideInt *) opptr);
 				INTFIRST; 
 				opptr += increment;
-				int i;
+				index_t i;
 				for (i=0; i<nlength-1; i++) {
 					const NaWideInt op = *((NaWideInt *) opptr);
 					INTOP;
@@ -245,7 +245,7 @@ int CMD(Tcl_Obj* naObj, int axis, Tcl_Obj **resultObj) {
 				const NumArray_Complex op = *((NumArray_Complex *) opptr);
 				CPLXFIRST; 
 				opptr += increment;
-				int i;
+				index_t i;
 				for (i=0; i<nlength-1; i++) {
 					const NumArray_Complex op = *((NumArray_Complex *) opptr);
 					CPLXOP;
