@@ -1936,7 +1936,7 @@ int Vmparser_Init(Tcl_Interp* interp) {
 	}
 	
 	
-	Tcl_PkgProvide(interp, "vectcl::vmparse", "0.1");
+	Tcl_PkgProvide(interp, "vectcl::vmparse", PACKAGE_VERSION);
 	
 	return TCL_OK;
 }
