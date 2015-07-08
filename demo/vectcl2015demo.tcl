@@ -5,7 +5,7 @@ namespace import vectcl::*
 
 package require Tk
 catch {package require Img}
-package require vectk
+package require vectcl::tk
 package require snit
 package require ctext
 
