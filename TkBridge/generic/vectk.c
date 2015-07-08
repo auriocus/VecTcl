@@ -198,7 +198,7 @@ int NumArray2PhotoCmd(ClientData dummy, Tcl_Interp *interp, int objc, Tcl_Obj *c
 	return TCL_OK;
 }
 
-int Vectk_Init(Tcl_Interp *interp) {
+int Vectcltk_Init(Tcl_Interp *interp) {
 	if (interp == 0) return TCL_ERROR;
 
 	#ifdef USE_TCL_STUBS
