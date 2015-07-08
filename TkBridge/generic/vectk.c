@@ -224,7 +224,7 @@ int Vectk_Init(Tcl_Interp *interp) {
 	Tcl_CreateObjCommand(interp, "numarray::toPhoto", NumArray2PhotoCmd, NULL, NULL);
 	Tcl_CreateObjCommand(interp, "numarray::fromPhoto", Photo2NumArrayCmd, NULL, NULL);
 
-	Tcl_PkgProvide(interp, PACKAGE_NAME, PACKAGE_VERSION);
+	Tcl_PkgProvide(interp, "vectcl::tk", PACKAGE_VERSION);
 
 	return TCL_OK;
 }
