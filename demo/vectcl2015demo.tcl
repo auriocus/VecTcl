@@ -229,6 +229,10 @@ snit::widgetadaptor ImgCalculator {
 		$self Open [file join [file dirname [info script]] somloi_galuska.png]
 	}
 
+	destructor {
+		$self AnimateStop
+	}
+
 	method Run {args} {
 		# compute value for sliders
 		vexpr {
@@ -343,7 +347,11 @@ snit::widgetadaptor ImgCalculator {
 }
 
 # now instantiate the main application
-#
-ImgCalculator .
 
+if {[wm state .] eq "normal"} {
+	ImgCalculator .
+} else {
+	toplevel .imgcalc
+	ImgCalculator .imgcalc
+}
 
