@@ -1,0 +1,99 @@
+#@verbatim
+Package vectcl0.2 {
+  Require {Use tcl8.6}
+  Source {Wget https://github.com/auriocus/VecTcl/archive/v0.2.tar.gz}
+  Configure {
+    Config [Get srcdir-sys]
+  }
+  Make {Run make}
+  Install {Run make install}
+  Clean {Run make clean}
+  Test {Run make test}
+}
+#@endverbatim
+
+#@verbatim
+Package ukaz0.2 {
+  Source {Wget https://github.com/auriocus/ukaz/archive/v0.2.tar.gz}
+  Configure {}
+  Install {Tcl}
+}
+#@endverbatim
+
+
+#@verbatim
+Package vectcltk0.2 {
+  Require {Use tk8.6 vectcl0.2}
+  Source {Link vectcl0.2}
+  Configure {
+    Config [Get srcdir-sys]/TkBridge
+  }
+  Make {Run make}
+  Install {Run make install}
+  Clean {Run make clean}
+  Test {Run make test}
+}
+#@endverbatim
+
+#@verbatim
+Package tklib_cur {
+  Source {Wget https://github.com/tcltk/tklib/archive/276f886e3e53339d58d410711b7d36d20ef1c138.zip}
+  Configure {Config [Get srcdir-sys]}
+  Make {}
+  Install {Run make install-libraries
+	Libdir tklib0.6}
+  Clean {Run make clean}
+  Test {Run make test}
+}
+#@endverbatim
+
+
+#@verbatim
+Package tcllib_cur {
+  Source {Wget https://github.com/tcltk/tcllib/archive/3ea59cc36d5a2d3ba4ce561427915290389e18a9.zip}
+  Configure {Config [Get srcdir-sys]}
+  Make {}
+  Install {Run make install-libraries
+  Libdir tcllib1.17}
+  Clean {Run make clean}
+  Test {Run make test}
+}
+#@endverbatim
+
+
+# just enough to run the demos
+#@verbatim
+Package VecTcLab0.2 {
+  Require {Use kbskit8.6 sdx.kit tcllib_cur vectcl0.2 vectcltk0.2 ukaz0.2 tklib_cur}
+  Source {Wget https://github.com/auriocus/VecTcLab/archive/v0.2.tar.gz}
+  Configure {
+    Kit {source $::starkit::topdir/vectclab.tcl} Tk
+  }
+  Make {Kit VecTcLab tcllib_cur vectcl0.2 vectcltk0.2 ukaz0.2 tklib_cur}
+  Install {Kit VecTcLab -vq-gui}
+  Clean {file delete -force VecTcLab.vfs}
+  Test {Kit VecTcLab}
+}
+#@endverbatim
+
+# many useful packages
+#@verbatim
+Package VecTcLab0.2-bi {
+  Require {Use kbskit8.6 sdx.kit tcllib_cur vectcl0.2 vectcltk0.2 ukaz0.2 img1.4.3 tklib_cur bwidget1.9.8 \
+	gridplus2.10 icons1.2 memchan2.3 mentry3.7 nsf2.0.0 ral0.11.2 tclx8.4 tdom0.8.3 \
+	tkdnd2.8 tkpath0.3.3 tktable2.10 treectrl2.4.1 trofs0.4.8 udp1.0.11 wcb3.5 xotcl1.6.8}
+
+  Source {Wget https://github.com/auriocus/VecTcLab/archive/v0.2.zip}
+  Configure {
+    Kit {source $::starkit::topdir/vectclab.tcl} Tk
+  }
+  Make {Kit VecTcLab-bi tcllib_cur vectcl0.2 vectcltk0.2 ukaz0.2 img1.4.3 tklib_cur bwidget1.9.8\
+	gridplus2.10 icons1.2 memchan2.3 mentry3.7 nsf2.0.0 ral0.11.2 tclx8.4 tdom0.8.3 \
+	tkdnd2.8 tkpath0.3.3 tktable2.10 treectrl2.4.1 trofs0.4.8 udp1.0.11 wcb3.5 xotcl1.6.8
+  }
+  Install {Kit VecTcLab-bi -vq-gui}
+  Clean {file delete -force VecTcLab-bi.vfs}
+  Test {Kit VecTcLab-bi}
+}
+#@endverbatim
+
