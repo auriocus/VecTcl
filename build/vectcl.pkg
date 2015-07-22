@@ -13,6 +13,20 @@ Package vectcl0.2 {
 #@endverbatim
 
 #@verbatim
+Package vectcl0.2-patch {
+  Require {Use tcl8.6}
+  Source {Link vectcl0.2}
+  Configure {
+    Config [Get srcdir-sys] --enable-listpatch
+  }
+  Make {Run make}
+  Install {Run make install}
+  Clean {Run make clean}
+  Test {Run make test}
+}
+#@endverbatim
+
+#@verbatim
 Package ukaz0.2 {
   Source {Wget https://github.com/auriocus/ukaz/archive/v0.2.tar.gz}
   Configure {}
@@ -34,6 +48,13 @@ Package vectcltk0.2 {
   Test {Run make test}
 }
 #@endverbatim
+
+#@verbatim 
+Package vectclzip {
+  Require {Use vectcl0.2 vectcltk0.2}
+  Configure {file mkdir [Get makedir]}
+  Make {Run zip -r [Get makedir]/vectcl-bin.zip [Get builddir-sys]/lib/vectcl0.2 [Get builddir-sys]/lib/vectcltk0.2 }
+}
 
 #@verbatim
 Package tklib_cur {
@@ -64,7 +85,7 @@ Package tcllib_cur {
 # just enough to run the demos
 #@verbatim
 Package VecTcLab0.2 {
-  Require {Use kbskit8.6 sdx.kit tcllib_cur vectcl0.2 vectcltk0.2 ukaz0.2 tklib_cur}
+  Require {Use kbskit8.6 sdx.kit tcllib_cur vectcl0.2-patch vectcltk0.2 ukaz0.2 tklib_cur}
   Source {Wget https://github.com/auriocus/VecTcLab/archive/v0.2.tar.gz}
   Configure {
     Kit {source $::starkit::topdir/vectclab.tcl} Tk
@@ -79,7 +100,7 @@ Package VecTcLab0.2 {
 # many useful packages
 #@verbatim
 Package VecTcLab0.2-bi {
-  Require {Use kbskit8.6 sdx.kit tcllib_cur vectcl0.2 vectcltk0.2 ukaz0.2 img1.4.3 tklib_cur bwidget1.9.8 \
+  Require {Use kbskit8.6 sdx.kit tcllib_cur vectcl0.2-patch vectcltk0.2 ukaz0.2 img1.4.3 tklib_cur bwidget1.9.8 \
 	gridplus2.10 icons1.2 memchan2.3 mentry3.7 nsf2.0.0 ral0.11.2 tclx8.4 tdom0.8.3 \
 	tkdnd2.8 tkpath0.3.3 tktable2.10 tls1.6.7 treectrl2.4.1 trofs0.4.8 udp1.0.11 wcb3.5 xotcl1.6.8}
 
