@@ -1,7 +1,7 @@
-diff -ru tcl8.6/generic/tclInt.h tcl8.6-patched/generic/tclInt.h
---- tcl8.6/generic/tclInt.h	2014-03-25 08:32:03.000000000 +0100
-+++ tcl8.6-patched/generic/tclInt.h	2014-03-25 08:29:44.000000000 +0100
-@@ -2662,7 +2662,7 @@
+diff -ru tcl8.6.4_orig/generic/tclInt.h tcl8.6/generic/tclInt.h
+--- tcl8.6.4_orig/generic/tclInt.h	2015-07-22 11:12:05.678022931 +0200
++++ tcl8.6/generic/tclInt.h	2015-07-22 11:12:42.662206326 +0200
+@@ -2686,7 +2686,7 @@
  MODULE_SCOPE const Tcl_ObjType tclDoubleType;
  MODULE_SCOPE const Tcl_ObjType tclEndOffsetType;
  MODULE_SCOPE const Tcl_ObjType tclIntType;
@@ -10,9 +10,9 @@ diff -ru tcl8.6/generic/tclInt.h tcl8.6-patched/generic/tclInt.h
  MODULE_SCOPE const Tcl_ObjType tclDictType;
  MODULE_SCOPE const Tcl_ObjType tclProcBodyType;
  MODULE_SCOPE const Tcl_ObjType tclStringType;
-diff -ru tcl8.6/generic/tclListObj.c tcl8.6-patched/generic/tclListObj.c
---- tcl8.6/generic/tclListObj.c	2014-03-04 20:14:03.000000000 +0100
-+++ tcl8.6-patched/generic/tclListObj.c	2014-03-25 08:29:44.000000000 +0100
+diff -ru tcl8.6.4_orig/generic/tclListObj.c tcl8.6/generic/tclListObj.c
+--- tcl8.6.4_orig/generic/tclListObj.c	2015-07-22 11:12:05.694023011 +0200
++++ tcl8.6/generic/tclListObj.c	2015-07-22 11:12:42.674206386 +0200
 @@ -38,7 +38,7 @@
   * storage to avoid an auxiliary stack.
   */

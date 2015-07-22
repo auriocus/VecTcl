@@ -81,7 +81,7 @@ Package VecTcLab0.2 {
 Package VecTcLab0.2-bi {
   Require {Use kbskit8.6 sdx.kit tcllib_cur vectcl0.2 vectcltk0.2 ukaz0.2 img1.4.3 tklib_cur bwidget1.9.8 \
 	gridplus2.10 icons1.2 memchan2.3 mentry3.7 nsf2.0.0 ral0.11.2 tclx8.4 tdom0.8.3 \
-	tkdnd2.8 tkpath0.3.3 tktable2.10 treectrl2.4.1 trofs0.4.8 udp1.0.11 wcb3.5 xotcl1.6.8}
+	tkdnd2.8 tkpath0.3.3 tktable2.10 tls1.6.7 treectrl2.4.1 trofs0.4.8 udp1.0.11 wcb3.5 xotcl1.6.8}
 
   Source {Wget https://github.com/auriocus/VecTcLab/archive/v0.2.zip}
   Configure {
@@ -89,7 +89,7 @@ Package VecTcLab0.2-bi {
   }
   Make {Kit VecTcLab-bi tcllib_cur vectcl0.2 vectcltk0.2 ukaz0.2 img1.4.3 tklib_cur bwidget1.9.8\
 	gridplus2.10 icons1.2 memchan2.3 mentry3.7 nsf2.0.0 ral0.11.2 tclx8.4 tdom0.8.3 \
-	tkdnd2.8 tkpath0.3.3 tktable2.10 treectrl2.4.1 trofs0.4.8 udp1.0.11 wcb3.5 xotcl1.6.8
+	tkdnd2.8 tkpath0.3.3 tktable2.10 tls1.6.7 treectrl2.4.1 trofs0.4.8 udp1.0.11 wcb3.5 xotcl1.6.8
   }
   Install {Kit VecTcLab-bi -vq-gui}
   Clean {file delete -force VecTcLab-bi.vfs}

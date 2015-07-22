@@ -2278,8 +2278,8 @@ Package nsf2.0.0 {
   Configure {
     Patch [Get srcdir]/Makefile.in 213 \
 {INCLUDES	= @PKG_INCLUDES@ @TCL_INCLUDES@ @NSF_BUILD_INCLUDE_SPEC@
-} "INCLUDES	= @PKG_INCLUDES@ @TCL_INCLUDES@ @NSF_BUILD_INCLUDE_SPEC@ -I@TCL_SRC_DIR@/generic -I[Get srcdir-sys]/generic
-"
+} {INCLUDES	= @PKG_INCLUDES@ @TCL_INCLUDES@ @NSF_BUILD_INCLUDE_SPEC@ -I@TCL_SRC_DIR@/generic -I$(srcdir)/generic
+}
     Config [Get srcdir-sys]
   }
   Make {
