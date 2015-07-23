@@ -20,7 +20,8 @@ Package vectcl0.2-patch {
     Config [Get srcdir-sys] --enable-listpatch
   }
   Make {Run make}
-  Install {Run make install}
+  Install {Run make install
+	Libdir vectcl0.2}
   Clean {Run make clean}
   Test {Run make test}
 }
@@ -57,7 +58,8 @@ Package vectcltk0.2-patch {
     Config [Get srcdir-sys]/TkBridge
   }
   Make {Run make}
-  Install {Run make install}
+  Install {Run make install
+	Libdir vectcltk0.2}
   Clean {Run make clean}
   Test {Run make test}
 }
