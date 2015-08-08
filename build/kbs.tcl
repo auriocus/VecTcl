@@ -438,7 +438,7 @@ proc ::kbs::distclean {args} {
 
 ##	Contain internally used functions and variables.
 namespace eval ::kbs::config {
-  namespace export Run Get Patch Require Source Configure Make Install Clean Test
+  namespace export Run Get Patch PatchOld Require Source Configure Make Install Clean Test
 #-------------------------------------------------------------------------------
 
 ##	Internal variable containing top level script directory.
@@ -587,7 +587,7 @@ proc ::kbs::config::_init {used list} {
   array unset _ TK_*
 
   # create interpreter with commands
-  lappend used Run Get Patch
+  lappend used Run Get Patch PatchOld
   set interp [interp create]
   foreach myProc [namespace export] {
     if {$myProc in $used} {
@@ -1340,8 +1340,154 @@ proc ::kbs::config::Get {var} {
 }
 #-------------------------------------------------------------------------------
 
+##	Apply a patch in unified diff format
+# @synopsis{Patch directory striplevel patch}
+#
+# @examples
+#	Patch [Get srcdir] 1 {
+#.... here comes the output from diff -ru ...
+# }
+# @param[in] dir        root directory of the patch, usually srcdir
+# @param[in] striplevel number of path elements to be removed from the diff header
+# @param[in] patch      output of diff -ru
+
+proc ::kbs::config::Patch {dir striplevel patch} {
+	set patchlines [split $patch \n]
+	set inhunk false
+
+	for {set lineidx 0} {$lineidx<[llength $patchlines]} {incr lineidx} {
+		set line [lindex $patchlines $lineidx]
+		if {[string match diff* $line]} {
+			# a diff block starts. Next two lines should be
+			# --- oldfile date time TZ
+			# +++ newfile date time TZ
+			incr lineidx
+			set in [lindex $patchlines $lineidx]
+			incr lineidx
+			set out [lindex $patchlines $lineidx]
+
+			if {![string match ---* $in] || ![string match +++* $out]} {
+				puts $in
+				puts $out
+				return -code error "Patch not in unified diff format, line $lineidx $in $out"
+			}
+
+			# the quoting is compatible with list
+			lassign $in -> oldfile
+			lassign $out -> newfile
+
+			set fntopatch [file join $dir {*}[lrange [file split $newfile] $striplevel end]]
+			set inhunk false
+			#puts "Found diffline for $fntopatch"
+			continue
+		}
+
+		# state machine for parsing the hunks
+		set typechar [string index $line 0]
+		set codeline [string range $line 1 end]
+		switch $typechar {
+			@ {
+				if {![regexp {@@\s+\-(\d+),(\d+)\s+\+(\d+),(\d+)\s+@@} $line \
+					-> oldstart oldlen newstart newlen]} {
+					return code -error "Erroneous hunk in line $lindeidx, $line"
+				}
+				# adjust line numbers for 0-based indexing
+				incr oldstart -1
+				incr newstart -1
+				#puts "New hunk"
+				set newcode {}
+				set oldcode {}
+				set inhunk true
+			}
+			- { # line only in old code
+				if {$inhunk} {
+					lappend oldcode $codeline
+				}
+			}
+			+ { # line only in new code
+				if {$inhunk} {
+					lappend newcode $codeline
+				}
+			}
+			" " { # common line
+				if {$inhunk} {
+					lappend oldcode $codeline
+					lappend newcode $codeline
+				}
+			}
+			default {
+				# puts "Junk: $codeline";
+				continue
+			}
+		}
+		# test if the hunk is complete
+		if {[llength $oldcode]==$oldlen && [llength $newcode]==$newlen} {
+			set hunk [dict create \
+				oldcode $oldcode \
+				newcode $newcode \
+				oldstart $oldstart \
+				newstart $newstart]
+			#puts "hunk complete: $hunk"
+			set inhunk false
+			dict lappend patchdict $fntopatch $hunk
+		}
+	}
+
+	# now we have parsed the patch. Apply
+	dict for {fn hunks} $patchdict {
+		puts "Patching file $fn"
+		if {[catch {open $fn} fd]} {
+			set orig {}
+		} else {
+			set orig [split [read $fd] \n]
+		}
+		close $fd
+
+		set patched $orig
+
+		set fail false
+		set already_applied false
+		set hunknr 1
+		foreach hunk $hunks {
+			dict with hunk {
+				set oldend [expr {$oldstart+[llength $oldcode]-1}]
+				set newend [expr {$newstart+[llength $newcode]-1}]
+				# check if the hunk matches
+				set origcode [lrange $orig $oldstart $oldend]
+				if {$origcode ne $oldcode} {
+					set fail true
+					puts "Hunk #$hunknr failed"
+					# check if the patch is already applied
+					set origcode_applied [lrange $orig $newstart $newend]
+					if {$origcode_applied eq $newcode} {
+						set already_applied true
+						puts "Patch already applied"
+					} else {
+						puts "Expected:\n[join $oldcode \n]"
+						puts "Seen:\n[join $origcode \n]"
+					}
+					break
+				}
+				# apply patch
+				set patched [list {*}[lrange $patched 0 $newstart-1] {*}$newcode {*}[lrange $patched $oldend+1 end]]
+			}
+			incr hunknr
+		}
+
+		if {!$fail} {
+			# success - write the result back
+			set fd [open $fn w]
+			puts $fd [join $patched \n]
+			close $fd
+		}
+	}
+}
+
+
+#-------------------------------------------------------------------------------
+
 ##	Patch files.
-# @synopsis{Patch file lineoffste oldtext newtext}
+# @synopsis{PatchOld file lineoffste oldtext newtext}
 #
 # @examples
 #	Patch [Get srcdir]/Makefile.in 139\
@@ -1352,7 +1498,7 @@ proc ::kbs::config::Get {var} {
 # @param[in] lineoffset	start point of patch, first line is 1
 # @param[in] oldtext	part of file to replace
 # @param[in] newtext	replacement text
-proc ::kbs::config::Patch {file lineoffset oldtext newtext} {
+proc ::kbs::config::PatchOld {file lineoffset oldtext newtext} {
   variable verbose
 
   set myFd [open $file r]
@@ -1971,7 +2117,7 @@ Package icons1.2 {
 Package img1.4.1 {
   Source {Svn https://svn.code.sf.net/p/tkimg/code/trunk -r 343}
   Configure {
-    Patch [Get srcdir]/Makefile.in 154 {install: collate install-man
+    PatchOld [Get srcdir]/Makefile.in 154 {install: collate install-man
 } {install: collate
 }
     Config [Get srcdir-sys]
@@ -2033,7 +2179,7 @@ Package iwidgets4.0.2 {
   Require {Use itk3.4}
   Source {
     Cvs incrtcl.cvs.sourceforge.net:/cvsroot/incrtcl -D 2010-10-28 iwidgets 
-    Patch [Get srcdir]/Makefile.in 72 {		  @LD_LIBRARY_PATH_VAR@="$(EXTRA_PATH):$(@LD_LIBRARY_PATH_VAR@)"}  {		  LD_LIBRARY_PATH="$(EXTRA_PATH):$(@LD_LIBRARY_PATH_VAR@)"}
+    PatchOld [Get srcdir]/Makefile.in 72 {		  @LD_LIBRARY_PATH_VAR@="$(EXTRA_PATH):$(@LD_LIBRARY_PATH_VAR@)"}  {		  LD_LIBRARY_PATH="$(EXTRA_PATH):$(@LD_LIBRARY_PATH_VAR@)"}
   }
   Configure {
   Config [Get srcdir-sys] -with-itcl=[Get srcdir-sys]/../itcl3.4
@@ -2247,9 +2393,9 @@ Package mk4tcl2.4.9.7 {
 Package mk4tcl2.4.9.7-static {
   Source {Link mk4tcl2.4.9.7}
   Configure {
-    Patch [Get srcdir]/unix/Makefile.in 46 {CXXFLAGS = $(CXX_FLAGS)} {CXXFLAGS = -DSTATIC_BUILD $(CXX_FLAGS)}
+    PatchOld [Get srcdir]/unix/Makefile.in 46 {CXXFLAGS = $(CXX_FLAGS)} {CXXFLAGS = -DSTATIC_BUILD $(CXX_FLAGS)}
     if {$::tcl_platform(os) == "SunOS" && [Get CC] == "cc"} {
-      Patch [Get srcdir]/tcl/mk4tcl.h 9 "#include <tcl.h>\n\n" "#include <tcl.h>\n#undef TCL_WIDE_INT_TYPE\n"
+      PatchOld [Get srcdir]/tcl/mk4tcl.h 9 "#include <tcl.h>\n\n" "#include <tcl.h>\n#undef TCL_WIDE_INT_TYPE\n"
     }
     Config [Get srcdir-sys]/unix --disable-shared --with-tcl=[Get builddir-sys]/include
   }
@@ -2276,7 +2422,7 @@ Package nap7.0.0 {
 Package nsf2.0.0 {
   Source {Wget http://prdownloads.sourceforge.net/next-scripting/nsf2.0.0.tar.gz}
   Configure {
-    Patch [Get srcdir]/Makefile.in 213 \
+    PatchOld [Get srcdir]/Makefile.in 213 \
 {INCLUDES	= @PKG_INCLUDES@ @TCL_INCLUDES@ @NSF_BUILD_INCLUDE_SPEC@
 } {INCLUDES	= @PKG_INCLUDES@ @TCL_INCLUDES@ @NSF_BUILD_INCLUDE_SPEC@ -I@TCL_SRC_DIR@/generic -I$(srcdir)/generic
 }
@@ -2292,10 +2438,10 @@ Package nsf2.0.0 {
 Package nsf2.0b5 {
   Source {Wget http://prdownloads.sourceforge.net/next-scripting/nsf2.0b5.tar.gz}
   Configure {
-    Patch [Get srcdir]/Makefile.in 195 \
+    PatchOld [Get srcdir]/Makefile.in 195 \
 {		  TCLLIBPATH="$(top_builddir) ${srcdir} $(TCLLIBPATH)"} \
 {		  TCLLIBPATH="${srcdir} $(top_builddir) $(TCLLIBPATH)"}
-    Patch [Get srcdir]/Makefile.in 201 \
+    PatchOld [Get srcdir]/Makefile.in 201 \
 {INCLUDES	= @PKG_INCLUDES@ @TCL_INCLUDES@ @NSF_BUILD_INCLUDE_SPEC@
 } {INCLUDES	= @PKG_INCLUDES@ @TCL_INCLUDES@ @NSF_BUILD_INCLUDE_SPEC@ -I@TCL_SRC_DIR@/generic
 }
@@ -2536,7 +2682,7 @@ Package tk8.6 {
   Source {Wget http://prdownloads.sourceforge.net/tcl/tk8.6.4-src.tar.gz}
   Configure {
 #    if {$::tcl_platform(os) != "Darwin"} {
-#    Patch [Get srcdir]/unix/configure 10370\
+#    PatchOld [Get srcdir]/unix/configure 10370\
 #{	    XFT_LIBS=`pkg-config --libs xft 2>/dev/null` || found_xft="no"}\
 #{	    XFT_LIBS=`pkg-config --libs xft fontconfig 2>/dev/null` || found_xft="no"}
 #    }
@@ -2561,7 +2707,7 @@ Package tk8.6-static {
   Source {Link tk8.6}
   Configure {
 #    if {$::tcl_platform(os) != "Darwin"} {
-#    Patch [Get srcdir]/unix/configure 10370\
+#    PatchOld [Get srcdir]/unix/configure 10370\
 #{	    XFT_LIBS=`pkg-config --libs xft 2>/dev/null` || found_xft="no"}\
 #{	    XFT_LIBS=`pkg-config --libs xft fontconfig 2>/dev/null` || found_xft="no"}
 #    }
@@ -2597,7 +2743,7 @@ Package tkdnd2.7 {
   Source {Wget http://prdownloads.sourceforge.net/tkdnd/TkDND/TkDND%202.7/tkdnd2.7-src.tar.gz}
   Configure {
     # fix bogus garbage collection flag
-    Patch [Get srcdir]/configure 8673 {    PKG_CFLAGS="$PKG_CFLAGS -DMAC_TK_COCOA -std=gnu99 -x objective-c -fobjc-gc"} {\
+    PatchOld [Get srcdir]/configure 8673 {    PKG_CFLAGS="$PKG_CFLAGS -DMAC_TK_COCOA -std=gnu99 -x objective-c -fobjc-gc"} {\
     PKG_CFLAGS="$PKG_CFLAGS -DMAC_TK_COCOA -std=gnu99 -x objective-c"}
     Config [Get srcdir-sys]
   }
@@ -2610,7 +2756,7 @@ Package tkdnd2.8 {
   Source {Wget http://prdownloads.sourceforge.net/tkdnd/TkDND/TkDND%202.8/tkdnd2.8-src.tar.gz}
   Configure {
     # fix bogus garbage collection flag
-    Patch [Get srcdir]/configure 6148 {    PKG_CFLAGS="$PKG_CFLAGS -DMAC_TK_COCOA -std=gnu99 -x objective-c -fobjc-gc"} {\
+    PatchOld [Get srcdir]/configure 6148 {    PKG_CFLAGS="$PKG_CFLAGS -DMAC_TK_COCOA -std=gnu99 -x objective-c -fobjc-gc"} {\
     PKG_CFLAGS="$PKG_CFLAGS -DMAC_TK_COCOA -std=gnu99 -x objective-c"}
     Config [Get srcdir-sys]
   }
@@ -2638,7 +2784,7 @@ Package tksqlite0.5.11 {
   Require {Use kbskit8.6 sdx.kit tktable2.10 treectrl2.4.1}
   Source {Wget http://reddog.s35.xrea.com/software/tksqlite-0.5.11.tar.gz}
   Configure {
-#    Patch [Get srcdir]/tksqlite.tcl 14708\
+#    PatchOld [Get srcdir]/tksqlite.tcl 14708\
 #{		Cmd::openDB [file normalize [file join $_startdir $_file]]}\
 #{		Cmd::openDB [file normalize [file join $::starkit::topdir .. $_file]]}
     Kit {source $::starkit::topdir/tksqlite.tcl} Tk
@@ -2655,17 +2801,17 @@ Package tkpath0.3.3 {
   Source {Wget https://bitbucket.org/andrew_shadura/tkpath/get/a6704f14a201.zip}
   Configure {
 	# fix ANSI ARGS define
-    Patch [Get srcdir]/generic/tkp.h 14 {} \
+    PatchOld [Get srcdir]/generic/tkp.h 14 {} \
 {#ifndef _ANSI_ARGS_
 #define _ANSI_ARGS_(X) X
 #endif
 }
 	# fix link problem on OSX from forcing universal binary
-	Patch [Get srcdir]/configure 6262 \
+	PatchOld [Get srcdir]/configure 6262 \
 {	PKG_LIBS="$PKG_LIBS $i"} \
 {	#PKG_LIBS="$PKG_LIBS $i"}
 	
-	Patch [Get srcdir]/configure 6326 \
+	PatchOld [Get srcdir]/configure 6326 \
 {    PKG_CFLAGS="$PKG_CFLAGS -arch i386 -arch x86_64"} \
 {    #PKG_CFLAGS="$PKG_CFLAGS -arch i386 -arch x86_64"}
     Config [Get srcdir-sys] --with-tkinclude=[Get srcdir-sys]/../tk8.6/generic
@@ -2684,7 +2830,7 @@ Package tkpath0.3.3 {
 Package tktable2.10 {
   Source {Cvs tktable.cvs.sourceforge.net:/cvsroot/tktable -r tktable-2-10-0 tktable}
   Configure {
-    Patch [Get srcdir]/generic/tkTable.h 21 {#include <tk.h>} {#include <tkInt.h>}
+    PatchOld [Get srcdir]/generic/tkTable.h 21 {#include <tk.h>} {#include <tkInt.h>}
     Config [Get srcdir-sys]
   }
   Make {Run make binaries}
@@ -2713,11 +2859,11 @@ Package treectrl2.4.1 {
   Source {Wget http://prdownloads.sourceforge.net/sourceforge/tktreectrl/tktreectrl-2.4.1.tar.gz}
   Configure {
 	# fix bogus garbage collection flag
-    Patch [Get srcdir]/configure 6430 {    PKG_CFLAGS="$PKG_CFLAGS -DMAC_TK_COCOA -std=gnu99 -x objective-c -fobjc-gc"} {\
+    PatchOld [Get srcdir]/configure 6430 {    PKG_CFLAGS="$PKG_CFLAGS -DMAC_TK_COCOA -std=gnu99 -x objective-c -fobjc-gc"} {\
     PKG_CFLAGS="$PKG_CFLAGS -DMAC_TK_COCOA -std=gnu99 -x objective-c"}
 	# fix wrong detection of Tk private headers
-    Patch [Get srcdir]/configure 5492 {	-f "${ac_cv_c_tkh}/tkWinPort.h"; then} {""; then}
-    Patch [Get srcdir]/configure 5495 {	-f "${ac_cv_c_tkh}/tkUnixPort.h"; then} {""; then}
+    PatchOld [Get srcdir]/configure 5492 {	-f "${ac_cv_c_tkh}/tkWinPort.h"; then} {""; then}
+    PatchOld [Get srcdir]/configure 5495 {	-f "${ac_cv_c_tkh}/tkUnixPort.h"; then} {""; then}
     Config [Get srcdir-sys]
   }
   Make {Run make}
@@ -2730,7 +2876,7 @@ Package treectrl2.4.1 {
 Package trofs0.4.6 {
   Source {Wget http://math.nist.gov/~DPorter/tcltk/trofs/trofs0.4.6.tar.gz}
   Configure {
-#    Patch [Get srcdir]/Makefile.in 148 \
+#    PatchOld [Get srcdir]/Makefile.in 148 \
 {DEFS		= @DEFS@ $(PKG_CFLAGS)} \
 {DEFS		= @DEFS@ $(PKG_CFLAGS) -D_USE_32BIT_TIME_T}
     Config [Get srcdir-sys]
@@ -2778,10 +2924,10 @@ Package udp1.0.11 {
 Package vfs1.4 {
   Source {Cvs tclvfs.cvs.sourceforge.net:/cvsroot/tclvfs -D 2012-01-10 tclvfs}
   Configure {
-    Patch [Get srcdir]/Makefile.in 143 \
+    PatchOld [Get srcdir]/Makefile.in 143 \
 {INCLUDES	= @PKG_INCLUDES@ @TCL_INCLUDES@}\
 {INCLUDES	= @TCL_INCLUDES@}
-#    Patch [Get srcdir]/Makefile.in 147 \
+#    PatchOld [Get srcdir]/Makefile.in 147 \
 #{DEFS		= @DEFS@ $(PKG_CFLAGS)
 #} {DEFS		= @DEFS@ $(PKG_CFLAGS) -D_USE_32BIT_TIME_T
 #} 
@@ -2797,10 +2943,10 @@ Package vfs1.4 {
 Package vfs1.4-static {
   Source {Link vfs1.4}
   Configure {
-    Patch [Get srcdir]/Makefile.in 143 \
+    PatchOld [Get srcdir]/Makefile.in 143 \
 {INCLUDES	= @PKG_INCLUDES@ @TCL_INCLUDES@}\
 {INCLUDES	= @TCL_INCLUDES@}
-#    Patch [Get srcdir]/Makefile.in 147 \
+#    PatchOld [Get srcdir]/Makefile.in 147 \
 #{DEFS		= @DEFS@ $(PKG_CFLAGS)
 #} {DEFS		= @DEFS@ $(PKG_CFLAGS) -D_USE_32BIT_TIME_T
 #} 
@@ -2822,7 +2968,7 @@ Package vqtcl4.1 {
 Package vqtcl4.1-static {
   Source {Link vqtcl4.1}
   Configure {
-    Patch [Get srcdir]/generic/vlerq.c 42 {#if !defined(_BIG_ENDIAN) && defined(WORDS_BIGENDIAN)} {#if defined(WORDS_BIGENDIAN)}
+    PatchOld [Get srcdir]/generic/vlerq.c 42 {#if !defined(_BIG_ENDIAN) && defined(WORDS_BIGENDIAN)} {#if defined(WORDS_BIGENDIAN)}
     Config [Get srcdir-sys] --disable-shared
   }
   Make {
