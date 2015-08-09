@@ -1,4 +1,99 @@
+## @defgroup tcl
 #@verbatim
+# patch Tcl with the list patch
+Package tcl8.6 {
+  Source {Wget http://prdownloads.sourceforge.net/tcl/tcl8.6.4-src.tar.gz}
+  Configure {
+ 	Patch [Get srcdir] 1 "diff -ru tcl8.6.4_orig/generic/tclInt.h tcl8.6/generic/tclInt.h
+--- tcl8.6.4_orig/generic/tclInt.h	2015-07-22 11:12:05.678022931 +0200
++++ tcl8.6/generic/tclInt.h	2015-07-22 11:12:42.662206326 +0200
+@@ -2686,7 +2686,7 @@
+ MODULE_SCOPE const Tcl_ObjType tclDoubleType;
+ MODULE_SCOPE const Tcl_ObjType tclEndOffsetType;
+ MODULE_SCOPE const Tcl_ObjType tclIntType;
+-MODULE_SCOPE const Tcl_ObjType tclListType;
++MODULE_SCOPE Tcl_ObjType tclListType;
+ MODULE_SCOPE const Tcl_ObjType tclDictType;
+ MODULE_SCOPE const Tcl_ObjType tclProcBodyType;
+ MODULE_SCOPE const Tcl_ObjType tclStringType;
+diff -ru tcl8.6.4_orig/generic/tclListObj.c tcl8.6/generic/tclListObj.c
+--- tcl8.6.4_orig/generic/tclListObj.c	2015-07-22 11:12:05.694023011 +0200
++++ tcl8.6/generic/tclListObj.c	2015-07-22 11:12:42.674206386 +0200
+@@ -38,7 +38,7 @@
+  * storage to avoid an auxiliary stack.
+  */
+ 
+-const Tcl_ObjType tclListType = \{
++Tcl_ObjType tclListType = \{
+     \"list\",			/* name */
+     FreeListInternalRep,	/* freeIntRepProc */
+     DupListInternalRep,		/* dupIntRepProc */
+@@ -470,7 +470,7 @@
+ 	    *objvPtr = NULL;
+ 	    return TCL_OK;
+ 	\}
+-	result = SetListFromAny(interp, listPtr);
++	result = Tcl_ConvertToType(interp, listPtr, &tclListType);
+ 	if (result != TCL_OK) \{
+ 	    return result;
+ 	\}
+@@ -579,7 +579,7 @@
+ 	    Tcl_SetListObj(listPtr, 1, &objPtr);
+ 	    return TCL_OK;
+ 	\}
+-	result = SetListFromAny(interp, listPtr);
++	result = Tcl_ConvertToType(interp, listPtr, &tclListType);
+ 	if (result != TCL_OK) \{
+ 	    return result;
+ 	\}
+@@ -743,7 +743,7 @@
+ 	    *objPtrPtr = NULL;
+ 	    return TCL_OK;
+ 	\}
+-	result = SetListFromAny(interp, listPtr);
++	result = Tcl_ConvertToType(interp, listPtr, &tclListType);
+ 	if (result != TCL_OK) \{
+ 	    return result;
+ 	\}
+@@ -796,7 +796,7 @@
+ 	    *intPtr = 0;
+ 	    return TCL_OK;
+ 	\}
+-	result = SetListFromAny(interp, listPtr);
++	result = Tcl_ConvertToType(interp, listPtr, &tclListType);
+ 	if (result != TCL_OK) \{
+ 	    return result;
+ 	\}
+@@ -869,7 +869,7 @@
+ 	    \}
+ 	    Tcl_SetListObj(listPtr, objc, NULL);
+ 	\} else \{
+-	    int result = SetListFromAny(interp, listPtr);
++	    int result = Tcl_ConvertToType(interp, listPtr, &tclListType);
+ 
+ 	    if (result != TCL_OK) \{
+ 		return result;
+@@ -1627,7 +1627,7 @@
+ 	    \}
+ 	    return TCL_ERROR;
+ 	\}
+-	result = SetListFromAny(interp, listPtr);
++	result = Tcl_ConvertToType(interp, listPtr, &tclListType);
+ 	if (result != TCL_OK) \{
+ 	    return result;
+ 	\}
+"
+	Config [Get srcdir-sys]/[Get sys]
+  }
+  Make {Run make}
+  Install {Run make install install-private-headers}
+  Clean {Run make clean}
+  Test {Run make test}
+}
+#@endverbatim
+
+
+##@verbatim
 Package vectcl0.2 {
   Require {Use tcl8.6}
   Source {Wget https://github.com/auriocus/VecTcl/archive/v0.2.tar.gz}

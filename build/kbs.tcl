@@ -1354,7 +1354,9 @@ proc ::kbs::config::Get {var} {
 proc ::kbs::config::Patch {dir striplevel patch} {
 	set patchlines [split $patch \n]
 	set inhunk false
-
+	set oldcode {}
+	set newcode {}
+	
 	for {set lineidx 0} {$lineidx<[llength $patchlines]} {incr lineidx} {
 		set line [lindex $patchlines $lineidx]
 		if {[string match diff* $line]} {
@@ -1477,7 +1479,7 @@ proc ::kbs::config::Patch {dir striplevel patch} {
 		if {!$fail} {
 			# success - write the result back
 			set fd [open $fn w]
-			puts $fd [join $patched \n]
+			puts -nonewline $fd [join $patched \n]
 			close $fd
 		}
 	}
@@ -1986,6 +1988,7 @@ proc ::kbs_main {argv} {
   if {[info commands ::kbs::$myCmd] ne ""} {
     if {[catch {::kbs::$myCmd {*}[lrange $argv 1 end]} myMsg]} {
       puts stderr "Error in execution of '$myCmd [lrange $argv 1 end]':\n$myMsg"
+	  puts stderr $::errorInfo
       exit 1
     }
     if {$myCmd != "gui"} {
