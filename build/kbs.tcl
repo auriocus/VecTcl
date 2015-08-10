@@ -1548,6 +1548,7 @@ proc ::kbs::config::PatchOld {file lineoffset oldtext newtext} {
 proc ::kbs::config::Run {args} {
   variable _
   variable verbose
+  variable maindir
   if {[info exists _(exec-[lindex $args 0])]} {
     set args [lreplace $args 0 0 $_(exec-[lindex $args 0])]
   }
