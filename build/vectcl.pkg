@@ -182,7 +182,7 @@ Package tklib_cur {
 
 #@verbatim
 Package tcllib_cur {
-  Source {Wget https://github.com/tcltk/tcllib/archive/3ea59cc36d5a2d3ba4ce561427915290389e18a9.zip}
+  Source {Wget https://github.com/tcltk/tcllib/archive/3ea59cc36d5a2d3ba4ce561427915290389e18a9.tar.gz}
   Configure {Config [Get srcdir-sys]}
   Make {}
   Install {Run make install-libraries

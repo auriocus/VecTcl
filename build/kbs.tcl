@@ -2624,11 +2624,7 @@ Package tclx8.4 {
 ## @defgroup tdom
 #@verbatim
 Package tdom0.8.3 {
-  Source {#Wget https://github.com/downloads/tDOM/tdom/tDOM-0.8.3.tgz
-    Wget https://github.com/tDOM/tdom/tarball/8667ce5
-    Tgz [glob -nocomplain [Get builddir-sys]/../sources/8667ce5*]
-    file delete -force [glob -nocomplain [Get builddir-sys]/../sources/8667ce5*]
-  }
+  Source {Wget https://github.com/tDOM/tdom/archive/363cbda3ac91b8955edbfd2b64625c725385d5b4.tar.gz}
   Configure {Config [Get srcdir-sys]}
   Make {Run make binaries}
   Install {Run make install-binaries}
