@@ -2,7 +2,7 @@
 title: VecTcl
 layout: default
 subtitle: VecTcLab
-toplink: false
+toplink: true
 documentation: true
 home: false
 permalink: "vectclab.html"
