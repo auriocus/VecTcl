@@ -15,6 +15,8 @@ Latest development sources
 
 Releases
 --------
+- [v0.2 .zip](https://github.com/auriocus/VecTcl/archive/v0.2.zip)
+- [v0.2 .tar.gz](https://github.com/auriocus/VecTcl/archive/v0.2.tar.gz)
 - [v0.1.7-alpha .zip](https://github.com/auriocus/VecTcl/archive/v0.1.7-alpha.zip)
 - [v0.1.7-alpha .tar.gz](https://github.com/auriocus/VecTcl/archive/v0.1.7-alpha.tar.gz)
 - [v0.1.5-alpha .zip](https://github.com/auriocus/VecTcl/archive/v0.1.5-alpha.zip)
@@ -27,14 +29,8 @@ Binaries
 
 Prebuilt binaries are available from 
 - [Roy Keene's teapot](http://teapot.rkeene.org/entity/name/vectcl/index.html)
+- [The GitHub release page](https://github.com/auriocus/VecTcl/releases/latest)
 
 [VecTcLab]({{ site.baseurl }}/vectclab.html), a bundled package with Tcl/Tk, a modified tkcon,
-VecTcl and a plotting library in a single file is available for
-
-- [Windows 32 bit]({{ site.baseurl }}/binaries/VecTcLab-Win32.exe)
-- [Windows 64 bit]({{ site.baseurl }}/binaries/VecTcLab-Win64.exe)
-- [Mac OSX 64 bit]({{ site.baseurl }}/binaries/VecTcLab-Darwin)
-- [Linux 32 bit]({{ site.baseurl }}/binaries/VecTcLab-Linux32)
-- [Linux 64 bit]({{ site.baseurl }}/binaries/VecTcLab-Linux64)
-- [generic starkit]({{ site.baseurl }}/binaries/VecTcLab-generic.kit)
+VecTcl and a plotting library in a single file is available for [also from](https://github.com/auriocus/VecTcl/releases/latest)
 

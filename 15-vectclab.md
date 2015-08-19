@@ -13,9 +13,7 @@ VecTcLab
 VecTcLab is a try to emulate the way of working with linear algebra packages 
 such as Matlab, octave, or SciLab, within a Tcl/VecTcl powered environment.
 It consists of a modified tkcon, an interactive shell for Tcl, with all the necessary
-packages preloaded to do vector math and simple plotting. It can be found on the download
-page. 
-
+packages preloaded to do vector math and simple plotting. It can be found on the [GitHub release page.](https://github.com/auriocus/VecTcl/releases/latest)
 When you fire up VecTcLab, a command window opens with an interactive prompt. 
 
 First, we will do simple matrix calculations
