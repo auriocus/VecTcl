@@ -109,10 +109,21 @@ int CMD(
 		Tcl_SetResult(interp, "Dimension mismatch", NULL);
 		goto cleaninfo;
 	}
+	
+	/* map to int,double,complex - workaround
+	 * until we have the real implementation */
+	const NumArrayType map[NumArray_SentinelType] = 
+		{0,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,-1,2,-1};
+	int ind1=map[sliceinfo->type];
+	int ind2=map[valueinfo->type];
+	if (ind1 < 0 || ind2 < 0) {
+		Tcl_SetObjResult(interp, Tcl_ObjPrintf("Operator undefined for types %s, %s", NumArray_typename[sliceinfo->type], NumArray_typename[valueinfo->type]));
+		goto cleaninfo;
+	}
 
 	
-	if (LOOPTBL[sliceinfo -> type][valueinfo -> type](interp, sharedbuf, sliceinfo, value)!=TCL_OK) {
-		return TCL_ERROR;
+	if (LOOPTBL[ind1][ind2](interp, sharedbuf, sliceinfo, value)!=TCL_OK) {
+		goto cleaninfo;
 	}
 
 	/* no error so far - discard temp sliceinfo, string rep and set variable and result */

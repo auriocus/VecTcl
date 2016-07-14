@@ -65,8 +65,7 @@ const Tcl_ObjType * tclWideIntType;
 
 Tcl_SetFromAnyProc *listSetFromAny;
 
-const char * NumArray_typename[NumArray_SentinelType]={
-	"int", "double",  "complex" };
+const char * NumArray_typename[NumArray_SentinelType]=NUMARRAYTYPESTRINGS;
 
 static int CreateNumArrayInfoFromList(Tcl_Interp *interp, Tcl_Obj* dimlist, NumArrayType dtype, NumArrayInfo **infoptr) {
 	/* Create information with dimensions as in dimlist
@@ -1726,7 +1725,7 @@ static int createNumArraySharedBufferFromTypedList(Tcl_Interp *interp, Tcl_Obj *
 			default:
 				/* Error */
 				printf("Unknown data type\n");
-				exit(-1);
+				goto cleanbuffer;
 		} /* end of switch datatype */
 
 		/* advance the count

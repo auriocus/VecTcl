@@ -23,12 +23,25 @@ typedef long int NaWideInt;
 typedef enum {
 	NumArray_NoType=-1,
 	NumArray_Int=0,
-	NumArray_Float64=1,
-	NumArray_Complex128=2,
-	NumArray_SentinelType=3
+	NumArray_Int8=1,
+	NumArray_Uint8=2,
+	NumArray_Int16=3,
+	NumArray_Uint16=4,
+	NumArray_Int32=5,
+	NumArray_Uint32=6,
+	NumArray_Int64=7,
+	NumArray_Uint64=8,
+	NumArray_Float32=9,
+	NumArray_Float64=10,
+	NumArray_Complex64=11,
+	NumArray_Complex128=12,
+	NumArray_TclObj=13,
+	NumArray_SentinelType=14
 	/* NumArray_BigInt=4 ?*/
 } NumArrayType;
 
+#define NUMARRAYTYPESTRINGS {"int", "int8", "uint8", "int16", "uint16", \
+	"int32", "uint32", "int64", "uint64", "float", "double", "complex64", "complex128", "Tcl_Obj", "Sentinel" }
 /* struct for storing a single polymorphic value */
 typedef struct {
 	NumArrayType type;
