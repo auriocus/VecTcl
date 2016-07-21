@@ -62,14 +62,10 @@ int NumArrayConvertToType(Tcl_Interp *interp, Tcl_Obj *naObj, NumArrayType type,
 	info = naObj -> internalRep.twoPtrValue.ptr2;
 	sharedbuf = naObj -> internalRep.twoPtrValue.ptr1;
 
-	if (type < info -> type) {
-		/* Downcasting is an error */
-		Tcl_SetResult(interp, "Cannot downcast numeric array to requested type", NULL);
-		return TCL_ERROR;
-	}
-	
 	/* Check for no-op */
 	if (type == info -> type) {
+		*dest = naObj;
+		Tcl_IncrRefCount(*dest);
 		return TCL_OK;
 	}
 
@@ -82,6 +78,22 @@ int NumArrayConvertToType(Tcl_Interp *interp, Tcl_Obj *naObj, NumArrayType type,
 	NumArrayIteratorInit(convinfo, convbuf, &convit);
 	/* The new buffer is in canonical form, 
 	 * therefore simply advance the pointer at every element */
+	#define INTCONV(X, Y) \
+		if (type == X && info -> type == Y) { \
+			C_FROM_NATYPE(X) *bufptr = NumArrayIteratorDeRefPtr(&convit); \
+			for (; ! NumArrayIteratorFinished(&it); NumArrayIteratorAdvance(&it)) { \
+				* bufptr++ = *((C_FROM_NATYPE(Y)*)NumArrayIteratorDeRefPtr(&it)); \
+			} \
+			goto ready; \
+		}
+		
+	#define INNER(X) MAPARG(INTCONV, X, NA_INTEGERS)
+	#define OUTER MAP(INNER, NA_INTEGERS)
+	OUTER
+	#undef OUTER
+	#undef INNER
+	#undef INTCONV
+
 	if (type == NumArray_Float64 && info -> type == NumArray_Int) {
 		double *bufptr = NumArrayIteratorDeRefPtr(&convit);
 		for (; ! NumArrayIteratorFinished(&it); NumArrayIteratorAdvance(&it)) {
@@ -110,6 +122,7 @@ int NumArrayConvertToType(Tcl_Interp *interp, Tcl_Obj *naObj, NumArrayType type,
 		return TCL_ERROR;
 	}
 
+ready:
 	NumArrayIteratorFree(&it);
 	NumArrayIteratorFree(&convit);
 

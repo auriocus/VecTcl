@@ -108,6 +108,9 @@ SUBCOMMAND(NumArrayFastCopyCmd);
 SUBCOMMAND(NumArrayFastAddCmd);
 SUBCOMMAND(NumArrayLinRegCmd);
 SUBCOMMAND(NumArrayConvIntCmd);
+#define CONVERTER(X) SUBCOMMAND(NumArrayConv ## X ## Cmd);
+MAP(CONVERTER, Int8, Uint8, Int16, Uint16, Int32, Uint32, Int64, Uint64)
+#undef CONVERTER
 SUBCOMMAND(NumArrayConvDoubleCmd);
 SUBCOMMAND(NumArrayConvComplexCmd);
 SUBCOMMAND(NumArrayAbsCmd);

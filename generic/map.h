@@ -48,10 +48,19 @@
 #define MAP1(f, x, peek, ...) f(x) MAP_NEXT (peek, MAP0) (f, peek, __VA_ARGS__)
 #define MAP(f, ...) EVAL (MAP1 (f, __VA_ARGS__, (), 0))
 
-/* Variant with one extra argument passed into f */
+/* Variant with one extra argument passed into f 
+ * Can be used to construct nested loops */
+#define ARGEVAL0(...) __VA_ARGS__
+#define ARGEVAL1(...) ARGEVAL0 (ARGEVAL0 (ARGEVAL0 (__VA_ARGS__)))
+#define ARGEVAL2(...) ARGEVAL1 (ARGEVAL1 (ARGEVAL1 (__VA_ARGS__)))
+#define ARGEVAL3(...) ARGEVAL2 (ARGEVAL2 (ARGEVAL2 (__VA_ARGS__)))
+#define ARGEVAL4(...) ARGEVAL3 (ARGEVAL3 (ARGEVAL3 (__VA_ARGS__)))
+#define ARGEVAL(...)  ARGEVAL4 (ARGEVAL4 (ARGEVAL4 (__VA_ARGS__)))
+
+
 #define MAPARG0(f, arg, x, peek, ...) f(arg, x) MAP_NEXT (peek, MAPARG1) (f, arg, peek, __VA_ARGS__)
 #define MAPARG1(f, arg, x, peek, ...) f(arg, x) MAP_NEXT (peek, MAPARG0) (f, arg, peek, __VA_ARGS__)
-#define MAPARG(f, arg, ...) EVAL(MAPARG1 (f, arg, __VA_ARGS__, (), 0))
+#define MAPARG(f, arg, ...) ARGEVAL(MAPARG1 (f, arg, __VA_ARGS__, (), 0))
 
 
 #endif

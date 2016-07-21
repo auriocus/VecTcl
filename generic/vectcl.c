@@ -173,6 +173,14 @@ static const EnsembleMap implementationMap[] = {
 	{"diag", NumArrayDiagCmd, NULL},
 	/* data type conversion operators */
 	{"int", NumArrayConvIntCmd, NULL},
+	{"int8", NumArrayConvInt8Cmd, NULL},
+	{"uint8", NumArrayConvUint8Cmd, NULL},
+	{"int16", NumArrayConvInt16Cmd, NULL},
+	{"uint16", NumArrayConvUint16Cmd, NULL},
+	{"int32", NumArrayConvInt32Cmd, NULL},
+	{"uint32", NumArrayConvUint32Cmd, NULL},
+	{"int64", NumArrayConvInt64Cmd, NULL},
+	{"uint64", NumArrayConvUint64Cmd, NULL},
 	{"double", NumArrayConvDoubleCmd, NULL},
 	{"complex", NumArrayConvComplexCmd, NULL},
 	/* elementary manipulations of complex values*/
@@ -1656,6 +1664,31 @@ cleanobj:
 	return TCL_ERROR;
 }
 
+#define CONVERTER(TYPE) \
+int NumArrayConv ## TYPE ## Cmd(\
+		ClientData dummy,\
+		Tcl_Interp *interp,\
+		int objc,\
+		Tcl_Obj *const *objv)\
+{\
+	if (objc != 2) {\
+		Tcl_WrongNumArgs(interp, 1, objv, "numarray");\
+		return TCL_ERROR;\
+	}\
+\
+	Tcl_Obj *result;\
+	Tcl_Obj *naObj = objv[1];\
+\
+	if (NumArrayConvertToType(interp, naObj, NumArray_ ## TYPE, &result) != TCL_OK) {\
+		return TCL_ERROR;\
+	}\
+	Tcl_SetObjResult(interp, result);\
+	return TCL_OK;\
+}
+
+MAP(CONVERTER, Int8, Uint8, Int16, Uint16, Int32, Uint32, Int64, Uint64)
+
+#undef CONVERTER
 /* createNumArraySharedBufferFromTypedList
  * 
  * Expect a nested list representation compatible with info 
