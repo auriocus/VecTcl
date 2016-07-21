@@ -65,7 +65,8 @@ const Tcl_ObjType * tclWideIntType;
 
 Tcl_SetFromAnyProc *listSetFromAny;
 
-const char * NumArray_typename[NumArray_SentinelType]=NUMARRAYTYPESTRINGS;
+const char * NumArray_typename[NumArray_SentinelType+1]=NUMARRAYTYPESTRINGS;
+const char * NumArray_typesuffixes[NumArray_SentinelType+1]=NUMARRAYTYPESUFFIXES;
 
 static int CreateNumArrayInfoFromList(Tcl_Interp *interp, Tcl_Obj* dimlist, NumArrayType dtype, NumArrayInfo **infoptr) {
 	/* Create information with dimensions as in dimlist
@@ -1872,6 +1873,18 @@ static void UpdateStringOfNumArray(Tcl_Obj *naPtr) {
 					Tcl_DStringAppendElement(&srep, intbuf);
 					break;
 				}
+#define PRINTFIXEDINT(TYPE) \
+			case TYPE: \
+				{ \
+					char intbuf[TCL_INTEGER_SPACE+5];\
+					long el = *((C_FROM_NATYPE(TYPE) *) (baseptr[nDim-1]));\
+					snprintf(intbuf, TCL_INTEGER_SPACE+5, "%ld%s", el, NumArray_typesuffixes[TYPE]);\
+					Tcl_DStringAppendElement(&srep, intbuf);\
+					break;\
+				}
+
+			MAP(PRINTFIXEDINT, NA_FIXEDINTEGERS) // TODO Wrong for (u)int64_t. How to do that correctly???
+
 			case NumArray_Float64:
 				{
 					char dblbuf[TCL_DOUBLE_SPACE];

@@ -2,6 +2,15 @@
 #define VECTCL_H
 #include <tcl.h>
 #include "nacomplex.h"
+#include "map.h"
+#ifdef HAVE_STDINT_H
+#include <stdint.h>
+#endif
+#ifdef HAVE_INTTYPES_H
+#include <inttypes.h>
+#endif
+
+
 
 #include <stdlib.h>
 #include <stddef.h>
@@ -42,6 +51,39 @@ typedef enum {
 
 #define NUMARRAYTYPESTRINGS {"int", "int8", "uint8", "int16", "uint16", \
 	"int32", "uint32", "int64", "uint64", "float", "double", "complex64", "complex128", "Tcl_Obj", "Sentinel" }
+
+#define NUMARRAYTYPESUFFIXES {"", "i8", "u8", "i16", "u16", "i32", "u32", "i64", "u64", "f", "", "f", "", "", "" }
+
+#define NA_ALLTYPES \
+	NumArray_Int, \
+	NumArray_Int8, \
+	NumArray_Uint8,\
+	NumArray_Int16,\
+	NumArray_Uint16,\
+	NumArray_Int32,\
+	NumArray_Uint32,\
+	NumArray_Int64,\
+	NumArray_Uint64,\
+	NumArray_Float32,\
+	NumArray_Float64,\
+	NumArray_Complex64,\
+	NumArray_Complex128
+
+#define NA_FIXEDINTEGERS \
+	NumArray_Int8, \
+	NumArray_Uint8,\
+	NumArray_Int16,\
+	NumArray_Uint16,\
+	NumArray_Int32,\
+	NumArray_Uint32,\
+	NumArray_Int64,\
+	NumArray_Uint64
+
+#define NA_INTEGERS NumArray_Int, NA_FIXEDINTEGERS
+
+
+
+
 /* struct for storing a single polymorphic value */
 typedef struct {
 	NumArrayType type;

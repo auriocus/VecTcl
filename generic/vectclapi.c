@@ -1,4 +1,5 @@
 #include "vectclInt.h"
+#include "map.h"
 
 /* This actually isn't a stub file. 
   * It contains the actual implementations out of laziness */
@@ -40,13 +41,10 @@ NumArrayType NumArray_UpcastCommonType(NumArrayType type1, NumArrayType type2) {
 }
 
 size_t NumArrayType_SizeOf(NumArrayType type) {
+#define TYPESIZE(X) case X: return sizeof(C_FROM_NATYPE(X));
+
 	switch (type) {
-		case NumArray_Int:
-			return sizeof(NaWideInt);
-		case NumArray_Float64:
-			return sizeof(double);
-		case NumArray_Complex128:
-			return sizeof(NumArray_Complex);
+		MAP(TYPESIZE, NA_ALLTYPES) 
 		default: 
 			printf("Error: unknown data type %d", type);
 			return 1;	

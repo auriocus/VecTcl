@@ -4,6 +4,11 @@
 #include <math.h>
 
 typedef struct {
+	float re;
+	float im;
+} NumArray_ComplexFloat;
+
+typedef struct {
 	double re;
 	double im;
 } NumArray_Complex;
