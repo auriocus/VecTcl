@@ -78,49 +78,49 @@ int NumArrayConvertToType(Tcl_Interp *interp, Tcl_Obj *naObj, NumArrayType type,
 	NumArrayIteratorInit(convinfo, convbuf, &convit);
 	/* The new buffer is in canonical form, 
 	 * therefore simply advance the pointer at every element */
-	#define INTCONV(X, Y) \
+
+	/* all conversions which can be done by the C compiler */
+	#define BUILTINCONV(X, Y) \
 		if (type == X && info -> type == Y) { \
 			C_FROM_NATYPE(X) *bufptr = NumArrayIteratorDeRefPtr(&convit); \
 			for (; ! NumArrayIteratorFinished(&it); NumArrayIteratorAdvance(&it)) { \
-				* bufptr++ = *((C_FROM_NATYPE(Y)*)NumArrayIteratorDeRefPtr(&it)); \
+				* bufptr++ = (C_FROM_NATYPE(X)) (*((C_FROM_NATYPE(Y)*)NumArrayIteratorDeRefPtr(&it))); \
 			} \
 			goto ready; \
 		}
 		
-	#define INNER(X) MAPARG(INTCONV, X, NA_INTEGERS)
-	#define OUTER MAP(INNER, NA_INTEGERS)
+	#define INNER(X) MAPARG(BUILTINCONV, X, NA_REALS)
+	#define OUTER MAP(INNER, NA_REALS)
 	OUTER
 	#undef OUTER
 	#undef INNER
-	#undef INTCONV
+	#undef BUILTINCONV
 
-	if (type == NumArray_Float64 && info -> type == NumArray_Int) {
-		double *bufptr = NumArrayIteratorDeRefPtr(&convit);
-		for (; ! NumArrayIteratorFinished(&it); NumArrayIteratorAdvance(&it)) {
-				* bufptr++ = NumArrayIteratorDeRefInt(&it);
+	/* conversions to complex from real: set imag part to 0 */
+	#define REAL2COMPLEXCONV(CX, RY) \
+		if (type == CX && info -> type == RY) { \
+			C_FROM_NATYPE(CX) *bufptr = NumArrayIteratorDeRefPtr(&convit); \
+			for (; ! NumArrayIteratorFinished(&it); NumArrayIteratorAdvance(&it)) { \
+				C_FROM_NATYPE(CX) value; \
+				value.re = *((C_FROM_NATYPE(RY)*)NumArrayIteratorDeRefPtr(&it)); \
+				value.im = 0.0; \
+				* bufptr++ = value; \
+			} \
+			goto ready; \
 		}
-	} else if (type == NumArray_Complex128 && info -> type == NumArray_Float64) {
-		NumArray_Complex *bufptr = NumArrayIteratorDeRefPtr(&convit);
-		for (; ! NumArrayIteratorFinished(&it); NumArrayIteratorAdvance(&it)) {
-				NumArray_Complex value; 
-				value.re = NumArrayIteratorDeRefDouble(&it);
-				value.im = 0.0;
-				* bufptr++ = value;
-		}
-	} else if (type == NumArray_Complex128 && info -> type == NumArray_Int) {
-		NumArray_Complex *bufptr = NumArrayIteratorDeRefPtr(&convit);
-		for (; ! NumArrayIteratorFinished(&it); NumArrayIteratorAdvance(&it)) {
-				NumArray_Complex value; 
-				value.re = NumArrayIteratorDeRefInt(&it);
-				value.im = 0.0;
-				* bufptr++ = value;
-		}
-	} else {
-		Tcl_SetResult(interp, "Unknown data type conversion", NULL);
-		DeleteNumArrayInfo(convinfo);
-		NumArraySharedBufferDecrRefcount(convbuf);
-		return TCL_ERROR;
-	}
+		
+	#define INNER(X) MAPARG(REAL2COMPLEXCONV, X, NA_REALS)
+	#define OUTER MAP(INNER, NumArray_Complex64, NumArray_Complex128)
+	OUTER
+	#undef OUTER
+	#undef INNER
+	#undef REAL2COMPLEXCONV
+
+	/* If we are here, no conversion has triggered */
+	Tcl_SetResult(interp, "Unknown data type conversion", NULL);
+	DeleteNumArrayInfo(convinfo);
+	NumArraySharedBufferDecrRefcount(convbuf);
+	return TCL_ERROR;
 
 ready:
 	NumArrayIteratorFree(&it);

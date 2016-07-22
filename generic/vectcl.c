@@ -181,6 +181,11 @@ static const EnsembleMap implementationMap[] = {
 	{"uint32", NumArrayConvUint32Cmd, NULL},
 	{"int64", NumArrayConvInt64Cmd, NULL},
 	{"uint64", NumArrayConvUint64Cmd, NULL},
+	{"float32", NumArrayConvFloat32Cmd, NULL},
+	{"float64", NumArrayConvFloat64Cmd, NULL},
+	{"complex64", NumArrayConvComplex64Cmd, NULL},
+	{"complex128", NumArrayConvComplex128Cmd, NULL},
+
 	{"double", NumArrayConvDoubleCmd, NULL},
 	{"complex", NumArrayConvComplexCmd, NULL},
 	/* elementary manipulations of complex values*/
@@ -1686,7 +1691,7 @@ int NumArrayConv ## TYPE ## Cmd(\
 	return TCL_OK;\
 }
 
-MAP(CONVERTER, Int8, Uint8, Int16, Uint16, Int32, Uint32, Int64, Uint64)
+MAP(CONVERTER, Int8, Uint8, Int16, Uint16, Int32, Uint32, Int64, Uint64, Float32, Float64, Complex64, Complex128)
 
 #undef CONVERTER
 /* createNumArraySharedBufferFromTypedList
@@ -1918,6 +1923,15 @@ static void UpdateStringOfNumArray(Tcl_Obj *naPtr) {
 
 			MAP(PRINTFIXEDINT, NA_FIXEDINTEGERS) // TODO Wrong for (u)int64_t. How to do that correctly???
 
+			case NumArray_Float32:
+				{
+					char dblbuf[TCL_DOUBLE_SPACE+1];
+					float elptr = *(float *) (baseptr[nDim-1]);
+					Tcl_PrintDouble(NULL, elptr, dblbuf);
+					Tcl_DStringAppendElement(&srep, dblbuf);
+					Tcl_DStringAppend(&srep, "f", 1);
+					break;
+				}
 			case NumArray_Float64:
 				{
 					char dblbuf[TCL_DOUBLE_SPACE];

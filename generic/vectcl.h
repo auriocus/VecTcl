@@ -80,6 +80,7 @@ typedef enum {
 	NumArray_Uint64
 
 #define NA_INTEGERS NumArray_Int, NA_FIXEDINTEGERS
+#define NA_REALS NA_INTEGERS, NumArray_Float32, NumArray_Float64
 
 
 
