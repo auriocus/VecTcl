@@ -167,7 +167,7 @@ AR		= @AR@
 CFLAGS		= @CFLAGS@
 COMPILE		= $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 
-.SUFFIXES: .c .$(OBJEXT)
+.SUFFIXES: .c .$(OBJEXT) .tcl.c .h .tcl.h
 
 #========================================================================
 # Start of user-definable TARGETS section
@@ -263,8 +263,6 @@ valgrind: binaries libraries
 valgrindshell: binaries libraries
 	$(TCLSH_ENV) valgrind $(VALGRINDARGS) $(TCLSH_PROG) $(SCRIPT)
 
-depend:
-
 #========================================================================
 # $(PKG_LIB_FILE) should be listed as part of the BINARIES variable
 # mentioned above.  That will ensure that this target is built when you
@@ -311,6 +309,25 @@ generic/vmparserules.h: generic/vexpr.peg
 	$(TCLSH_ENV) $(TCLSH_PROG) tools/parsergen.tcl $< $@
 
 vmparser.$(OBJEXT): generic/vmparserules.h
+
+%.c: %.tcl.c generic/defs.tcl
+	echo "Expanding" $< "to" $@
+	$(TCLSH_ENV) $(TCLSH_PROG) tools/expand.tcl $< $@
+
+%.h: %.tcl.h generic/defs.tcl
+	echo "Expanding" $< "to" $@
+	$(TCLSH_ENV) $(TCLSH_PROG) tools/expand.tcl $< $@
+
+deps = $(PKG_SOURCES:.c=.d) 
+
+depend: $(deps)
+
+%.d: %.c
+	rm -f $@
+	$(CC) $(CFLAGS) -MM $^ -MF $@;
+
+-include $(deps)
+
 
 #========================================================================
 # Distribution creation
@@ -366,7 +383,7 @@ dist: dist-clean
 
 clean:
 	-test -z "$(BINARIES)" || rm -f $(BINARIES)
-	-rm -f *.$(OBJEXT) core *.core
+	-rm -f *.$(OBJEXT) core *.core $(deps)
 	-test -z "$(CLEANFILES)" || rm -f $(CLEANFILES)
 
 distclean: clean

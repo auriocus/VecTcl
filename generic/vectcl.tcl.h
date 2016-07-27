@@ -31,22 +31,14 @@ typedef long int NaWideInt;
 /* Possible datatypes */
 typedef enum {
 	NumArray_NoType=-1,
-NumArray_Int=0,
-		NumArray_Int8=1,
-		NumArray_Uint8=2,
-		NumArray_Int16=3,
-		NumArray_Uint16=4,
-		NumArray_Int32=5,
-		NumArray_Uint32=6,
-		NumArray_Int64=7,
-		NumArray_Uint64=8,
-		NumArray_Float32=9,
-		NumArray_Float64=10,
-		NumArray_Complex64=11,
-		NumArray_Complex128=12,
-		NumArray_Tcl_Obj=13,
-		
-	NumArray_SentinelType=14
+${	set i 0
+	foreach t $NA_ALLTYPES {
+		C {${set t$}=${set i$},
+		}
+		incr i
+	}
+$}
+	NumArray_SentinelType=${set i$}
 
 } NumArrayType;
 
