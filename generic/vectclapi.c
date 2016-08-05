@@ -44,7 +44,7 @@ size_t NumArrayType_SizeOf(NumArrayType type) {
 #define TYPESIZE(X) case X: return sizeof(C_FROM_NATYPE(X));
 
 	switch (type) {
-		MAP(TYPESIZE, NA_ALLTYPES) 
+		MAP(TYPESIZE, NA_NUMERICTYPES) 
 		default: 
 			printf("Error: unknown data type %d", type);
 			return 1;	
@@ -89,8 +89,8 @@ int NumArrayConvertToType(Tcl_Interp *interp, Tcl_Obj *naObj, NumArrayType type,
 			goto ready; \
 		}
 		
-	#define INNER(X) MAPARG(BUILTINCONV, X, NA_REALS)
-	#define OUTER MAP(INNER, NA_REALS)
+	#define INNER(X) MAPARG(BUILTINCONV, X, NA_REALTYPES)
+	#define OUTER MAP(INNER, NA_REALTYPES)
 	OUTER
 	#undef OUTER
 	#undef INNER
@@ -109,7 +109,7 @@ int NumArrayConvertToType(Tcl_Interp *interp, Tcl_Obj *naObj, NumArrayType type,
 			goto ready; \
 		}
 		
-	#define INNER(X) MAPARG(REAL2COMPLEXCONV, X, NA_REALS)
+	#define INNER(X) MAPARG(REAL2COMPLEXCONV, X, NA_REALTYPES)
 	#define OUTER MAP(INNER, NumArray_Complex64, NumArray_Complex128)
 	OUTER
 	#undef OUTER

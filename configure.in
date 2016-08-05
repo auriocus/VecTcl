@@ -75,7 +75,7 @@ AC_CHECK_TYPES([ptrdiff_t])
 # and PKG_TCL_SOURCES.
 #-----------------------------------------------------------------------
 
-TEA_ADD_SOURCES([vectclapi.c vectcl.c linalg.c arrayshape.c nacomplex.c hsfft.c fft.c 
+TEA_ADD_SOURCES([vectclapi.c intconv.c vectcl.c linalg.c arrayshape.c nacomplex.c hsfft.c fft.c 
 				svd.c eig.c schur.c
 				bcexecute.c vmparser.c 
 				clapack_cutdown.c tcl_xerbla.c])

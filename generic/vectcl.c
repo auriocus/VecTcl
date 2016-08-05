@@ -11,6 +11,7 @@
 #include "schur.h"
 #include "bcexecute.h"
 #include "vmparser.h"
+#include "intconv.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -1903,25 +1904,80 @@ static void UpdateStringOfNumArray(Tcl_Obj *naPtr) {
 
 		/* Print this element */
 		switch (info -> type) {
-			case NumArray_Int:
+		/* handle integers */
+		
+			case NumArray_Int8:
 				{
-					char intbuf[TCL_INTEGER_SPACE];
-					long el = *((NaWideInt *) (baseptr[nDim-1]));
-					snprintf(intbuf, TCL_INTEGER_SPACE, "%ld", el);
+					char intbuf[NA_INTSPACE+5];
+					int64_t el = *((C_FROM_NATYPE(NumArray_Int8 *) (baseptr[nDim-1]));
+					format_int64(el, intbuf);
 					Tcl_DStringAppendElement(&srep, intbuf);
 					break;
 				}
-#define PRINTFIXEDINT(TYPE) \
-			case TYPE: \
-				{ \
-					char intbuf[TCL_INTEGER_SPACE+5];\
-					long el = *((C_FROM_NATYPE(TYPE) *) (baseptr[nDim-1]));\
-					snprintf(intbuf, TCL_INTEGER_SPACE+5, "%ld%s", el, NumArray_typesuffixes[TYPE]);\
-					Tcl_DStringAppendElement(&srep, intbuf);\
-					break;\
+				
+			case NumArray_Uint8:
+				{
+					char intbuf[NA_INTSPACE+5];
+					uint64_t el = *((C_FROM_NATYPE(NumArray_Uint8 *) (baseptr[nDim-1]));
+					format_uint64(el, intbuf);
+					Tcl_DStringAppendElement(&srep, intbuf);
+					break;
 				}
-
-			MAP(PRINTFIXEDINT, NA_FIXEDINTEGERS) // TODO Wrong for (u)int64_t. How to do that correctly???
+				
+			case NumArray_Int16:
+				{
+					char intbuf[NA_INTSPACE+5];
+					int64_t el = *((C_FROM_NATYPE(NumArray_Int16 *) (baseptr[nDim-1]));
+					format_int64(el, intbuf);
+					Tcl_DStringAppendElement(&srep, intbuf);
+					break;
+				}
+				
+			case NumArray_Uint16:
+				{
+					char intbuf[NA_INTSPACE+5];
+					uint64_t el = *((C_FROM_NATYPE(NumArray_Uint16 *) (baseptr[nDim-1]));
+					format_uint64(el, intbuf);
+					Tcl_DStringAppendElement(&srep, intbuf);
+					break;
+				}
+				
+			case NumArray_Int32:
+				{
+					char intbuf[NA_INTSPACE+5];
+					int64_t el = *((C_FROM_NATYPE(NumArray_Int32 *) (baseptr[nDim-1]));
+					format_int64(el, intbuf);
+					Tcl_DStringAppendElement(&srep, intbuf);
+					break;
+				}
+				
+			case NumArray_Uint32:
+				{
+					char intbuf[NA_INTSPACE+5];
+					uint64_t el = *((C_FROM_NATYPE(NumArray_Uint32 *) (baseptr[nDim-1]));
+					format_uint64(el, intbuf);
+					Tcl_DStringAppendElement(&srep, intbuf);
+					break;
+				}
+				
+			case NumArray_Int64:
+				{
+					char intbuf[NA_INTSPACE+5];
+					int64_t el = *((C_FROM_NATYPE(NumArray_Int64 *) (baseptr[nDim-1]));
+					format_int64(el, intbuf);
+					Tcl_DStringAppendElement(&srep, intbuf);
+					break;
+				}
+				
+			case NumArray_Uint64:
+				{
+					char intbuf[NA_INTSPACE+5];
+					uint64_t el = *((C_FROM_NATYPE(NumArray_Uint64 *) (baseptr[nDim-1]));
+					format_uint64(el, intbuf);
+					Tcl_DStringAppendElement(&srep, intbuf);
+					break;
+				}
+				
 
 			case NumArray_Float32:
 				{

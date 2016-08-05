@@ -42,38 +42,23 @@ $}
 
 } NumArrayType;
 
-#define NUMARRAYTYPESTRINGS {"int", "int8", "uint8", "int16", "uint16", \
-	"int32", "uint32", "int64", "uint64", "float", "double", "complex64", "complex128", "Tcl_Obj", "Sentinel" }
+#define NUMARRAYTYPESTRINGS {\
+${ 
+join [lmap x [dict values $NA_TO_VECTCLTYPE] {cquote $x}] ", " 
+$} , "Sentinel" }
 
 #define NUMARRAYTYPESUFFIXES {"", "i8", "u8", "i16", "u16", "i32", "u32", "i64", "u64", "f", "", "f", "", "", "" }
 
-#define NA_ALLTYPES \
-	NumArray_Int, \
-	NumArray_Int8, \
-	NumArray_Uint8,\
-	NumArray_Int16,\
-	NumArray_Uint16,\
-	NumArray_Int32,\
-	NumArray_Uint32,\
-	NumArray_Int64,\
-	NumArray_Uint64,\
-	NumArray_Float32,\
-	NumArray_Float64,\
-	NumArray_Complex64,\
-	NumArray_Complex128
+#define NA_ALLTYPES ${join $NA_ALLTYPES ", "$}
 
-#define NA_FIXEDINTEGERS \
-	NumArray_Int8, \
-	NumArray_Uint8,\
-	NumArray_Int16,\
-	NumArray_Uint16,\
-	NumArray_Int32,\
-	NumArray_Uint32,\
-	NumArray_Int64,\
-	NumArray_Uint64
+#define NA_NUMERICTYPES ${join $NA_NUMERICTYPES ", " $}
 
-#define NA_INTEGERS NumArray_Int, NA_FIXEDINTEGERS
-#define NA_REALS NA_INTEGERS, NumArray_Float32, NumArray_Float64
+#define NA_FIXEDINTEGERS ${join $NA_FIXEDINTEGERS ", "$}
+
+#define NA_INTEGERS ${join $NA_INTEGERS ", " $}
+
+#define NA_REALTYPES ${join $NA_REALTYPES ", " $}
+
 
 
 
