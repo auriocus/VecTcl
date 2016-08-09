@@ -21,6 +21,7 @@ $expander setbrackets "\${" "\$}"
 
 proc C {text} {
 	$::expander cappend [$::expander expand $text]
+	return ""
 }
 
 source [file join $templatepath defs.tcl]
