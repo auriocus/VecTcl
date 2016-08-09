@@ -47,7 +47,7 @@ ${
 join [lmap x [dict values $NA_TO_VECTCLTYPE] {cquote $x}] ", " 
 $} , "Sentinel" }
 
-#define NUMARRAYTYPESUFFIXES {"", "i8", "u8", "i16", "u16", "i32", "u32", "i64", "u64", "f", "", "f", "", "", "" }
+#define MAX_SUFFIX 5
 
 #define NA_ALLTYPES ${join $NA_ALLTYPES ", "$}
 

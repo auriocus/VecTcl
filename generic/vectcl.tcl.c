@@ -1905,97 +1905,38 @@ static void UpdateStringOfNumArray(Tcl_Obj *naPtr) {
 		/* Print this element */
 		switch (info -> type) {
 		/* handle integers */
-		
-			case NumArray_Int:
+		${ 
+			foreach type $NA_INTEGERS {
+				if {$type in $NA_SIGNEDINTEGERS} {
+					set ctype int64_t
+					set fmtproc format_int64
+				} else {
+					set ctype uint64_t
+					set fmtproc format_uint64
+				}
+				if {$type in $NA_FIXEDINTEGERS} {
+					set suffix [dict get $NA_TYPESUFFIXES $type]
+				} else {
+					set suffix ""
+				}
+
+				C {
+			case ${= type$}:
 				{
 					char intbuf[NA_INTSPACE+MAX_SUFFIX];
-					int64_t el = *(NaWideInt *) (baseptr[nDim-1]);
-					int len = format_int64(el, intbuf);
-					
+					${= ctype$} el = *(${dict get $NA_TO_CTYPE $type$} *) (baseptr[nDim-1]);
+					int len = ${= fmtproc$}(el, intbuf);
+					${ 
+						if {$suffix ne ""} {
+							C { strncpy(intbuf+len, ${cquote $suffix$}, MAX_SUFFIX); }
+						}
+					$}
 					Tcl_DStringAppendElement(&srep, intbuf);
 					break;
 				}
-				
-			case NumArray_Int8:
-				{
-					char intbuf[NA_INTSPACE+MAX_SUFFIX];
-					int64_t el = *(int8_t *) (baseptr[nDim-1]);
-					int len = format_int64(el, intbuf);
-					 strncpy(intbuf+len, "i8", MAX_SUFFIX); 
-					Tcl_DStringAppendElement(&srep, intbuf);
-					break;
 				}
-				
-			case NumArray_Uint8:
-				{
-					char intbuf[NA_INTSPACE+MAX_SUFFIX];
-					uint64_t el = *(uint8_t *) (baseptr[nDim-1]);
-					int len = format_uint64(el, intbuf);
-					 strncpy(intbuf+len, "u8", MAX_SUFFIX); 
-					Tcl_DStringAppendElement(&srep, intbuf);
-					break;
-				}
-				
-			case NumArray_Int16:
-				{
-					char intbuf[NA_INTSPACE+MAX_SUFFIX];
-					int64_t el = *(int16_t *) (baseptr[nDim-1]);
-					int len = format_int64(el, intbuf);
-					 strncpy(intbuf+len, "i16", MAX_SUFFIX); 
-					Tcl_DStringAppendElement(&srep, intbuf);
-					break;
-				}
-				
-			case NumArray_Uint16:
-				{
-					char intbuf[NA_INTSPACE+MAX_SUFFIX];
-					uint64_t el = *(uint16_t *) (baseptr[nDim-1]);
-					int len = format_uint64(el, intbuf);
-					 strncpy(intbuf+len, "u16", MAX_SUFFIX); 
-					Tcl_DStringAppendElement(&srep, intbuf);
-					break;
-				}
-				
-			case NumArray_Int32:
-				{
-					char intbuf[NA_INTSPACE+MAX_SUFFIX];
-					int64_t el = *(int32_t *) (baseptr[nDim-1]);
-					int len = format_int64(el, intbuf);
-					 strncpy(intbuf+len, "i32", MAX_SUFFIX); 
-					Tcl_DStringAppendElement(&srep, intbuf);
-					break;
-				}
-				
-			case NumArray_Uint32:
-				{
-					char intbuf[NA_INTSPACE+MAX_SUFFIX];
-					uint64_t el = *(uint32_t *) (baseptr[nDim-1]);
-					int len = format_uint64(el, intbuf);
-					 strncpy(intbuf+len, "u32", MAX_SUFFIX); 
-					Tcl_DStringAppendElement(&srep, intbuf);
-					break;
-				}
-				
-			case NumArray_Int64:
-				{
-					char intbuf[NA_INTSPACE+MAX_SUFFIX];
-					int64_t el = *(int64_t *) (baseptr[nDim-1]);
-					int len = format_int64(el, intbuf);
-					 strncpy(intbuf+len, "i64", MAX_SUFFIX); 
-					Tcl_DStringAppendElement(&srep, intbuf);
-					break;
-				}
-				
-			case NumArray_Uint64:
-				{
-					char intbuf[NA_INTSPACE+MAX_SUFFIX];
-					uint64_t el = *(uint64_t *) (baseptr[nDim-1]);
-					int len = format_uint64(el, intbuf);
-					 strncpy(intbuf+len, "u64", MAX_SUFFIX); 
-					Tcl_DStringAppendElement(&srep, intbuf);
-					break;
-				}
-				
+			}
+		$}
 
 			case NumArray_Float32:
 				{

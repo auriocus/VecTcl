@@ -472,3 +472,155 @@ test datatypes boolean-13 -body {
 	
 } -result {1 1 0 1}
 
+test datatypes fixed-1 -body {
+	 vexpr {uint8(5)} 
+} -result 5u8
+
+test datatypes fixed-2 -body {
+	 vexpr {uint8(-5)} 
+} -result 251u8
+
+test datatypes fixed-3 -body {
+	 vexpr {uint8(127)} 
+} -result 127u8
+
+test datatypes fixed-4 -body {
+	 vexpr {uint8(255)} 
+} -result 255u8
+
+test datatypes fixed-5 -body {
+	 vexpr {uint8(256)} 
+} -result 0u8
+
+test datatypes fixed-6 -body {
+	 vexpr {int8(5)} 
+} -result 5i8
+
+test datatypes fixed-7 -body {
+	 vexpr {int8(127)} 
+} -result 127i8
+
+test datatypes fixed-8 -body {
+	 vexpr {int8(128)} 
+} -result -128i8
+
+test datatypes fixed-9 -body {
+	 vexpr {int8(256)} 
+} -result 0i8
+
+test datatypes fixed-10 -body {
+	 vexpr {int8(-5)} 
+} -result -5i8
+
+test datatypes fixed-11 -body {
+	 vexpr {int16(6)} 
+} -result 6i16
+
+test datatypes fixed-12 -body {
+	 vexpr {int16(32767)} 
+} -result 32767i16
+
+test datatypes fixed-13 -body {
+	 vexpr {int16(32768)} 
+} -result -32768i16
+
+test datatypes fixed-14 -body {
+	 vexpr {int16(32769)} 
+} -result -32767i16
+
+test datatypes fixed-15 -body {
+	 vexpr {int16(-3)} 
+} -result -3i16
+
+test datatypes fixed-16 -body {
+	 vexpr {int16(65536)} 
+} -result 0i16
+
+test datatypes fixed-17 -body {
+	 vexpr {int32(-3)} 
+} -result -3i32
+
+test datatypes fixed-18 -body {
+	 vexpr {int32(tcl::mathfunc::pow(2,31))} 
+} -result -2147483648i32
+
+test datatypes fixed-19 -body {
+	 vexpr {int32(tcl::mathfunc::pow(2,31)-1)} 
+} -result 2147483647i32
+
+test datatypes fixed-20 -body {
+	 vexpr {int32(tcl::mathfunc::pow(2,32))} 
+} -result -2147483648i32
+
+test datatypes fixed-21 -body {
+	vexpr {int32(tcl::mathfunc::entier(tcl::mathfunc::pow(2,32)))}
+} -result 0i32
+
+test datatypes fixed-22 -body {
+	vexpr {uint32(tcl::mathfunc::entier(tcl::mathfunc::pow(2,31)))}
+} -result 2147483648u32
+
+test datatypes fixed-23 -body {
+	vexpr {uint32(tcl::mathfunc::entier(tcl::mathfunc::pow(2,32)))}
+} -result 0u32
+
+test datatypes fixed-24 -body {
+	 vexpr {int64(5)} 
+} -result 5i64
+
+test datatypes fixed-25 -body {
+	 vexpr {int64(-5)} 
+} -result -5i64
+
+test datatypes fixed-26 -body {
+	 vexpr {int64(9223372036854775807)} 
+} -result 9223372036854775807i64
+
+test datatypes fixed-27 -body {
+	 vexpr {int64(9223372036854775808)} 
+} -result -9223372036854775808i64
+
+test datatypes fixed-28 -body {
+	 vexpr {int64(18446744073709551616)} 
+} -result 0i64
+
+test datatypes fixed-29 -body {
+	 set x [expr 2**64]
+	vexpr {int64(x)}
+	
+} -result 0i64
+
+test datatypes fixed-30 -body {
+	 set x [expr 2**64]
+	vexpr {uint64(x)}
+	
+} -result 0u64
+
+test datatypes fixed-31 -body {
+	
+	set x [expr 2**54+38]
+	vexpr {int64(x)}
+	
+} -result 18014398509482022i64
+
+test datatypes fixed-32 -body {
+	
+	set x [expr 2**63+38]
+	vexpr {int64(x)}
+	
+} -result -9223372036854775770i64
+
+test datatypes fixed-33 -body {
+	
+	set x [expr 2**54+38]
+	vexpr {uint64(x)}
+	
+} -result 18014398509482022u64
+
+test datatypes fixed-34 -body {
+	
+	set x [expr 2**63+38]
+	vexpr {uint64(x)}
+	
+} -result 9223372036854775846u64
+

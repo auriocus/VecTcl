@@ -25,13 +25,13 @@ const uint64_t powersoften[MAXDIGITS] = {
 	1000000000000000000u, 10000000000000000000u
 };
 
-void format_uint64(uint64_t val, char *s)
+int format_uint64(uint64_t val, char *s)
 {
     if(val==0)
     {
         s[0]='0';
 		s[1]='\0';
-        return;
+        return 1;
     }
 
     int size=1;
@@ -51,14 +51,15 @@ void format_uint64(uint64_t val, char *s)
         val /= 10;
     }
 	s[size]='\0';
+	return size;
 } 
 
-void format_int64(int64_t val, char *s) {
+int format_int64(int64_t val, char *s) {
 	if (val < 0) {
 		s[0]='-';
-		format_uint64(-val, s+1);
+		return format_uint64(-val, s+1)+1;
 	} else {
-		format_uint64(val, s);
+		return format_uint64(val, s);
 	}
 }
 

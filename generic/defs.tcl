@@ -43,6 +43,18 @@ set NA_UNSIGNEDINTEGERS {
 	NumArray_Uint64
 }
 
+set NA_TYPESUFFIXES {
+	NumArray_Int ""
+	NumArray_Int8 i8
+	NumArray_Int16 i16
+	NumArray_Int32 i32
+	NumArray_Int64 i64
+	NumArray_Uint8 u8
+	NumArray_Uint16 u16
+	NumArray_Uint32 u32
+	NumArray_Uint64 u64
+}
+
 set NA_INTEGERS [list NumArray_Int {*}$NA_FIXEDINTEGERS]
 set NA_REALFLOATS {NumArray_Float32 NumArray_Float64}
 
