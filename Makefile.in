@@ -300,7 +300,7 @@ $(PKG_STUB_LIB_FILE): $(PKG_STUB_OBJECTS)
 
 VPATH = $(srcdir):$(srcdir)/generic:$(srcdir)/unix:$(srcdir)/win:$(srcdir)/macosx
 
-.c.@OBJEXT@:
+%.@OBJEXT@: %.c
 	$(COMPILE) -c `@CYGPATH@ $<` -o $@
 
 # the parser must be created from the grammar, if it was changed
@@ -310,13 +310,13 @@ generic/vmparserules.h: generic/vexpr.peg
 
 vmparser.$(OBJEXT): generic/vmparserules.h
 
-%.c: %.tcl.c generic/defs.tcl
-	echo "Expanding" $< "to" $@
-	$(TCLSH_ENV) $(TCLSH_PROG) tools/expand.tcl $< $@
+$(srcdir)/generic/%.c: $(srcdir)/generic/%.tcl.c $(srcdir)/generic/defs.tcl
+	echo "Expanding" $< "to" $(<D)/$(@F)
+	$(TCLSH_ENV) $(TCLSH_PROG) tools/expand.tcl $< $(<D)/$(@F)
 
-%.h: %.tcl.h generic/defs.tcl
-	echo "Expanding" $< "to" $@
-	$(TCLSH_ENV) $(TCLSH_PROG) tools/expand.tcl $< $@
+$(srcdir)/generic/%.h: $(srcdir)/generic/%.tcl.h $(srcdir)/generic/defs.tcl
+	echo "Expanding" $< "to" $(<D)/$(@F)
+	$(TCLSH_ENV) $(TCLSH_PROG) tools/expand.tcl $< $(<D)/$(@F)
 
 deps = $(PKG_SOURCES:.c=.d) 
 
