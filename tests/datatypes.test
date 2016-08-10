@@ -624,3 +624,31 @@ test datatypes fixed-34 -body {
 	
 } -result 9223372036854775846u64
 
+test datatypes int-1 -body {
+	 vexpr {int(-10**10)} 
+} -result -10000000000
+
+test datatypes int-2 -body {
+	 vexpr {abs(int(-10**10))} 
+} -result 10000000000
+
+test datatypes bool-1 -body {
+	 vexpr {bool(0)} 
+} -result false
+
+test datatypes bool-2 -body {
+	 vexpr {bool(1)} 
+} -result true
+
+test datatypes bool-3 -body {
+	 vexpr {bool(10)} 
+} -result true
+
+test datatypes bool-4 -body {
+	 vexpr {bool(-10)} 
+} -result true
+
+test datatypes bool-5 -body {
+	 vexpr {bool({{0 1} {1 0}})} 
+} -result {{false true} {true false}}
+

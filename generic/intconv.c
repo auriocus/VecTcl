@@ -1,4 +1,5 @@
 #include "intconv.h"
+#include <string.h>
 
 const char digit_pairs[201] = {
   "00010203040506070809"
@@ -61,6 +62,16 @@ int format_int64(int64_t val, char *s) {
 	} else {
 		return format_uint64(val, s);
 	}
+}
+
+int format_bool(int val, char *s) {
+	if (val == 0) {
+		strcpy(s, "false");
+		return 5;
+	} else {
+		strcpy(s, "true");
+		return 4;
+	}	
 }
 
 /*

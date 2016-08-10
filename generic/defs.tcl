@@ -13,6 +13,7 @@ set typetable {
 	NumArray_Float64 double double
 	NumArray_Complex64 NumArray_ComplexFloat complex64
 	NumArray_Complex128 NumArray_Complex complex128
+	NumArray_Bool int bool
 	NumArray_Tcl_Obj Tcl_Obj* value
 }
 
@@ -55,7 +56,7 @@ set NA_TYPESUFFIXES {
 	NumArray_Uint64 u64
 }
 
-set NA_INTEGERS [list NumArray_Int {*}$NA_FIXEDINTEGERS]
+set NA_INTEGERS [list NumArray_Int NumArray_Bool {*}$NA_FIXEDINTEGERS]
 set NA_REALFLOATS {NumArray_Float32 NumArray_Float64}
 
 set NA_REALTYPES [list {*}$NA_INTEGERS {*}$NA_REALFLOATS]

@@ -174,6 +174,7 @@ static const EnsembleMap implementationMap[] = {
 	{"diag", NumArrayDiagCmd, NULL},
 	/* data type conversion operators */
 	{"int", NumArrayConvIntCmd, NULL},
+	{"bool", NumArrayConvBoolCmd, NULL},
 	{"int8", NumArrayConvInt8Cmd, NULL},
 	{"uint8", NumArrayConvUint8Cmd, NULL},
 	{"int16", NumArrayConvInt16Cmd, NULL},
@@ -1692,7 +1693,7 @@ int NumArrayConv ## TYPE ## Cmd(\
 	return TCL_OK;\
 }
 
-MAP(CONVERTER, Int8, Uint8, Int16, Uint16, Int32, Uint32, Int64, Uint64, Float32, Float64, Complex64, Complex128)
+MAP(CONVERTER, Int8, Uint8, Int16, Uint16, Int32, Uint32, Int64, Uint64, Float32, Float64, Complex64, Complex128, Bool)
 
 #undef CONVERTER
 /* createNumArraySharedBufferFromTypedList
@@ -1918,6 +1919,11 @@ static void UpdateStringOfNumArray(Tcl_Obj *naPtr) {
 					set suffix [dict get $NA_TYPESUFFIXES $type]
 				} else {
 					set suffix ""
+				}
+
+				if {$type == "NumArray_Bool"} {
+					set suffix ""
+					set fmtproc format_bool
 				}
 
 				C {
@@ -2325,7 +2331,7 @@ static inline double fsign(double x) {
 
 #define CMD NumArrayAbs
 #define INTRES NaWideInt
-#define INTOP *result = abs(op);
+#define INTOP *result = labs(op);
 #define DBLRES double
 #define DBLOP *result = fabs(op);
 #define CPLXRES double

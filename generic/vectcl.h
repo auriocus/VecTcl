@@ -44,26 +44,27 @@ NumArray_Int=0,
 		NumArray_Float64=10,
 		NumArray_Complex64=11,
 		NumArray_Complex128=12,
-		NumArray_Tcl_Obj=13,
+		NumArray_Bool=13,
+		NumArray_Tcl_Obj=14,
 		
-	NumArray_SentinelType=14
+	NumArray_SentinelType=15
 
 } NumArrayType;
 
 #define NUMARRAYTYPESTRINGS {\
-"int", "int8", "uint8", "int16", "uint16", "int32", "uint32", "int64", "uint64", "float", "double", "complex64", "complex128", "value" , "Sentinel" }
+"int", "int8", "uint8", "int16", "uint16", "int32", "uint32", "int64", "uint64", "float", "double", "complex64", "complex128", "bool", "value" , "Sentinel" }
 
 #define MAX_SUFFIX 5
 
-#define NA_ALLTYPES NumArray_Int, NumArray_Int8, NumArray_Uint8, NumArray_Int16, NumArray_Uint16, NumArray_Int32, NumArray_Uint32, NumArray_Int64, NumArray_Uint64, NumArray_Float32, NumArray_Float64, NumArray_Complex64, NumArray_Complex128, NumArray_Tcl_Obj
+#define NA_ALLTYPES NumArray_Int, NumArray_Int8, NumArray_Uint8, NumArray_Int16, NumArray_Uint16, NumArray_Int32, NumArray_Uint32, NumArray_Int64, NumArray_Uint64, NumArray_Float32, NumArray_Float64, NumArray_Complex64, NumArray_Complex128, NumArray_Bool, NumArray_Tcl_Obj
 
-#define NA_NUMERICTYPES NumArray_Int, NumArray_Int8, NumArray_Uint8, NumArray_Int16, NumArray_Uint16, NumArray_Int32, NumArray_Uint32, NumArray_Int64, NumArray_Uint64, NumArray_Float32, NumArray_Float64, NumArray_Complex64, NumArray_Complex128
+#define NA_NUMERICTYPES NumArray_Int, NumArray_Int8, NumArray_Uint8, NumArray_Int16, NumArray_Uint16, NumArray_Int32, NumArray_Uint32, NumArray_Int64, NumArray_Uint64, NumArray_Float32, NumArray_Float64, NumArray_Complex64, NumArray_Complex128, NumArray_Bool
 
 #define NA_FIXEDINTEGERS NumArray_Int8, NumArray_Uint8, NumArray_Int16, NumArray_Uint16, NumArray_Int32, NumArray_Uint32, NumArray_Int64, NumArray_Uint64
 
-#define NA_INTEGERS NumArray_Int, NumArray_Int8, NumArray_Uint8, NumArray_Int16, NumArray_Uint16, NumArray_Int32, NumArray_Uint32, NumArray_Int64, NumArray_Uint64
+#define NA_INTEGERS NumArray_Int, NumArray_Bool, NumArray_Int8, NumArray_Uint8, NumArray_Int16, NumArray_Uint16, NumArray_Int32, NumArray_Uint32, NumArray_Int64, NumArray_Uint64
 
-#define NA_REALTYPES NumArray_Int, NumArray_Int8, NumArray_Uint8, NumArray_Int16, NumArray_Uint16, NumArray_Int32, NumArray_Uint32, NumArray_Int64, NumArray_Uint64, NumArray_Float32, NumArray_Float64
+#define NA_REALTYPES NumArray_Int, NumArray_Bool, NumArray_Int8, NumArray_Uint8, NumArray_Int16, NumArray_Uint16, NumArray_Int32, NumArray_Uint32, NumArray_Int64, NumArray_Uint64, NumArray_Float32, NumArray_Float64
 
 
 

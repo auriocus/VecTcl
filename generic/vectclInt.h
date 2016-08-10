@@ -22,6 +22,7 @@ extern const char * NumArray_typesuffixes[NumArray_SentinelType+1];
  * Convert between C type and numeric array type */
 
 #define C_FROM_NATYPE_NumArray_Int NaWideInt
+#define C_FROM_NATYPE_NumArray_Bool int
 #define C_FROM_NATYPE_NumArray_Int8 int8_t
 #define C_FROM_NATYPE_NumArray_Uint8 uint8_t
 #define C_FROM_NATYPE_NumArray_Int16 int16_t
@@ -109,7 +110,7 @@ SUBCOMMAND(NumArrayFastAddCmd);
 SUBCOMMAND(NumArrayLinRegCmd);
 SUBCOMMAND(NumArrayConvIntCmd);
 #define CONVERTER(X) SUBCOMMAND(NumArrayConv ## X ## Cmd);
-MAP(CONVERTER, Int8, Uint8, Int16, Uint16, Int32, Uint32, Int64, Uint64, Float32, Float64, Complex64, Complex128)
+MAP(CONVERTER, Bool, Int8, Uint8, Int16, Uint16, Int32, Uint32, Int64, Uint64, Float32, Float64, Complex64, Complex128)
 #undef CONVERTER
 SUBCOMMAND(NumArrayConvDoubleCmd);
 SUBCOMMAND(NumArrayConvComplexCmd);
