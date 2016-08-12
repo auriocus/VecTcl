@@ -35,6 +35,13 @@ static inline NumArray_Complex NumArray_mkComplex(double re, double im) {
 	return result;
 }
 
+static inline NumArray_ComplexFloat NumArray_mkComplexFloat(float re, float im) {
+	NumArray_ComplexFloat result;
+	result.re = re;
+	result.im = im;
+	return result;
+}
+
 /* arithmetic operations */
 static inline NumArray_Complex NumArray_ComplexNeg(NumArray_Complex c) {
 	NumArray_Complex result;

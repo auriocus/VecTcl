@@ -5398,7 +5398,7 @@ fi
 #-----------------------------------------------------------------------
 
 
-    vars="vectclapi.c intconv.c vectcl.c linalg.c arrayshape.c nacomplex.c hsfft.c fft.c
+    vars="vectclapi.c intconv.c vectcl.c compathack.c linalg.c arrayshape.c nacomplex.c hsfft.c fft.c
 				svd.c eig.c schur.c
 				bcexecute.c vmparser.c
 				clapack_cutdown.c tcl_xerbla.c"

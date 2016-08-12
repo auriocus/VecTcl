@@ -31,20 +31,20 @@ typedef long int NaWideInt;
 /* Possible datatypes */
 typedef enum {
 	NumArray_NoType=-1,
-NumArray_Int=0,
-		NumArray_Int8=1,
-		NumArray_Uint8=2,
-		NumArray_Int16=3,
-		NumArray_Uint16=4,
-		NumArray_Int32=5,
-		NumArray_Uint32=6,
-		NumArray_Int64=7,
-		NumArray_Uint64=8,
-		NumArray_Float32=9,
-		NumArray_Float64=10,
-		NumArray_Complex64=11,
-		NumArray_Complex128=12,
-		NumArray_Bool=13,
+NumArray_Bool=0,
+		NumArray_Int=1,
+		NumArray_Int8=2,
+		NumArray_Uint8=3,
+		NumArray_Int16=4,
+		NumArray_Uint16=5,
+		NumArray_Int32=6,
+		NumArray_Uint32=7,
+		NumArray_Int64=8,
+		NumArray_Uint64=9,
+		NumArray_Float32=10,
+		NumArray_Float64=11,
+		NumArray_Complex64=12,
+		NumArray_Complex128=13,
 		NumArray_Tcl_Obj=14,
 		
 	NumArray_SentinelType=15
@@ -52,13 +52,13 @@ NumArray_Int=0,
 } NumArrayType;
 
 #define NUMARRAYTYPESTRINGS {\
-"int", "int8", "uint8", "int16", "uint16", "int32", "uint32", "int64", "uint64", "float", "double", "complex64", "complex128", "bool", "value" , "Sentinel" }
+"bool", "int", "int8", "uint8", "int16", "uint16", "int32", "uint32", "int64", "uint64", "float", "double", "complex64", "complex128", "value" , "Sentinel" }
 
 #define MAX_SUFFIX 5
 
-#define NA_ALLTYPES NumArray_Int, NumArray_Int8, NumArray_Uint8, NumArray_Int16, NumArray_Uint16, NumArray_Int32, NumArray_Uint32, NumArray_Int64, NumArray_Uint64, NumArray_Float32, NumArray_Float64, NumArray_Complex64, NumArray_Complex128, NumArray_Bool, NumArray_Tcl_Obj
+#define NA_ALLTYPES NumArray_Bool, NumArray_Int, NumArray_Int8, NumArray_Uint8, NumArray_Int16, NumArray_Uint16, NumArray_Int32, NumArray_Uint32, NumArray_Int64, NumArray_Uint64, NumArray_Float32, NumArray_Float64, NumArray_Complex64, NumArray_Complex128, NumArray_Tcl_Obj
 
-#define NA_NUMERICTYPES NumArray_Int, NumArray_Int8, NumArray_Uint8, NumArray_Int16, NumArray_Uint16, NumArray_Int32, NumArray_Uint32, NumArray_Int64, NumArray_Uint64, NumArray_Float32, NumArray_Float64, NumArray_Complex64, NumArray_Complex128, NumArray_Bool
+#define NA_NUMERICTYPES NumArray_Bool, NumArray_Int, NumArray_Int8, NumArray_Uint8, NumArray_Int16, NumArray_Uint16, NumArray_Int32, NumArray_Uint32, NumArray_Int64, NumArray_Uint64, NumArray_Float32, NumArray_Float64, NumArray_Complex64, NumArray_Complex128
 
 #define NA_FIXEDINTEGERS NumArray_Int8, NumArray_Uint8, NumArray_Int16, NumArray_Uint16, NumArray_Int32, NumArray_Uint32, NumArray_Int64, NumArray_Uint64
 

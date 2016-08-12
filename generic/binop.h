@@ -2,6 +2,7 @@
  * it defines an elementwise binary operator
  * which works by iterating over all elements
  * for compatible operands */
+#include "compathack.h"
 #ifndef BINOP_LOOP
 typedef int (binop_loop_fun) (Tcl_Obj *naObj1, Tcl_Obj *naObj2, Tcl_Obj **resultObj);
 #define BINOP_LOOP_FUN(C, T1, T2) BINOP_LOOP_FUN1(C, T1, T2)
@@ -83,10 +84,8 @@ int CMD(Tcl_Obj* naObj1, Tcl_Obj* naObj2, Tcl_Obj **resultObj) {
 	info2 = naObj2->internalRep.twoPtrValue.ptr2;
 	/* map to int,double,complex - workaround
 	 * until we have the real implementation */
-	const NumArrayType map[NumArray_SentinelType] = 
-		{0,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,-1,2,-1};
-	int ind1=map[info1->type];
-	int ind2=map[info2->type];
+	int ind1=NumArrayCompatTypeMap[info1->type];
+	int ind2=NumArrayCompatTypeMap[info2->type];
 	if (ind1 < 0 || ind2 < 0) {
 		*resultObj = Tcl_ObjPrintf("Operator undefined for types %s, %s", NumArray_typename[info1->type], NumArray_typename[info2->type]);
 		return TCL_ERROR;
