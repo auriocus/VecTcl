@@ -100,11 +100,22 @@ int CMD(
 		if (NumArrayInfoSlice(interp, info, objv[2], &sliceinfo) != TCL_OK) {
 			goto cleanobj;
 		}
+		/* note - due to value (esp. literal) sharing it can happen that parsing the slice 
+		 * shimmers value back to a different type. Therefore we must ensure that 
+		 * value and naObj are numeric arrays. Perverse example: x[x] = x
+		 * naObj is never shared at this point */
+
+		if (Tcl_ConvertToType(interp, value, &NumArrayTclType) != TCL_OK) {
+			/* if an error occurs here, there is a refcounting bug */
+			goto cleanobj;
+		}
+		valueinfo = value -> internalRep.twoPtrValue.ptr2;
+		
 	} else {
 		/* No slicing. Take the full array */
 		sliceinfo = info;
 	}
-
+	
 	/* Check if dimensions are compatible. Also holds if value is scalar */
 	if (!NumArrayCompatibleDimensions(sliceinfo, valueinfo) && !ISSCALARINFO(valueinfo)) {
 		Tcl_SetResult(interp, "Dimension mismatch", NULL);
