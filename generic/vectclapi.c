@@ -825,7 +825,7 @@ NumArray_ValueType NumArrayIteratorDeRefValue(NumArrayIterator *it) {
 			value.value.Float64 = *((double*) (it->ptr));
 			return value;
 		case NumArray_Complex128:
-			value.value.Complex = *((NumArray_Complex*) (it->ptr));
+			value.value.Complex128 = *((NumArray_Complex*) (it->ptr));
 			return value;
 		default:
 			printf("Unknown data type in array %d", value.type);
@@ -960,7 +960,7 @@ int NumArraySetValue(NumArrayInfo *destinfo, NumArraySharedBuffer *destbuf, NumA
 			cplxvalue.re = value.value.Float64;
 			cplxvalue.im = 0.0;
 		} else if (value.type == NumArray_Complex128) {
-			cplxvalue = value.value.Complex;
+			cplxvalue = value.value.Complex128;
 		} else {
 			goto cleanit;
 		}
@@ -1005,7 +1005,7 @@ int NumArrayGetScalarValueFromObj(Tcl_Interp *interp, Tcl_Obj* naObj, NumArray_V
 				value->value.Float64 = *((double*) bufptr);
 				break;
 			case NumArray_Complex128:
-				value->value.Complex = *((NumArray_Complex*) bufptr);
+				value->value.Complex128 = *((NumArray_Complex*) bufptr);
 				break;
 			default:
 				Tcl_SetResult(interp, "Unknown data type in array", NULL);

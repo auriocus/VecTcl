@@ -76,7 +76,7 @@ typedef struct {
 	union {
 		NaWideInt Int;
 		double Float64;
-		NumArray_Complex Complex;
+		NumArray_Complex Complex128;
 	} value;
 } NumArray_ValueType;
 
