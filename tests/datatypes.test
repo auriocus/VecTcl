@@ -257,7 +257,7 @@ test datatypes reduction-3 -body {
 	
 	vexpr {min({7.0 5.0 3.0 1.0 10.0+1i})}
 	
-} -result {Undefined function for datatype complex} -returnCodes 1
+} -result {Undefined function for datatype complex128} -returnCodes 1
 
 test datatypes reduction-4 -body {
 	

@@ -420,7 +420,7 @@ static inline double d_mod(doublereal *x, doublereal *y)
 	double xa, ya, z;
 	if ((ya = *y) < 0.)
 		ya = -ya;
-	z = drem(xa = *x, ya);
+	z = remainder(xa = *x, ya);
 	if (xa > 0) {
 		if (z < 0)
 			z += ya;
@@ -1135,7 +1135,7 @@ static inline double r_mod(real *x, real *y)
 	double xa, ya, z;
 	if ((ya = *y) < 0.)
 		ya = -ya;
-	z = drem(xa = *x, ya);
+	z = remainder(xa = *x, ya);
 	if (xa > 0) {
 		if (z < 0)
 			z += ya;
