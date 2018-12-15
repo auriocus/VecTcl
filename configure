@@ -5436,7 +5436,7 @@ fi
 
 
 
-    vars="generic/vectcl.h generic/nacomplex.h generic/hsfft.h"
+    vars="generic/vectcl.h generic/nacomplex.h generic/hsfft.h generic/map.h"
     for i in $vars; do
 	# check for existence, be strict because it is installed
 	if test ! -f "${srcdir}/$i" ; then
