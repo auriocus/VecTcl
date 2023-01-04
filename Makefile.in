@@ -217,11 +217,11 @@ install-binaries: binaries install-lib-binaries install-bin-binaries
 #========================================================================
 
 install-libraries: libraries
-	@$(INSTALL_DATA_DIR) $(DESTDIR)$(includedir)
-	@echo "Installing header files in $(DESTDIR)$(includedir)"
+	@$(INSTALL_DATA_DIR) $(DESTDIR)$(pkgincludedir)
+	@echo "Installing header files in $(DESTDIR)$(pkgincludedir)"
 	@list='$(PKG_HEADERS)'; for i in $$list; do \
 	    echo "Installing $(srcdir)/$$i" ; \
-	    $(INSTALL_DATA) $(srcdir)/$$i $(DESTDIR)$(includedir) ; \
+	    $(INSTALL_DATA) $(srcdir)/$$i $(DESTDIR)$(pkgincludedir) ; \
 	done;
 
 #========================================================================
